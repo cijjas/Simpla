@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=normativa
+      - POSTGRES_PASSWORD=securepassword
+      - POSTGRES_DB=normativa_legal
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U normativa']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    ports:
+      - '8000:8000'
+    environment:
+      - DATABASE_URL=postgresql://normativa:securepassword@postgres:5432/normativa_legal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+
+  loader:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile # reuse backend image
+    command:
+      python scripts/import_data.py
+      /data/base-infoleg-normativa-nacional-muestreo.csv
+    volumes:
+      - ./data:/data:ro
+    environment:
+      - DATABASE_URL=postgresql://normativa:securepassword@postgres:5432/normativa_legal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
