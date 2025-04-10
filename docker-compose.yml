@@ -22,6 +22,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./backend:/app
+      - ./data:/app/data:ro
     ports:
       - '8000:8000'
     environment:
@@ -42,21 +43,6 @@ services:
       - '3000:3000'
     depends_on:
       - api
-
-  loader:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile # reuse backend image
-    command:
-      python scripts/import_data.py
-      /data/base-infoleg-normativa-nacional-muestreo.csv
-    volumes:
-      - ./data:/data:ro
-    environment:
-      - DATABASE_URL=postgresql://normativa:securepassword@postgres:5432/normativa_legal
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 volumes:
   postgres_data:

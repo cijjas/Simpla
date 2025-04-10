@@ -1,13 +1,13 @@
-FROM node:18-alpine
+FROM node:16-alpine
+
 WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci --omit=dev
+# Instalar dependencias - cambiamos npm ci por npm install
+COPY package.json ./
+RUN npm install
 
-COPY frontend .
-RUN npm run build
+# Copiar código fuente
+COPY . .
 
-# serve static files with a tiny server
-RUN npm i -g serve
-EXPOSE 3000
-CMD ["serve", "-s", "build", "-l", "3000"]
+# Comando para desarrollo
+CMD ["npm", "start"]
