@@ -1,4 +1,4 @@
-.PHONY: up down build logs shell-db shell-api import-data test clean import-infoleg cp-import
+.PHONY: up down build logs shell-db shell-api import-data test clean csv-to-db
 
 up:
 	docker-compose up -d
@@ -18,17 +18,14 @@ shell-db:
 shell-api:
 	docker-compose exec api bash
 
-shell-frontend:
+shell-front:
 	docker-compose exec frontend sh
 
 import-data:
 	docker-compose exec api python scripts/import_data.py
 
-import-infoleg:
+csv-to-db:
 	docker-compose exec api python scripts/import_data.py /app/data/base-infoleg-normativa-nacional-muestreo.csv
-
-cp-import:
-	docker cp ./backend/scripts/import_data.py simpla-api-1:/app/scripts/import_data.py
 
 test:
 	docker-compose exec api pytest
