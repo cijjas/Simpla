@@ -1,13 +1,21 @@
-FROM node:16-alpine
+# ./frontend/Dockerfile
+FROM node:23-alpine
 
 WORKDIR /app
 
-# Instalar dependencias - cambiamos npm ci por npm install
-COPY package.json ./
-RUN npm install
+# Install dependencies first (leverages Docker layer caching)
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Copiar código fuente
+# Copy the rest of the source
 COPY . .
 
-# Comando para desarrollo
-CMD ["npm", "start"]
+# ---------- Development image ----------
+# Expose port & run the dev server
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "-p", "3000", "-H", "0.0.0.0"]
+
+# ---------- Production (optional) ----------
+# If you later want a prod‑only image, add:
+# RUN npm run build
+# CMD ["npm", "start"]

@@ -1,0 +1,84 @@
+# Node modules (frontend & legacy frontend)
+**/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency locks (optional if using one package manager across the team)
+**/package-lock.json
+# OR:
+# **/yarn.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+
+# Virtual environments (if any)
+env/
+venv/
+.venv/
+
+# Python packaging
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# VS Code project settings
+.vscode/
+
+# Docker
+*.pid
+*.tar
+*.img
+*.bak
+
+# Compiled output / build artifacts
+**/.next/
+**/out/
+**/build/
+**/coverage/
+
+# .env files (if you use any secrets/config)
+.env
+.env.*
+
+# Data files
+data/*.csv
+backend/data/
+!data/.gitkeep         # Optional: keep the folder structure
+
+# Database init scripts (optional, if sensitive)
+# init-scripts/*.sql
+
+# System files
+*.swp
+*.swo
+*~
+
+# Frontend legacy artifacts
+/frontend-legacy/public/index.js
+/frontend-legacy/public/index.html
+/frontend-legacy/public/index.css
+
+# Ignore IDE project folders (like JetBrains)
+.idea/
+
+# Optional: Ignore Make build artifacts
+*.dSYM
+*.out
+*.o
+*.obj
+
+# Ignore Docker volumes (if mapped locally)
+docker-volume/
+postgres_data/
