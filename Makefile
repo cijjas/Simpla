@@ -1,34 +1,108 @@
-.PHONY: up down build logs shell-db shell-api import-data test clean csv-to-db
+# -------------------------- GLOBAL SETTINGS --------------------------- #
+COMPOSE=docker-compose        # alias so you can swap for `docker compose`
 
-up:
-	docker-compose up -d
+.DEFAULT_GOAL := help         # typing just `make` prints the help table
+.SILENT:                      # cleaner output – we echo manually
 
-down:
-	docker-compose down
+# --------------------------------------------------------------------- #
+# Core life‑cycle targets (unchanged)                                   #
+# --------------------------------------------------------------------- #
+.PHONY: up down build logs shell-db shell-api shell-front import-data \
+        csv-to-db test clean
 
-build:
-	docker-compose build
+up:                ## Start all services in the background
+	@echo "🚀  Bringing up entire stack…"
+	$(COMPOSE) up -d
 
-logs:
-	docker-compose logs -f
+down:              ## Stop and remove containers (keeps volumes)
+	@echo "🛑  Stopping containers…"
+	$(COMPOSE) down
 
-shell-db:
-	docker-compose exec postgres psql -U normativa -d normativa_legal
+build:             ## Build all images
+	@echo "🔨  Building every image…"
+	$(COMPOSE) build
 
-shell-api:
-	docker-compose exec api bash
+logs:              ## Tail logs from every service
+	$(COMPOSE) logs -f
 
-shell-front:
-	docker-compose exec frontend sh
+shell-db:          ## psql into the Postgres container
+	@echo "🐘  Opening psql shell…"
+	$(COMPOSE) exec postgres psql -U normativa -d normativa_legal
 
-import-data:
-	docker-compose exec api python scripts/import_data.py
+shell-api:         ## Bash into the API container
+	@echo "🐍  Opening API container shell…"
+	$(COMPOSE) exec api bash
 
-csv-to-db:
-	docker-compose exec api python scripts/import_data.py /app/data/base-infoleg-normativa-nacional-muestreo.csv
+shell-front:       ## Shell into the Front‑end container
+	@echo "🖥️   Opening Front‑end container shell…"
+	$(COMPOSE) exec frontend sh
 
-test:
-	docker-compose exec api pytest
+import-data:       ## Import all 3 required CSVs inside API container
+	@echo "📥  Importing full InfoLeg dataset (3 files)…"
+	$(COMPOSE) exec api python scripts/import_data.py /app/data
 
-clean:
-	docker-compose down -v
+test:              ## Run pytest suite inside API
+	@echo "🧪  Running back‑end tests…"
+	$(COMPOSE) exec api pytest
+
+clean:             ## Stop containers & wipe named volumes
+	@echo "💣  Nuking containers AND volumes…"
+	$(COMPOSE) down -v
+
+
+# --------------------------------------------------------------------- #
+# NEW:  Fine‑grained build / (re)start helpers                          #
+# --------------------------------------------------------------------- #
+.PHONY: build-api build-db build-front rebuild-api rebuild-front \
+        restart-api restart-db restart-front migrate
+
+build-api:         ## docker‑build only the API image
+	@echo "🔨  Building API image…"
+	$(COMPOSE) build api
+
+build-db:          ## docker‑build only the Postgres image (rarely needed)
+	@echo "🔨  Building Postgres image…"
+	$(COMPOSE) build postgres
+
+build-front:       ## docker‑build only the Front‑end image
+	@echo "🔨  Building Front‑end image…"
+	$(COMPOSE) build frontend
+
+rebuild-api:       ## Re‑build API image & restart API container
+	@echo "♻️   Rebuilding API image and restarting container…"
+	$(COMPOSE) up -d --build api
+
+rebuild-front:     ## Re‑build Front‑end image & restart its container
+	@echo "♻️   Rebuilding Front‑end image and restarting container…"
+	$(COMPOSE) up -d --build frontend
+
+restart-api:       ## Restart API container without rebuilding
+	@echo "🔄  Restarting API container…"
+	$(COMPOSE) restart api
+
+restart-db:        ## Restart Postgres (careful – drops connections)
+	@echo "🔄  Restarting Postgres container…"
+	$(COMPOSE) restart postgres
+
+restart-front:     ## Restart Front‑end container
+	@echo "🔄  Restarting Front‑end container…"
+	$(COMPOSE) restart frontend
+
+
+# --------------------------------------------------------------------- #
+# NEW:  Alembic migrations                                              #
+# --------------------------------------------------------------------- #
+migrate:           ## Generate & apply DB migration (requires ALEMBIC cmd)
+	@echo "📚  Autogenerating Alembic revision…"
+	$(COMPOSE) exec api alembic revision --autogenerate -m \"auto\"
+	@echo "🚀  Applying latest Alembic migration…"
+	$(COMPOSE) exec api alembic upgrade head
+
+
+# --------------------------------------------------------------------- #
+# Pretty help message                                                   #
+# --------------------------------------------------------------------- #
+help:              ## Show this help
+	@printf "\033[1mAvailable targets:\033[0m\n"
+	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
+	  awk -F':.*## ' '{printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
