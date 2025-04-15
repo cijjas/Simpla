@@ -1,162 +1,214 @@
-import pandas as pd
+#!/usr/bin/env python3
+"""
+Bulk-importer for the Infoleg CSV snapshots.
+
+• Reads every *.csv in the folder you pass on the CLI.
+• Upserts look-up tables (tipos_norma, clases_norma, organismos).
+• Upserts normas, preserving counts (modificada_por_count / modifica_a_count).
+• Loads true modification links from the complementary CSVs
+   (…modificadas… and …modificatorias…).
+"""
+
+import argparse
+import glob
 import os
-import sys
-from sqlalchemy import create_engine, text
 import re
+import sys
+from datetime import datetime
 
-# Añadir directorio padre al path para importar módulos
+import pandas as pd
+from sqlalchemy import text
+
+# ❶ Remove "from sqlalchemy.dialects.postgresql import insert" – we won't use it.
+# from sqlalchemy.dialects.postgresql import insert  # <-- REMOVED
+
+# ───────────────────────────────────────────────────────────────────────────────
+# DB connection (expects you already have an SQLAlchemy Engine called `engine`)
+# ───────────────────────────────────────────────────────────────────────────────
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db import engine  # noqa: E402  (local import after sys.path hack)
 
-# Importar configuración de base de datos
-from db import engine
+DATE_COLS = ["fecha_sancion", "fecha_boletin"]
 
-def extraer_ids_normas(valor):
-    """
-    Extrae IDs de normas de los campos modificada_por y modifica_a
-    """
-    if not valor or valor == '0' or pd.isna(valor):
-        return []
-    
-    # Separamos por posibles delimitadores
-    ids = re.split(r'[,;|]', str(valor))
-    return [
-        str(int(float(id_norma.strip())))  # forces 1.0 → 1
-        for id_norma in ids if id_norma.strip() and id_norma.strip() != '0'
-    ]
+# Mapping from CSV column → (table_name, fk_column_in_normas)
+LOOKUPS = {
+    "tipo_norma":  ("tipos_norma",   "tipo_norma_id"),
+    "clase_norma": ("clases_norma",  "clase_norma_id"),
+    "organismo_origen": ("organismos", "organismo_id"),
+}
 
-def importar_datos(archivo_csv):
-    """
-    Importa datos desde archivo CSV a la base de datos y genera relaciones
-    
-    Args:
-        archivo_csv: Ruta al archivo CSV de normas
-    """
-    try:
-        print(f"Importando normas desde {archivo_csv}...")
-        # Leer datos de normas
-        df_normas = pd.read_csv(archivo_csv)
-        
-        # Limpiar datos
-        for col in df_normas.select_dtypes(include='object').columns:
-            df_normas[col] = df_normas[col].fillna('')
-        df_normas.drop_duplicates(subset='id_norma', keep='last', inplace=True)
 
-        # Convertir fechas
-        date_columns = ['fecha_sancion', 'fecha_boletin']
-        for col in date_columns:
-            if col in df_normas.columns:
-                df_normas[col] = pd.to_datetime(df_normas[col], errors='coerce')
-        
-        # Insertar normas en la base de datos
-        print("Insertando normas en la base de datos...")
-        df_normas.to_sql('normas_temp', engine, if_exists='replace', index=False)
-        
-        # Transferir a la tabla principal evitando duplicados
-        with engine.connect() as conn:
-            conn.execute(text("""
-            INSERT INTO normas 
-            SELECT * FROM normas_temp
-            ON CONFLICT (id_norma) DO UPDATE 
-            SET 
-                tipo_norma = EXCLUDED.tipo_norma,
-                numero_norma = EXCLUDED.numero_norma,
-                clase_norma = EXCLUDED.clase_norma,
-                organismo_origen = EXCLUDED.organismo_origen,
-                fecha_sancion = EXCLUDED.fecha_sancion,
-                numero_boletin = EXCLUDED.numero_boletin,
-                fecha_boletin = EXCLUDED.fecha_boletin,
-                pagina_boletin = EXCLUDED.pagina_boletin,
-                titulo_resumido = EXCLUDED.titulo_resumido,
-                titulo_sumario = EXCLUDED.titulo_sumario,
-                texto_resumido = EXCLUDED.texto_resumido,
-                observaciones = EXCLUDED.observaciones,
-                texto_original = EXCLUDED.texto_original,
-                texto_actualizado = EXCLUDED.texto_actualizado,
-                modificada_por = EXCLUDED.modificada_por,
-                modifica_a = EXCLUDED.modifica_a
-            """))
-            conn.execute(text("DROP TABLE normas_temp"))
-            conn.commit()
-        
-        print(f"Normas importadas correctamente.")
-        
-        # Procesar relaciones
-        print("Generando relaciones normativas...")
-        relaciones = []
-        
-        # Procesar relaciones de "modificada_por"
-        for _, norma in df_normas.iterrows():
-            # Normas que modifican a esta
-            modificadores = extraer_ids_normas(norma['modificada_por'])
-            for modificador in modificadores:
-                relaciones.append({
-                    'norma_modificadora': modificador,
-                    'norma_modificada': norma['id_norma'],
-                    'tipo_relacion': 'modifica'
-                })
-            
-            # Normas que esta modifica
-            modificados = extraer_ids_normas(norma['modifica_a'])
-            for modificado in modificados:
-                relaciones.append({
-                    'norma_modificadora': norma['id_norma'],
-                    'norma_modificada': modificado,
-                    'tipo_relacion': 'modifica'
-                })
-        
-        # Crear DataFrame de relaciones
-        if relaciones:
-            df_relaciones = pd.DataFrame(relaciones)
-            
-            # Asegurar que todas las normas referenciadas existen
-            ids_validos = set(df_normas['id_norma'].astype(str))
-            df_relaciones = df_relaciones[
-                df_relaciones['norma_modificadora'].astype(str).isin(ids_validos) &
-                df_relaciones['norma_modificada'].astype(str).isin(ids_validos)
-            ]
-            
-            # Eliminar duplicados
-            df_relaciones.drop_duplicates(inplace=True)
-            
-            # Insertar relaciones en la base de datos
-            print(f"Insertando {len(df_relaciones)} relaciones en la base de datos...")
-            df_relaciones.to_sql('relaciones_temp', engine, if_exists='replace', index=False)
-            
-            # Transferir a la tabla principal evitando duplicados
-            with engine.connect() as conn:
-                conn.execute(text("""
-                INSERT INTO relaciones_normativas 
-                (norma_modificadora, norma_modificada, tipo_relacion)
-                SELECT 
-                    norma_modificadora, 
-                    norma_modificada, 
-                    tipo_relacion
-                FROM relaciones_temp
-                ON CONFLICT (norma_modificadora, norma_modificada, tipo_relacion) DO NOTHING
-                """))
-                conn.execute(text("DROP TABLE relaciones_temp"))
-                conn.commit()
-            
-            print(f"Relaciones importadas correctamente.")
+# ─────────────────────────── helper: load/insert lookup ───────────────────────
+def upsert_lookup(col_name: str, values: pd.Series) -> dict:
+    """
+    Insert new lookup rows (if any) and return a {text_value: id} mapping.
+    """
+    tbl, _ = LOOKUPS[col_name]
+    unique_vals = (
+        values.dropna()
+        .astype(str)
+        .str.strip()
+        .loc[lambda s: s.ne("")]
+        .unique()
+    )
+
+    # Insert each unique value with ON CONFLICT (nombre) DO NOTHING
+    with engine.begin() as conn:
+        for val in unique_vals:
+            conn.execute(
+                text(
+                    f"""INSERT INTO {tbl} (nombre)
+                        VALUES (:v)
+                        ON CONFLICT (nombre) DO NOTHING
+                    """
+                ),
+                {"v": val},
+            )
+
+    # Now read the full table to build a Python dict {nombre → id}
+    df_map = pd.read_sql(f"SELECT id, nombre FROM {tbl}", engine)
+    return df_map.set_index("nombre")["id"].to_dict()
+
+
+# ──────────────────────────── load normas CSVs ────────────────────────────────
+def process_normas_csv(path: str):
+    # Force numero_norma to string to avoid mixed‑dtype warnings
+    df = pd.read_csv(path, dtype={"numero_norma": str}, low_memory=False)
+
+    # ---- Clean text columns ----
+    for col in df.select_dtypes(include="object").columns:
+        df[col] = df[col].fillna("").str.strip()
+
+    # Remove duplicate id_norma rows
+    df = df.drop_duplicates(subset="id_norma", keep="last")
+
+    # Convert date columns
+    for col in DATE_COLS:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
+
+    # ---- Upsert look-ups and map them to IDs ----
+    for src_col, (tbl, fk_col) in LOOKUPS.items():
+        if src_col in df.columns:
+            mapping = upsert_lookup(src_col, df[src_col])
+            df[fk_col] = df[src_col].map(mapping)
         else:
-            print("No se encontraron relaciones para importar.")
-        
-    except Exception as e:
-        print(f"Error al importar datos: {str(e)}")
-        return False
-    
-    return True
+            # If the CSV has no such column, fill with None
+            df[fk_col] = None
+
+    # We treat modificada_por / modifica_a as simple *counts*, not relationships
+    df.rename(
+        columns={
+            "modificada_por": "modificada_por_count",
+            "modifica_a": "modifica_a_count",
+        },
+        inplace=True,
+    )
+    if "modificada_por_count" not in df.columns:
+        df["modificada_por_count"] = 0
+    if "modifica_a_count" not in df.columns:
+        df["modifica_a_count"] = 0
+
+    df["modificada_por_count"] = pd.to_numeric(
+        df["modificada_por_count"], errors="coerce"
+    ).fillna(0).astype(int)
+    df["modifica_a_count"] = pd.to_numeric(
+        df["modifica_a_count"], errors="coerce"
+    ).fillna(0).astype(int)
+
+    # Drop original text columns for lookups
+    df = df.drop(columns=list(LOOKUPS.keys()), errors="ignore")
+
+    # ---- Upsert into normas ----
+    with engine.begin() as conn:
+        tmp_table = "_normas_tmp"
+        df.to_sql(tmp_table, conn, if_exists="replace", index=False)
+
+        cols = [c for c in df.columns if c != "id_norma"]
+        update_set = ",\n                ".join(f"{c}=EXCLUDED.{c}" for c in cols)
+
+        conn.execute(
+            text(
+                f"""
+                INSERT INTO normas ({", ".join(df.columns)})
+                SELECT {", ".join(df.columns)} FROM {tmp_table}
+                ON CONFLICT (id_norma) DO UPDATE
+                SET {update_set}
+                """
+            )
+        )
+        conn.execute(text(f"DROP TABLE {tmp_table}"))
+
+    print(f"✔  {len(df):>6} normas   ←  {os.path.basename(path)}")
+
+
+# ───────────────────────────── load relations ────────────────────────────────
+def process_relations_csv(path: str):
+    # Force nro_norma to string to avoid mixed‑dtype warnings (even if we later drop it)
+    df = pd.read_csv(path, dtype={"nro_norma": str}, low_memory=False)
+
+    # Normalise column names (the two complementary files name them differently)
+    col_map = {
+        "id_norma_modificatoria": "norma_modificadora",
+        "id_norma_modificada": "norma_modificada",
+    }
+    df.rename(columns=col_map, inplace=True)
+
+    # Only keep the main columns; ensure integers
+    rels = df[["norma_modificadora", "norma_modificada"]].dropna().astype(int)
+
+    # We label the relationship "modifica"
+    rels["tipo_relacion"] = "modifica"
+    rels.drop_duplicates(inplace=True)
+
+    # Insert with ON CONFLICT DO NOTHING to avoid duplicates
+    with engine.begin() as conn:
+        tmp_table = "_rel_tmp"
+        rels.to_sql(tmp_table, conn, if_exists="replace", index=False)
+
+        conn.execute(
+            text(
+                f"""
+                INSERT INTO relaciones_normativas
+                (norma_modificadora, norma_modificada, tipo_relacion)
+                SELECT norma_modificadora, norma_modificada, tipo_relacion
+                FROM {tmp_table}
+                ON CONFLICT (norma_modificadora, norma_modificada, tipo_relacion) DO NOTHING
+                """
+            )
+        )
+        conn.execute(text(f"DROP TABLE {tmp_table}"))
+
+    print(f"✔  {len(rels):>6} relaciones ←  {os.path.basename(path)}")
+
+
+# ─────────────────────────────── main CLI ────────────────────────────────────
+def main():
+    ap = argparse.ArgumentParser(
+        description="Import all Infoleg CSVs in a folder into the DB."
+    )
+    ap.add_argument("folder", help="Path containing the CSV snapshots")
+    args = ap.parse_args()
+
+    csvs = glob.glob(os.path.join(args.folder, "*.csv"))
+    if not csvs:
+        print("No CSV files found.")
+        sys.exit(1)
+
+    # 1) Normas CSV first (so that rows exist for the relationships)
+    for path in csvs:
+        # This pattern ensures we only process the main normative CSV here
+        if re.search(r"normativa-nacional", path, re.IGNORECASE):
+            process_normas_csv(path)
+
+    # 2) Then process the relation CSVs
+    for path in csvs:
+        # Any CSV with "modificadas" or "modificatorias" in its name
+        if re.search(r"(modificadas|modificatorias)", path, re.IGNORECASE):
+            process_relations_csv(path)
+
+    print("\n✅  Import finished at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
 
 if __name__ == "__main__":
-    # Verificar argumentos
-    if len(sys.argv) != 2:
-        print("Uso: python import_data.py archivo_normas.csv")
-        sys.exit(1)
-    
-    archivo_csv = sys.argv[1]
-    
-    if importar_datos(archivo_csv):
-        print("Importación completada con éxito.")
-    else:
-        print("La importación falló.")
-        sys.exit(1)
+    main()
