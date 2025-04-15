@@ -13,7 +13,7 @@ export default function GraphCard({
 }) {
   return (
     <Card className='p-6'>
-      <div className='h-40 flex flex-col items-center justify-center'>
+      <div className='min-h-40 flex flex-col items-center justify-center space-y-4'>
         <h3 className='text-lg font-semibold'>{title}</h3>
         {value !== undefined && <p className='text-xl'>{value}</p>}
         {graph}
