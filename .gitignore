@@ -83,3 +83,7 @@ backend/data/
 # Ignore Docker volumes (if mapped locally)
 docker-volume/
 postgres_data/
+
+
+# DATA
+data/*
