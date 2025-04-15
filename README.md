@@ -23,7 +23,8 @@ Eso arranca:
 
 - `make import-data` → Carga los 3 CSVs en la base.
 
-> [!Note] Para que funcione este comando los csvs tienen que estar en ./data
+> ⚠️ **Importante:** Asegurate de que los archivos CSV estén en `./data` (los de
+> data_sample son para entender al vibra).
 
 - `make test` → Ejecuta tests del backend.
 - `make logs` → Muestra logs de todos los servicios.
