@@ -1,8 +1,14 @@
 # -------------------------- GLOBAL SETTINGS --------------------------- #
-COMPOSE=docker-compose        # alias so you can swap for `docker compose`
+# Default to dev
+ENV ?= dev
+COMPOSE = docker compose -f docker-compose.base.yml -f docker-compose.$(ENV).yml --env-file ".env.$(ENV)"
 
 .DEFAULT_GOAL := help         # typing just `make` prints the help table
 .SILENT:                      # cleaner output – we echo manually
+
+
+
+
 
 # --------------------------------------------------------------------- #
 # Core life‑cycle targets (unchanged)                                   #
@@ -10,9 +16,9 @@ COMPOSE=docker-compose        # alias so you can swap for `docker compose`
 .PHONY: up down build logs shell-db shell-api shell-front import-data \
         csv-to-db test clean
 
-up:                ## Start all services in the background
+up:                ## Start the stack for $(ENV) (ENV=prod for production)
 	@echo "🚀  Bringing up entire stack…"
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d --build
 
 down:              ## Stop and remove containers (keeps volumes)
 	@echo "🛑  Stopping containers…"
@@ -44,11 +50,11 @@ import-data:       ## Import all 3 required CSVs inside API container
 test:              ## Run pytest suite inside API
 	@echo "🧪  Running back‑end tests…"
 	$(COMPOSE) exec api pytest
-
-clean:             ## Stop containers & wipe named volumes
-	@echo "💣  Nuking containers AND volumes…"
-	$(COMPOSE) down -v
-
+clean:             ## Stop containers & remove volumes, images, and networks
+	@echo "💣  Nuking containers, volumes, images, and networks…"
+	$(COMPOSE) down -v --rmi all --remove-orphans
+	docker volume prune -f
+	docker network prune -f
 
 # --------------------------------------------------------------------- #
 # NEW:  Fine‑grained build / (re)start helpers                          #

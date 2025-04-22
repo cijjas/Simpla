@@ -1,0 +1,25 @@
+services:
+  api:
+    image: public.ecr.aws/your-acct-id/simpla-backend:${GIT_SHA}
+    ports:
+      - '8000:8000'
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks: [app-net]
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: public.ecr.aws/your-acct-id/simpla-frontend:${GIT_SHA}
+    ports:
+      - '3000:3000'
+    environment:
+      - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL}
+    networks: [app-net]
+    deploy:
+      replicas: 2
+
+networks:
+  app-net:

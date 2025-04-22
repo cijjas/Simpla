@@ -1,0 +1,40 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data:ro
+    command: uvicorn main:app --host 0.0.0.0 --reload
+    ports:
+      - '8000:8000'
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- -p 3000 -H 0.0.0.0
+    ports:
+      - '3000:3000'
+
+  postgres:
+    image: postgres:15
+    env_file: .env.dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER']
+      interval: 10s
+      retries: 5
+    networks:
+      - app-net
+
+volumes:
+  postgres_data:

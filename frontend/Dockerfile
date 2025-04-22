@@ -1,21 +1,20 @@
-# ./frontend/Dockerfile
-FROM node:23-alpine
-
+# ---------- Stage 1: deps ----------
+FROM node:23-alpine AS deps
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependencies first (leverages Docker layer caching)
-COPY package.json package-lock.json* ./
-RUN npm ci                     
-
-# Copy the rest of the source
+# ---------- Stage 2: build ----------
+FROM deps AS builder
 COPY . .
+RUN npm run build
 
-# ---------- Development image ----------
-# Expose port & run the dev server
+# ---------- Stage 3: serve with NGINX ----------
+FROM nginx:alpine AS runner
+WORKDIR /usr/share/nginx/html
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/static ./_next/static
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
-CMD ["npm", "run", "dev", "--", "-p", "3000", "-H", "0.0.0.0"]
-
-# ---------- Production (optional) ----------
-# If you later want a prod‑only image, add:
-# RUN npm run build
-# CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]
