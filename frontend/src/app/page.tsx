@@ -1,6 +1,5 @@
-import Header from '@/components/layout/Header';
 import Hero from '@/components/hero/Hero';
-import StatsSection from '@/components/dashboard/StatsSection';
+import { StatsSection } from '@/components/dashboard/StatsSection';
 
 export default function Home() {
   return (

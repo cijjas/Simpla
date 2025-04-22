@@ -1,0 +1,27 @@
+name: Mirror GitHub → Bitbucket
+
+on:
+  push:
+    branches:
+      - '**' # triggers on any branch push
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone full GitHub repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # fetch all branches and tags
+
+      - name: Mirror to Bitbucket
+        run: |
+          git config --global user.email "ci@yourdomain.com"
+          git config --global user.name "GitHub Actions Bot"
+
+          # Add Bitbucket remote (using HTTPS with app password)
+          git remote add bitbucket https://${{ secrets.BITBUCKET_USERNAME }}:${{ secrets.BITBUCKET_APP_PASSWORD }}@bitbucket.org/${{ secrets.BITBUCKET_REPO }}.git
+
+          # Push all branches, tags, remotes — full sync
+          git push --mirror bitbucket

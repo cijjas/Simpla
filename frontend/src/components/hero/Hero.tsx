@@ -1,19 +1,35 @@
-// components/hero/Hero.tsx
+'use client';
+
 import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
 export default function Hero() {
+  const { theme, systemTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentTheme = theme === 'system' ? systemTheme : theme;
+  const logoSrc =
+    currentTheme === 'dark' ? '/logo_completo_dark.png' : '/logo_completo.png';
+
   return (
     <section className='text-center mb-16'>
       <div className='mb-10'>
-        <Image
-          src='/logo_completo.png'
-          alt='SIMPLA Full Logo'
-          width={300}
-          height={300}
-          className='mx-auto'
-        />
+        {mounted && (
+          <Image
+            src={logoSrc}
+            alt='SIMPLA Full Logo'
+            width={300}
+            height={300}
+            className='mx-auto'
+          />
+        )}
       </div>
       <h1
         className='text-5xl font-bold text-navy-900 mb-6 font-serif tracking-tightest'

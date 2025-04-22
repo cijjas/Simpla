@@ -1,0 +1,10 @@
+.git
+__pycache__/
+*.pyc
+*.pyo
+node_modules
+npm-debug.log
+Dockerfile*
+docker-compose*.yml
+data/
+.env*

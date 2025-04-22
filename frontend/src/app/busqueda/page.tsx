@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import SearchForm from '@/components/busqueda/SearchForm';
 import ResultsList from '@/components/busqueda/ResultsList';
-import Header from '@/components/layout/Header';
 
 export default function BusquedaPage() {
   const [queryParams, setQueryParams] = useState<URLSearchParams | null>(null);
