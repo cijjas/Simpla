@@ -50,9 +50,9 @@ export default function Header() {
           <Link href='/dashboard' className='text-navy-900 text-lg font-medium'>
             Dashboard
           </Link>
-          {/* <Link href='/busqueda' className='text-navy-900 text-lg font-medium'>
+          <Link href='/search' className='text-navy-900 text-lg font-medium'>
             Búsqueda
-          </Link> */}
+          </Link>
         </nav>
 
         <div className='flex items-center space-x-4'>
