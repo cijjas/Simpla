@@ -1,0 +1,500 @@
+openapi: 3.0.3
+info:
+  title: Infoleg API
+  description: |
+    API REST del Ministerio de Justicia y Derechos Humanos de la Nación para acceso a legislación nacional.
+
+    ## Compresión de datos
+    El servicio soporta compresión **gzip** enviando la cabecera `Accept-Encoding: gzip`.
+  version: '2.0'
+servers:
+  - url: https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0
+
+paths:
+  ############################################################
+  # 1. Listados de legislación (por tipo o todos)
+  ############################################################
+  /nacionales/normativos/{tipo}:
+    get:
+      tags: [Legislación]
+      summary: Consulta Legislación Nacional
+      description: |
+        Devuelve un listado paginado de normas nacionales.
+        El parámetro de ruta `{tipo}` indica el recurso a consultar, p. ej.: `legislaciones`, `leyes`, `decretos`, `notas`, etc.
+
+        ### Ejemplos de uso
+        * **Consulta sobre toda la legislación Nacional** – `/legislaciones?numero=113&texto="PARA CASOS DE AUSENCIA"&publicacion_desde=2016-12-26&publicacion_hasta=2016-12-26&limit=10&offset=1` (devuelve 1 resultado). 
+        * **Consulta con resultados encontrados** – `/leyes?texto=rentas&publicacion_desde=2016-11-27&publicacion_hasta=2016-12-28&offset=1&limit=10` (2 resultados). 
+        * **Consulta con resultado no encontrado** – `/notas?texto=rentas&publicacion_desde=2016-11-27&publicacion_hasta=2016-12-28&offset=1&limit=10` (0 resultados). 
+        * **Consulta con parámetros inválidos** – `/notas?numero=13&publicacion_hasta=2016-12-28&offset=1&limit=10` (409).
+      parameters:
+        - $ref: '#/components/parameters/tipo'
+        - $ref: '#/components/parameters/numero'
+        - $ref: '#/components/parameters/texto'
+        - $ref: '#/components/parameters/dependencia'
+        - $ref: '#/components/parameters/publicacion_desde'
+        - $ref: '#/components/parameters/publicacion_hasta'
+        - $ref: '#/components/parameters/sancion'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/accept_encoding'
+      responses:
+        '200':
+          description: Lista de normas (puede estar vacía)
+          headers:
+            Content-Encoding:
+              $ref: '#/components/headers/ContentEncoding'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListadoNormas'
+              # examples:
+              #   ConResultados:
+              #     $ref: '#/components/examples/ConsultaConResultados'
+              #   SinResultados:
+              #     $ref: '#/components/examples/ConsultaSinResultados'
+        '409':
+          $ref: '#/components/responses/InvalidParameters'
+
+  ############################################################
+  # 2. Detalle de legislación por ID
+  ############################################################
+  /nacionales/normativos:
+    get:
+      tags: [Legislación]
+      summary: Consulta detalle de legislación por ID
+      description: |
+        Devuelve el detalle (texto completo o resumido) de una norma especificando su `id` numérico.
+        Para rendimiento se recomienda agregar `resumen=true` si solo se necesita la metainformación.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: resumen
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/accept_encoding'
+      responses:
+        '200':
+          description: Norma encontrada
+          headers:
+            Content-Encoding:
+              $ref: '#/components/headers/ContentEncoding'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NormaDetallada'
+              # examples:
+              #   LeyCompleta:
+              #     $ref: '#/components/examples/NormaCompleta'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/InvalidParameters'
+
+  ############################################################
+  # 3. Detalle por fecha de publicación
+  ############################################################
+  /nacionales/normativos/publicaciones/{fechaPublicacion}:
+    get:
+      tags: [Legislación]
+      summary: Consulta detalle por fecha de publicación
+      description:
+        Retorna todas las normas publicadas en la fecha `YYYY-MM-DD` indicada.
+      parameters:
+        - name: fechaPublicacion
+          in: path
+          required: true
+          description: Fecha de publicación (YYYY-MM-DD).
+          schema:
+            type: string
+            pattern: '^\\d{4}-\\d{2}-\\d{2}$'
+      responses:
+        '200':
+          description: Lista de normas publicadas ese día (puede estar vacía)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListadoNormas'
+        '409':
+          $ref: '#/components/responses/InvalidParameters'
+
+  ############################################################
+  # 4. Detalle por número de Boletín Oficial
+  ############################################################
+  /nacionales/normativos/publicaciones/{numeroBoletin}:
+    get:
+      tags: [Legislación]
+      summary: Consulta detalle por número de boletín
+      description: Retorna normas publicadas en el boletín oficial indicado.
+      parameters:
+        - name: numeroBoletin
+          in: path
+          required: true
+          description: Número de boletín oficial.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de normas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListadoNormas'
+        '409':
+          $ref: '#/components/responses/InvalidParameters'
+
+  ############################################################
+  # 5. Dominios auxiliares
+  ############################################################
+  /nacionales/normativos/dependencias:
+    get:
+      tags: [Dominios]
+      summary: Consulta dependencias disponibles
+      description: Retorna el dominio de dependencias.
+      responses:
+        '200':
+          description: Lista de dependencias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dependencia'
+              example:
+                - 'ADMINISTRACION FEDERAL DE INGRESOS PUBLICOS'
+                - 'ADMINISTRACION DE PARQUES NACIONALES'
+
+  /nacionales/normativos/tipos_norma:
+    get:
+      tags: [Dominios]
+      summary: Consulta dependencias tipo normas
+      description: Retorna el dominio de tipos de norma.
+      responses:
+        '200':
+          description: Lista de tipos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TipoNorma'
+              example:
+                - { detalle: 'Ley', route: 'leyes' }
+                - { detalle: 'Decreto', route: 'decretos' }
+
+  ############################################################
+  # 6. Recursos ligados (imágenes, pdf, etc.)
+  ############################################################
+  /nacionales/normativos/resources/{id}/{filename}:
+    get:
+      tags: [Recursos]
+      summary: Descarga de recursos asociados
+      description: |
+        Devuelve recursos externos (imágenes, PDFs, HTML, etc.) referenciados en los campos `textoNorma` y `textoNormaAct`.
+
+        * **No-HTML** → stream binario.
+        * **.htm** → objeto JSON.
+
+        Tabla de MIME types disponible en la descripción del esquema `ResourceHtml`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/accept_encoding'
+      responses:
+        '200':
+          description: Recurso binario o JSON
+          headers:
+            Content-Encoding:
+              $ref: '#/components/headers/ContentEncoding'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceHtml'
+            image/jpeg: { schema: { type: string, format: binary } }
+            image/bmp: { schema: { type: string, format: binary } }
+            image/gif: { schema: { type: string, format: binary } }
+            application/pdf: { schema: { type: string, format: binary } }
+            application/msword: { schema: { type: string, format: binary } }
+            application/vnd.ms-excel:
+              { schema: { type: string, format: binary } }
+            text/plain: { schema: { type: string } }
+            '*/*': { schema: { type: string, format: binary } }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+############################################################
+# COMPONENTS
+############################################################
+components:
+  ########################################
+  # Common parameters
+  ########################################
+  parameters:
+    accept_encoding:
+      name: Accept-Encoding
+      in: header
+      required: false
+      description: Solicita compresión Gzip si el cliente la soporta.
+      schema:
+        type: string
+        enum: [gzip, identity]
+
+    tipo:
+      name: tipo
+      in: path
+      required: true
+      description: Tipo de norma a consultar.
+      schema:
+        type: string
+        enum:
+          [
+            legislaciones,
+            leyes,
+            decretos,
+            decisiones_administrativas,
+            resoluciones,
+            disposiciones,
+            acordadas,
+            actas,
+            actuaciones,
+            acuerdos,
+            circulares,
+            comunicaciones,
+            comunicados,
+            convenios,
+            decisiones,
+            decretos_ley,
+            directivas,
+            instrucciones,
+            interpretacion,
+            laudos,
+            memorandums,
+            misiones,
+            notas,
+            notas_externas,
+            protocolos,
+            providencias,
+            recomendaciones,
+          ]
+
+    numero:
+      name: numero
+      in: query
+      schema:
+        type: integer
+      description: Número de la norma.
+
+    texto:
+      name: texto
+      in: query
+      schema:
+        type: string
+      description: Búsqueda textual con operadores booleanos (AND, OR, NOT).
+
+    dependencia:
+      name: dependencia
+      in: query
+      schema:
+        type: string
+      description: Organismo emisor de la norma.
+
+    publicacion_desde:
+      name: publicacion_desde
+      in: query
+      schema:
+        type: string
+        format: date
+      description: Fecha de publicación inicial (YYYY-MM-DD).
+
+    publicacion_hasta:
+      name: publicacion_hasta
+      in: query
+      schema:
+        type: string
+        format: date
+      description: Fecha de publicación final (YYYY-MM-DD).
+
+    sancion:
+      name: sancion
+      in: query
+      schema:
+        type: string
+        pattern: '^\\d{4}$'
+      description: Año de sanción (YYYY). No admitido para `leyes`.
+
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        maximum: 50
+        minimum: 1
+        default: 10
+      description: Máximo de registros a devolver (obligatorio, entre 1 y 50).
+
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description:
+        Cantidad de registros a omitir para paginación (obligatorio, debe ser 1
+        o mayor).
+
+  schemas:
+    ListadoNormas:
+      type: object
+      properties:
+        metadata:
+          type: object
+          properties:
+            resultset:
+              type: object
+              properties:
+                count: { type: integer }
+                offset: { type: integer }
+                limit: { type: integer }
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Norma'
+    Norma:
+      type: object
+      properties:
+        id: { type: integer }
+        claseNorma:
+          { type: string, description: 'Clase (e.g. Conjunta, General)' }
+        tipoNorma: { type: string }
+        idNormas:
+          type: array
+          items:
+            type: object
+            properties:
+              numero: { type: string }
+              dependencia: { type: string }
+        numeroBoletin: { type: integer }
+        numeroPagina: { type: integer }
+        publicacion: { type: string, format: date }
+        sancion: { type: string, format: date }
+        tituloSumario: { type: string }
+        tituloResumido: { type: string }
+        textoResumido: { type: string }
+      required: [id, tipoNorma, publicacion]
+    NormaDetallada:
+      allOf:
+        - $ref: '#/components/schemas/Norma'
+        - type: object
+          properties:
+            observaciones: { type: string }
+            nroBoletin: { type: string }
+            pagBoletin: { type: string }
+            textoNorma: { type: string }
+            listaNormasQueComplementa:
+              type: array
+              items: { type: integer }
+            listaNormasQueLaComplementan:
+              type: array
+              items: { type: integer }
+    Dependencia:
+      type: string
+    TipoNorma:
+      type: object
+      properties:
+        detalle: { type: string }
+        route: { type: string }
+    ResourceHtml:
+      type: object
+      properties:
+        content-type:
+          type: string
+          enum: [text/html]
+        data: { type: string }
+      required: [content-type, data]
+    Error:
+      type: object
+      properties:
+        status: { type: integer }
+        developerMessage: { type: string }
+        userMessage: { type: string }
+        errorCode:
+          type: integer
+          enum:
+            [
+              1001,
+              1002,
+              1003,
+              1004,
+              1005,
+              1006,
+              1007,
+              1008,
+              1009,
+              1010,
+              1011,
+              1012,
+              1013,
+              1014,
+              1015,
+              1016,
+              1017,
+              1018,
+              1019,
+              1020,
+              1021,
+              1022,
+            ]
+        moreInfo: { type: string }
+      required: [status, errorCode]
+
+  headers:
+    ContentEncoding:
+      description:
+        'Algoritmo de compresión utilizado en el cuerpo de la respuesta. Será
+        `gzip` cuando el cliente envíe `Accept-Encoding: gzip`.'
+      schema:
+        type: string
+        enum: [gzip, identity]
+
+  ########################################
+  # Pre-built responses
+  ########################################
+  responses:
+    InvalidParameters:
+      description: Parámetros inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          # examples:
+          #   Ejemplo409:
+          #     $ref: '#/components/examples/ConsultaParametrosInvalidos'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            Ejemplo404:
+              summary: Legislación no encontrada
+              value:
+                status: 404
+                developerMessage: 'Legislación no encontrada'
+                userMessage: 'Legislación no encontrada'
+                errorCode: 1003
