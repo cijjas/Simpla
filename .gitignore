@@ -35,6 +35,7 @@ Thumbs.db
 **/package-lock.json  # optional if you're using lock files
 **/.turbo/
 frontend/.eslintcache
+**/.pnpm-store/
 
 # --------------------
 # 🐍 Python

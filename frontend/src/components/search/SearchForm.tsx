@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -41,7 +41,7 @@ export default function SearchForm({ onSearch }: Props) {
   });
 
   useEffect(() => {
-    fetch('/api/infoleg/types')
+    fetch('/api/infoleg/tipos')
       .then(r => r.json())
       .then(setTipos)
       .catch(console.error);
@@ -89,6 +89,27 @@ export default function SearchForm({ onSearch }: Props) {
       limit: 10,
     });
 
+  const textoRef = useRef<HTMLInputElement>(null);
+
+  const insertAtCursor = (text: string) => {
+    const input = textoRef.current;
+    if (!input) return;
+
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const before = form.texto.slice(0, start);
+    const after = form.texto.slice(end);
+
+    const newTexto = `${before}${text}${after}`;
+    setForm(f => ({ ...f, texto: newTexto }));
+
+    // Move cursor after inserted text
+    setTimeout(() => {
+      input.selectionStart = input.selectionEnd = start + text.length;
+      input.focus();
+    }, 0);
+  };
+
   return (
     <div className='sticky top-6'>
       <div className='bg-card rounded-2xl border p-6 shadow-sm'>
@@ -128,12 +149,51 @@ export default function SearchForm({ onSearch }: Props) {
           />
 
           {/* Texto */}
-          <Input
-            name='texto'
-            placeholder='Texto'
-            value={form.texto}
-            onChange={e => updateField('texto', e.target.value)}
-          />
+          <div className='space-y-1'>
+            <label className='text-sm font-medium' htmlFor='texto'>
+              Texto
+            </label>
+            <Input
+              id='texto'
+              name='texto'
+              ref={textoRef}
+              placeholder='Ej: "educación AND salud"'
+              value={form.texto}
+              onChange={e => updateField('texto', e.target.value)}
+            />
+
+            {/* Operator buttons */}
+            <div className='flex gap-2 pt-1'>
+              <Button
+                type='button'
+                size='sm'
+                variant='outline'
+                onClick={() => insertAtCursor(' AND ')}
+              >
+                + AND
+              </Button>
+              <Button
+                type='button'
+                size='sm'
+                variant='outline'
+                onClick={() => insertAtCursor(' OR ')}
+              >
+                + OR
+              </Button>
+              <Button
+                type='button'
+                size='sm'
+                variant='outline'
+                onClick={() => insertAtCursor(' NOT ')}
+              >
+                + NOT
+              </Button>
+            </div>
+
+            <p className='text-xs text-muted-foreground'>
+              Usá operadores lógicos para mejorar la búsqueda.
+            </p>
+          </div>
 
           {/* Dependencia */}
           <div className='space-y-1'>
