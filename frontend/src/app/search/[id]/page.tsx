@@ -1,25 +1,19 @@
-import { getNormaDetalle } from '@/lib/infoleg';
-import { notFound } from 'next/navigation';
+// app/search/[id]/page.tsx
+import { NormaHeader } from '@/components/search/norma/NormaHeader';
+import { fetchNorma } from './loader';
+import { NormaBody } from '@/components/search/norma/NormaBody';
 
-export default async function NormaPage({
-  params,
-}: {
+interface Params {
   params: { id: string };
-}) {
-  const norma = await getNormaDetalle(Number(params.id));
-  if (!norma || norma.status === 404) {
-    notFound();
-  }
+}
+
+export default async function NormaPage({ params }: Params) {
+  const norma = await fetchNorma(Number(params.id));
 
   return (
-    <article className='container mx-auto py-8'>
-      <h1 className='mb-6 text-3xl font-bold'>
-        {norma.tituloSumario || norma.tituloResumido}
-      </h1>
-      <div
-        className='prose max-w-none'
-        dangerouslySetInnerHTML={{ __html: norma.textoNorma }}
-      />
-    </article>
+    <section className='container mx-auto max-w-4xl py-10 space-y-10'>
+      <NormaHeader norma={norma} />
+      <NormaBody html={norma.cleanedHtml} />
+    </section>
   );
 }

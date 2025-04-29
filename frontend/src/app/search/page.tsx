@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchForm from '@/components/search/SearchForm';
 import Results from '@/components/search/Results';
-import { searchNormas } from '@/lib/infoleg';
+import { searchNormas } from '@/lib/infoleg/infoleg';
 
 export default function BusquedaPage() {
   const router = useRouter();
