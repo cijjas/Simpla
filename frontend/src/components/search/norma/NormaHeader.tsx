@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { NormaActions } from './NormaActions'; // client
+import { Separator } from '@/components/ui/separator';
 
 /**
  * Shape of a full "norma" object returned by Infoleg (v2) API.
@@ -83,17 +84,25 @@ export async function NormaHeader({ norma }: { norma: Norma }) {
       {/* Title + actions */}
       <div className='flex items-center justify-between gap-4 flex-wrap'>
         <h1 className='text-3xl font-bold font-serif leading-tight break-words'>
-          {norma.tituloSumario || norma.tituloResumido || 'Sin título'}
+          {norma.tituloResumido || norma.tituloSumario || 'Sin título'}
         </h1>
         <NormaActions copyText={norma.copyText} />
       </div>
 
       {/* Basic metadata */}
-      <div className='flex flex-wrap gap-4 text-sm text-muted-foreground'>
-        {norma.tipoNorma && <Badge>{norma.tipoNorma}</Badge>}
-        {norma.idNormas?.[0]?.numero && (
-          <span>Nº {norma.idNormas[0].numero}</span>
+      <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
+        {norma.tipoNorma?.trim() && <Badge>{norma.tipoNorma}</Badge>}
+        {norma.claseNorma?.trim() && (
+          <Badge variant='secondary'>{norma.claseNorma}</Badge>
         )}
+        {norma.idNormas?.[0]?.numero && (
+          <span className='text-foreground font-serif font-bold'>
+            Nº {norma.idNormas[0].numero}
+          </span>
+        )}
+
+        <div className='h-4 border-l border-border mx-1' />
+
         {norma.publicacion && (
           <span>
             Publicación: {new Date(norma.publicacion).toLocaleDateString()}
@@ -103,6 +112,12 @@ export async function NormaHeader({ norma }: { norma: Norma }) {
           <span>Sanción: {new Date(norma.sancion).toLocaleDateString()}</span>
         )}
         {norma.jurisdiccion && <span>Jurisdicción: {norma.jurisdiccion}</span>}
+
+        <div className='h-4 border-l border-border mx-1' />
+
+        <span>
+          Boletín&nbsp;{norma.nroBoletin} • pág&nbsp;{norma.pagBoletin}
+        </span>
       </div>
 
       {/* Linked normas lists */}
@@ -172,7 +187,10 @@ function NormaListItem({
         </Badge>
       )}
 
-      <Link href={`/search/${data.id}`} className='font-medium hover:underline'>
+      <Link
+        href={`/search/${data.id}`}
+        className='font-medium text-foreground font-serif hover:underline'
+      >
         N° {data.idNormas?.[0]?.numero ?? data.id}
       </Link>
       {data.idNormas?.[0]?.dependencia && (

@@ -19,7 +19,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from db import Base  # your existing declarative_base()
+from db import Base 
 
 # ---------- Lookup tables -------------------------------------------------- #
 
@@ -145,3 +145,5 @@ class RelacionNormativa(Base):
             name="uq_relacion_normativa",
         ),
     )
+
+

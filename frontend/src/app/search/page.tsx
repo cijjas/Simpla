@@ -43,7 +43,7 @@ export default function BusquedaPage() {
   //---------------------------------------------------
   const viewParam = searchParams.get('view');
   const view: 'list' | 'grid' =
-    viewParam === 'grid' || viewParam === 'list' ? (viewParam as any) : 'list';
+    viewParam === 'grid' || viewParam === 'list' ? (viewParam as any) : 'grid';
 
   //---------------------------------------------------
   // search desde el formulario
