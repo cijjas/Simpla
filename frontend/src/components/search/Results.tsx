@@ -53,6 +53,8 @@ interface Norma {
   textoResumido?: string;
   estado?: string;
   jurisdiccion?: string;
+  nombreNorma: string;
+  esNumerada: boolean;
 }
 
 interface Meta {
@@ -113,34 +115,10 @@ export default function Results({
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
-      const texto = [
-        `${norma.tipoNorma} N° ${norma.idNormas?.[0]?.numero || norma.id}`,
-        norma.tituloResumido || norma.tituloSumario
-          ? `Título: ${norma.tituloResumido || norma.tituloSumario}`
-          : '',
-        norma.jurisdiccion ? `Jurisdicción: ${norma.jurisdiccion}` : '',
-        norma.idNormas?.[0]?.dependencia
-          ? `Dependencia: ${norma.idNormas[0].dependencia}`
-          : '',
-        norma.publicacion
-          ? `Fecha de Publicación con formato: ${formatDatePretty(
-              new Date(norma.publicacion),
-            )}`
-          : '',
-        norma.publicacion
-          ? `Fecha de Publicación: ${new Date(norma.publicacion)}`
-          : '',
-        norma.numeroBoletin ? `Boletín Oficial: ${norma.numeroBoletin}` : '',
-        norma.estado ? `Estado: ${norma.estado}` : '',
-        norma.numeroPagina
-          ? `Página en el Boletín Oficial: ${norma.numeroPagina}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-
+      const { nombreNorma, esNumerada, ...cleanNorma } = norma;
+      const rawJson = JSON.stringify(cleanNorma, null, 2);
       navigator.clipboard
-        .writeText(texto)
+        .writeText(rawJson)
         .then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -186,7 +164,7 @@ export default function Results({
             {/* ---------- TOP SECTION : title & summary ---------- */}
             <div className='flex flex-col gap-2'>
               <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-                {norma.tituloResumido || norma.tituloSumario || 'Sin título'}
+                {norma.tituloSumario || norma.tituloResumido || 'Sin título'}
               </h3>
 
               {norma.textoResumido && (
@@ -208,7 +186,7 @@ export default function Results({
               {/* Top line with tipo + número */}
               <div className='flex flex-wrap items-center justify-between w-full'>
                 <div className='font-serif font-bold text-base leading-tight text-foreground'>
-                  {norma.tipoNorma} N° {norma.idNormas?.[0]?.numero || norma.id}
+                  {norma.nombreNorma}
                 </div>
                 <Badge className='font-semibold rounded-full' variant='default'>
                   {norma.jurisdiccion}
@@ -217,7 +195,7 @@ export default function Results({
 
               {/* Dependencia */}
               {norma.idNormas?.[0]?.dependencia && (
-                <div className='text-xs text-foreground font-normal whitespace-normal break-words'>
+                <div className='whitespace-normal break-words'>
                   {norma.idNormas[0].dependencia}
                 </div>
               )}
@@ -251,45 +229,30 @@ export default function Results({
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
-      const texto = [
-        `${norma.tipoNorma} N° ${norma.idNormas?.[0]?.numero || norma.id}`,
-        norma.tituloResumido || norma.tituloSumario
-          ? `Título: ${norma.tituloResumido || norma.tituloSumario}`
-          : '',
-        norma.jurisdiccion ? `Jurisdicción: ${norma.jurisdiccion}` : '',
-        norma.idNormas?.[0]?.dependencia
-          ? `Dependencia: ${norma.idNormas[0].dependencia}`
-          : '',
-        norma.publicacion
-          ? `Fecha de Publicación: ${formatDatePretty(
-              new Date(norma.publicacion),
-            )}`
-          : '',
-        norma.numeroBoletin ? `Boletín Oficial: ${norma.numeroBoletin}` : '',
-        norma.estado ? `Estado: ${norma.estado}` : '',
-        norma.numeroPagina
-          ? `Página en el Boletín Oficial: ${norma.numeroPagina}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-
+      const { nombreNorma, esNumerada, ...cleanNorma } = norma;
+      const rawJson = JSON.stringify(cleanNorma, null, 2);
       navigator.clipboard
-        .writeText(texto)
+        .writeText(rawJson)
         .then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         })
-        .catch(err => console.error('Error copiando al portapapeles:', err));
+        .catch(err => {
+          console.error('Error copiando al portapapeles:', err);
+        });
     };
+
+    const tituloVisible =
+      norma.tituloResumido?.toUpperCase() !== 'DISPOSICIONES'
+        ? norma.tituloResumido
+        : norma.tituloSumario || 'Sin título';
 
     return (
       <Link
         href={`/search/${norma.id}`}
-        /* added `relative` so the absolute-positioned button can sit on top */
         className='group relative block rounded-xl border bg-card transition hover:bg-accent hover:shadow-md'
       >
-        {/* ─────────── Copy button ─────────── */}
+        {/* Copy button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -300,7 +263,6 @@ export default function Results({
                 e.preventDefault();
                 handleCopy();
               }}
-              /* glassmorphism styles, same as card view */
               className='absolute top-3 right-3 z-10 h-8 w-8 border border-white/30 bg-white/10 backdrop-blur-xs shadow-sm'
             >
               {copied ? (
@@ -315,14 +277,15 @@ export default function Results({
           </TooltipContent>
         </Tooltip>
 
-        {/* ─────────── Main list-item layout ─────────── */}
+        {/* Main layout */}
         <Card className='border-none bg-transparent p-0'>
           <div className='flex flex-col gap-3 p-4'>
-            {/* title & summary */}
+            {/* Title */}
             <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-              {norma.tituloResumido || norma.tituloSumario || 'Sin título'}
+              {tituloVisible}
             </h3>
 
+            {/* Summary */}
             {norma.textoResumido && (
               <div className='relative h-20 overflow-hidden'>
                 <p className='text-sm text-muted-foreground line-clamp-4'>
@@ -332,16 +295,24 @@ export default function Results({
               </div>
             )}
 
-            {/* meta footer */}
-            <div className='flex flex-wrap justify-between gap-4 border-t pt-2 text-xs text-muted-foreground leading-tight'>
-              {/* left */}
-              <div className='flex min-w-0 flex-col gap-1'>
-                <span className='font-medium'>
-                  {norma.tipoNorma}{' '}
-                  {norma.idNormas?.[0]?.numero
-                    ? `N° ${norma.idNormas[0].numero}`
-                    : `ID ${norma.id}`}
-                </span>
+            {/* Meta Info */}
+            <div className='flex flex-wrap justify-between items-start gap-4 border-t pt-2 text-xs text-muted-foreground leading-tight'>
+              {/* Left block */}
+              <div className='flex flex-col gap-1 min-w-0'>
+                <div className='flex items-center gap-4'>
+                  <div className='font-serif font-bold text-base leading-tight text-foreground'>
+                    {norma.nombreNorma}
+                  </div>
+                  {norma.jurisdiccion && (
+                    <Badge
+                      className='font-semibold rounded-full'
+                      variant='default'
+                    >
+                      {norma.jurisdiccion}
+                    </Badge>
+                  )}
+                </div>
+
                 {norma.idNormas?.[0]?.dependencia && (
                   <span className='whitespace-normal break-words'>
                     {norma.idNormas[0].dependencia}
@@ -349,15 +320,19 @@ export default function Results({
                 )}
               </div>
 
-              {/* right */}
+              {/* Right block */}
               <div className='flex flex-col items-end gap-1 whitespace-nowrap'>
                 {norma.publicacion && (
-                  <span>{formatDatePretty(new Date(norma.publicacion))}</span>
+                  <div className='flex items-center gap-1'>
+                    <CalendarIcon className='h-4 w-4' />
+                    <span>{formatDatePretty(new Date(norma.publicacion))}</span>
+                  </div>
                 )}
                 {norma.numeroBoletin && (
-                  <span className='text-[11px]'>
-                    Boletín Oficial {norma.numeroBoletin}
-                  </span>
+                  <div className='flex items-center gap-1 text-[11px]'>
+                    <FileTextIcon className='h-4 w-4' />
+                    <span>Boletín {norma.numeroBoletin}</span>
+                  </div>
                 )}
               </div>
             </div>
