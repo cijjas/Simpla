@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
+import { Skeleton } from '../ui/skeleton';
 
 // -----------------------------------------------------------------------------
 // Tipos
@@ -69,6 +70,7 @@ interface ResultsProps {
   view: 'list' | 'grid';
   onViewChange: (v: 'list' | 'grid') => void;
   onPageChange: (page: number) => void;
+  loading?: boolean;
   onReset?: () => void;
 }
 
@@ -78,10 +80,56 @@ export default function Results({
   view,
   onViewChange,
   onPageChange,
+  loading,
   onReset,
 }: ResultsProps) {
   const currentPage = meta ? Math.ceil(meta.offset / meta.limit) : 1;
   const totalPages = meta ? Math.ceil(meta.count / meta.limit) : 0;
+
+  // Show skeleton placeholders
+  if (loading) {
+    const count = meta?.limit ?? (view === 'grid' ? 6 : 8);
+    // GRID SKELETON
+    if (view === 'grid') {
+      return (
+        <section className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+          {Array.from({ length: count }).map((_, i) => (
+            <div key={i} className='p-4 bg-card rounded-xl animate-pulse'>
+              <div className='h-24 w-full mb-4 bg-muted rounded-lg' />
+              <div className='h-6 w-3/4 mb-2 bg-muted rounded' />
+              <div className='h-4 w-full bg-muted rounded' />
+            </div>
+          ))}
+        </section>
+      );
+    }
+    // LIST SKELETON
+    return (
+      <div className='space-y-4'>
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className='p-4 bg-card rounded-xl animate-pulse'>
+            {/* big top placeholder */}
+            <div className='h-20 w-full mb-4 bg-muted rounded-lg' />
+
+            {/* bottom row: left group & right group */}
+            <div className='flex justify-between'>
+              {/* left bars */}
+              <div className='space-y-2 w-1/2'>
+                <div className='h-4 w-full bg-muted rounded' />
+                <div className='h-4 w-1/2 bg-muted rounded' />
+              </div>
+
+              {/* right bars */}
+              <div className='flex flex-col space-y-2 items-end text-right'>
+                <div className='h-4 w-24 bg-muted rounded' />
+                <div className='h-4 w-12 bg-muted rounded' />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // EMPTY STATES
@@ -154,7 +202,7 @@ export default function Results({
             </Button>
           </TooltipTrigger>
           <TooltipContent side='top' align='center'>
-            Copiar
+            Copiar JSON
           </TooltipContent>
         </Tooltip>
 
@@ -205,7 +253,7 @@ export default function Results({
                 {norma.publicacion && (
                   <div className='flex items-center gap-1'>
                     <CalendarIcon className='h-4 w-4' />
-                    <span>{formatDatePretty(new Date(norma.publicacion))}</span>
+                    <span>{formatDatePretty(norma.publicacion)}</span>
                   </div>
                 )}
                 {norma.numeroBoletin && (
@@ -273,7 +321,7 @@ export default function Results({
             </Button>
           </TooltipTrigger>
           <TooltipContent side='top' align='center'>
-            Copiar
+            Copiar JSON
           </TooltipContent>
         </Tooltip>
 
@@ -325,7 +373,7 @@ export default function Results({
                 {norma.publicacion && (
                   <div className='flex items-center gap-1'>
                     <CalendarIcon className='h-4 w-4' />
-                    <span>{formatDatePretty(new Date(norma.publicacion))}</span>
+                    <span>{formatDatePretty(norma.publicacion)}</span>
                   </div>
                 )}
                 {norma.numeroBoletin && (

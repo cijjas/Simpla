@@ -47,9 +47,6 @@ import-data:       ## Import all 3 required CSVs inside API container
 	@echo "📥  Importing full InfoLeg dataset (3 files)…"
 	$(COMPOSE) exec api python scripts/import_data.py /app/data
 
-test:              ## Run pytest suite inside API
-	@echo "🧪  Running back‑end tests…"
-	$(COMPOSE) exec api pytest
 clean:             ## Stop containers & remove volumes, images, and networks
 	@echo "💣  Nuking containers, volumes, images, and networks…"
 	$(COMPOSE) down -v --rmi all --remove-orphans

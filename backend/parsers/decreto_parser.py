@@ -40,21 +40,72 @@ _DEC_START = re.compile(
     r"\bEL\s+PRESIDENTE\b.*?\bDECRETA\s*:", re.I | re.S
 )  # bloque “EL PRESIDENTE … DECRETA:”
 
-
-
+# Don’t confuse headings (“CAPÍTULO …”, “TÍTULO …”) with signature lines
 _FIRM_LINE = re.compile(
-     r"(?:^|\n)\s*("                          # line start
-     r"[A-ZÁÉÍÓÚÜÑ]"                          # first capital
-     r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ .'-]{2,}"        # rest of the word(s)
-     r"(?:\s*-\s*"                            # “ - ” separator
-     r"[A-ZÁÉÍÓÚÜÑ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ .'-]{2,})+"  # 1 + more names
-     r")",
-     re.M,
+    r"(?:^|\n)\s*("
+    r"(?!CAP[ÍI]TULO\b)(?!T[ÍI]TULO\b)"            # not a heading
+    r"[A-ZÁÉÍÓÚÜÑ][\wÁÉÍÓÚÜÑ.'\-]{2,}"
+    r"(?:\s*-\s*[A-ZÁÉÍÓÚÜÑ][\wÁÉÍÓÚÜÑ.'\-]{2,})+"
+    r")",
+    re.M,
+)
+
+# before: _CAP for laws
+_TIT = re.compile(
+    r"(?:^|\n)\s*T[ÍI]TULO\s+([IVXLCDM]+|\d+)\s*[–\-\.]?\s*(.*?)\n",
+    re.I
+)
+_CAP_D = re.compile(  # “Cap.” pattern for decretos – very similar to laws
+    r"\n\s*CAP[ÍI]TULO\s+([IVXLCDM]+|\d+)\s*[–\-\.]?\s*(.*?)\n",
+    re.I
 )
 
 # ---------------------------------------------------------------------------
 # 2 ▸ HELPERS
 # ---------------------------------------------------------------------------
+
+def _split_titles(txt: str) -> List[Dict[str, Any]]:
+    """
+    Split a decreto’s articulado into títulos ▸ capítulos ▸ artículos.
+    """
+    tits = list(_TIT.finditer(txt))
+    if not tits:           # decreto sin títulos ⇒ behave like old _extract_articles
+        return [{"titulo": None,
+                 "nombre": None,
+                 "capitulos": [],
+                 "articulos": _extract_articles(txt)}]
+
+    end_of_txt = len(txt)
+    result = []
+    for idx, h in enumerate(tits):
+        next_start = tits[idx + 1].start() if idx + 1 < len(tits) else end_of_txt
+        seg = txt[h.end(): next_start]
+
+        # ===== split chapters inside this título =====
+        caps = list(_CAP_D.finditer(seg))
+        cap_list: List[Dict[str, Any]] = []
+        arts_here: List[Dict[str, Any]] = []
+
+        if caps:
+            end_seg = len(seg)
+            for jdx, c in enumerate(caps):
+                nxt = caps[jdx + 1].start() if jdx + 1 < len(caps) else end_seg
+                cseg = seg[c.end(): nxt]
+                cap_list.append({
+                    "capitulo": c.group(1),
+                    "titulo": c.group(2).strip() or None,
+                    "articulos": _extract_articles(cseg)
+                })
+        else:
+            arts_here = _extract_articles(seg)
+
+        result.append({
+            "titulo": h.group(1),
+            "nombre": h.group(2).strip() or None,
+            "capitulos": cap_list,
+            "articulos": arts_here
+        })
+    return result
 
 def _extract_pie_and_resto(txt: str) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
     """
@@ -89,7 +140,11 @@ def _detect_blocks(txt: str) -> Tuple[str, str, str]:
     tail = txt[m_dec.end() :]
 
     # Keywords to detect the start of signature-like endings
-    _TRANSITION_RE = re.compile(r"\b(?:Comuníquese|Publíquese|Archívese|Dese a)\b", re.I)
+    _TRANSITION_RE = re.compile(
+        r"^(?!.*\bART[ÍI]CULO\b).*"
+        r"\b(?:Comuníquese|Publíquese|Archívese|Dese a)\b",
+        re.I | re.M,
+    )
 
     lines = tail.splitlines(keepends=True)
     art_buf, post_buf = [], []
@@ -105,25 +160,30 @@ def _detect_blocks(txt: str) -> Tuple[str, str, str]:
 
 def _extract_signatures(firma_block: str) -> List[str]:
     """
-    Recibe únicamente el bloque `resto` (todo lo que está después del articulado)
-    y devuelve la lista de nombres.
+    Devuelve la lista completa de firmantes.
+    • Toma la primera línea que coincide con _FIRM_LINE
+    • Une esa línea y las siguientes hasta el primer doble salto de línea
+    • Parte el resultado por “ - ”
     """
-    # 1) Primer línea con ' - '
     m = _FIRM_LINE.search(firma_block)
     if not m:
         return []
 
-    line = m.group(1)
-    # 2) Cortar por ' - ' y limpiar
-    names = [p.strip(" –—").strip() for p in line.split(" - ") if p.strip()]
-    # 3) El primer elemento puede ser “MILEI” / “FERNÁNDEZ”; se incluye igual
-    return names
+    # desde la coincidencia hasta el próximo \n\n (o fin)
+    seg = firma_block[m.start():].split("\n\n", 1)[0]
+    joined = " ".join(seg.splitlines())
+    joined = _PIE_RE.sub("", joined).strip()
+    return [p.strip(" –—").strip() for p in joined.split(" - ") if p.strip()]
 
 def _extract_articles(articulado: str) -> List[Dict[str, Any]]:
     """
     Artículos dentro del bloque “articulado” (ya sin preámbulo).
     """
-    hdr = re.compile(r"\bART[ÍI]CULO\s+(\d+)[º°]?\s*[.\-–]\s*", re.I)
+    # ignore “ARTÍCULO n°” tokens that are immediately inside quotes
+    hdr = re.compile(
+        r"(?<![\"“”'])\bART[ÍI]CULO\s+(\d+)[º°]?\s*[.\-–]\s*",
+        re.I
+    )
     heads = list(hdr.finditer(articulado))
     arts: List[Dict[str, Any]] = []
     for i, h in enumerate(heads):
@@ -194,12 +254,11 @@ def _split_chapters(txt: str) -> List[Dict[str, Any]]:
             # find all articles without chapters
             "articulos": [{"art": int(n), "texto": t.strip()} for n, t in _ART.findall(txt)]
         }]
-    caps.append(re.Match)  # sentinel to simplify loop
     chapters = []
-    for i, cap in enumerate(caps[:-1]):
+    for i, cap in enumerate(caps):
         # Compute segment boundaries: after this cap to before next cap
         start = cap.end()
-        end = caps[i+1].start() if i+1 < len(caps)-1 else len(txt)
+        end = caps[i + 1].start() if i + 1 < len(caps) else len(txt)
         segment = txt[start:end]
         # Extract all articles in segment
         arts = [{"art": int(n), "texto": t.strip()} for n, t in _ART.findall(segment)]
@@ -240,7 +299,8 @@ def parse_legislation(rec: Dict[str, Any]) -> Dict[str, Any]:
             "considerando": (cons.group(1).strip() if cons else None),
         }
 
-        cuerpo = _extract_articles(articulado)
+        cuerpo = _split_titles(articulado)
+        # cuerpo = _extract_articles(articulado)
         firmas = _extract_signatures(resto)
         nota = _extract_nota(resto)
         pie, resto = _extract_pie_and_resto(txt)

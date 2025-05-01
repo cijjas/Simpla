@@ -14,12 +14,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- -p 3000 -H 0.0.0.0
+    command: pnpm run dev -- . -p 3000 -H 0.0.0.0
     ports:
       - '3000:3000'
+    volumes:
+      - ./frontend:/app:cached
+      - node_modules_front:/app/node_modules
 
   postgres:
     image: postgres:15
@@ -38,3 +38,4 @@ services:
 
 volumes:
   postgres_data:
+  node_modules_front: # ← declare the named volume
