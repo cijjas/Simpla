@@ -21,6 +21,15 @@ import {
   CheckIcon,
 } from '@radix-ui/react-icons';
 import { cn, formatDatePretty } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './dialog';
+import { Separator } from './separator';
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
@@ -343,17 +352,14 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   }, [isOpen]);
 
   return (
-    <Popover
-      modal={true}
+    <Dialog
       open={isOpen}
-      onOpenChange={(open: boolean) => {
-        if (!open) {
-          resetValues();
-        }
+      onOpenChange={open => {
+        if (!open) resetValues();
         setIsOpen(open);
       }}
     >
-      <PopoverTrigger asChild>
+      <DialogTrigger asChild>
         <Button
           variant='outline'
           className='w-full max-w-full justify-between overflow-hidden text-ellipsis'
@@ -376,18 +382,27 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
               </div>
             )}
           </div>
-          {isOpen ? (
-            <ChevronUpIcon className='size-4 opacity-50' />
-          ) : (
-            <ChevronDownIcon className='size-4 opacity-50' />
-          )}
+          <div className='opacity-60 shrink-0 scale-125 p-0 m-0'>
+            {isOpen ? (
+              <ChevronUpIcon width={24} />
+            ) : (
+              <ChevronDownIcon width={24} />
+            )}
+          </div>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent align={align} className='w-auto'>
-        <div className='flex py-2'>
+      </DialogTrigger>
+
+      <DialogContent className='w-full min-w-[768px] max-w-[95vw]'>
+        <DialogHeader>
+          <DialogTitle>Seleccionar rango de fechas</DialogTitle>
+        </DialogHeader>
+        <Separator className='my-2' />
+
+        {/* Your date picker content below — same as before */}
+        <div className='flex py-2 justify-between gap-2'>
           <div className='flex'>
             <div className='flex flex-col'>
-              <div className='flex flex-col lg:flex-row gap-2 px-3 justify-end items-center lg:items-start pb-4 lg:pb-0'>
+              <div className='flex flex-col lg:flex-row gap-2 px-3 justify-center items-center lg:items-start pb-4 lg:pb-0'>
                 {showCompare && (
                   <div className='flex items-center space-x-2 pr-4 py-1'>
                     <Switch
@@ -441,7 +456,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                         }));
                       }}
                     />
-                    <div className='py-1'>-</div>
+                    <div className='py-1'>→</div>
                     <DateInput
                       value={range.to}
                       onChange={date => {
@@ -538,28 +553,26 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
               </div>
             </div>
           </div>
-          {!isSmallScreen && (
-            <div className='flex flex-col items-end gap-1 pr-2 pl-6 pb-6'>
-              <div className='flex w-full flex-col items-end gap-1 pr-2 pl-6 pb-6'>
-                {PRESETS.map(preset => (
-                  <PresetButton
-                    key={preset.name}
-                    preset={preset.name}
-                    label={preset.label}
-                    isSelected={selectedPreset === preset.name}
-                  />
-                ))}
-              </div>
+          <div className='flex flex-col items-end gap-1  '>
+            <div className='flex w-full flex-col items-end '>
+              {PRESETS.map(preset => (
+                <PresetButton
+                  key={preset.name}
+                  preset={preset.name}
+                  label={preset.label}
+                  isSelected={selectedPreset === preset.name}
+                />
+              ))}
             </div>
-          )}
+          </div>
         </div>
-        <div className='flex justify-end gap-2 py-2 pr-4'>
+        <DialogFooter className='flex justify-end gap-2  '>
           <Button
             onClick={() => {
               setIsOpen(false);
               resetValues();
             }}
-            variant='ghost'
+            variant='outline'
           >
             Cancelar
           </Button>
@@ -576,9 +589,9 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
           >
             Guardar
           </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
