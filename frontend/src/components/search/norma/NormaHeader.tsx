@@ -121,8 +121,7 @@ export async function NormaHeader({ norma }: { norma: Norma }) {
       </div>
 
       {/* Linked normas lists */}
-      {(modifica.filter(Boolean).length ||
-        modificadaPor.filter(Boolean).length) && (
+      {!!(modifica.length || modificadaPor.length) && (
         <Accordion type='multiple' className='w-full'>
           {/* Modifica */}
           {modifica.filter(Boolean).length > 0 && (

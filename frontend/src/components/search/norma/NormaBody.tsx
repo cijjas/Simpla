@@ -18,6 +18,22 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
+interface SimpleArticle {
+  art: number;
+  texto: string;
+}
+
+interface Capitulo {
+  nombre: string;
+  articulos: SimpleArticle[];
+}
+
+interface Titulo {
+  nombre: string;
+  articulos: SimpleArticle[];
+  capitulos?: Capitulo[];
+}
+
 interface ParsedNorma {
   meta: any;
   preambulo: {
@@ -25,7 +41,8 @@ interface ParsedNorma {
     visto?: string | null;
     considerando?: string | null;
   };
-  cuerpo: { art: number; texto: string }[];
+  // cuerpo can be either array of simple articles or array of Titulo objects
+  cuerpo: SimpleArticle[] | Titulo[];
   firmas: string[];
   nota?: string | null;
   anexos: { nombre: string; url: string }[];
@@ -41,6 +58,14 @@ export function NormaBody({ parsed }: { parsed: ParsedNorma }) {
   }
 
   const { meta, preambulo, cuerpo, firmas, nota, anexos, pie } = parsed;
+
+  // Helper to check if cuerpo is array of simple articles
+  const isSimpleArticles = (arr: any[]): arr is SimpleArticle[] => {
+    return (
+      arr.length === 0 ||
+      (typeof arr[0].art === 'number' && typeof arr[0].texto === 'string')
+    );
+  };
 
   return (
     <Card>
@@ -124,22 +149,99 @@ export function NormaBody({ parsed }: { parsed: ParsedNorma }) {
           <TabsContent value='cuerpo'>
             <ScrollArea className='h-96 pr-4'>
               {cuerpo.length > 0 ? (
-                <Accordion
-                  type='single'
-                  collapsible
-                  defaultValue={`art-${cuerpo[0]?.art}`}
-                >
-                  {cuerpo.map(({ art, texto }) => (
-                    <AccordionItem key={art} value={`art-${art}`}>
-                      <AccordionTrigger className='font-serif text-lg'>
-                        Artículo {art}°
-                      </AccordionTrigger>
-                      <AccordionContent className='whitespace-pre-wrap leading-6'>
-                        {texto}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                isSimpleArticles(cuerpo) ? (
+                  <Accordion
+                    type='single'
+                    collapsible
+                    defaultValue={`art-${(cuerpo as SimpleArticle[])[0]?.art}`}
+                  >
+                    {(cuerpo as SimpleArticle[]).map(({ art, texto }) => (
+                      <AccordionItem key={art} value={`art-${art}`}>
+                        <AccordionTrigger className='font-serif text-lg'>
+                          Artículo {art}°
+                        </AccordionTrigger>
+                        <AccordionContent className='whitespace-pre-wrap leading-6'>
+                          {texto}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <Accordion
+                    type='single'
+                    collapsible
+                    defaultValue={`titulo-0`}
+                  >
+                    {(cuerpo as Titulo[]).map((titulo, idx) => (
+                      <AccordionItem key={idx} value={`titulo-${idx}`}>
+                        <AccordionTrigger className='font-serif text-lg'>
+                          {titulo.nombre}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {/* Render artículos directos del título */}
+                          {titulo.articulos.length > 0 && (
+                            <Accordion
+                              type='single'
+                              collapsible
+                              defaultValue={`art-${titulo.articulos[0]?.art}`}
+                              className='mb-4'
+                            >
+                              {titulo.articulos.map(({ art, texto }) => (
+                                <AccordionItem key={art} value={`art-${art}`}>
+                                  <AccordionTrigger className='font-serif text-base'>
+                                    Artículo {art}°
+                                  </AccordionTrigger>
+                                  <AccordionContent className='whitespace-pre-wrap leading-6'>
+                                    {texto}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                            </Accordion>
+                          )}
+
+                          {/* Render capitulos if any */}
+                          {titulo.capitulos && titulo.capitulos.length > 0 && (
+                            <Accordion type='single' collapsible>
+                              {titulo.capitulos.map((capitulo, cidx) => (
+                                <AccordionItem
+                                  key={cidx}
+                                  value={`capitulo-${cidx}`}
+                                >
+                                  <AccordionTrigger className='font-serif text-base'>
+                                    {capitulo.nombre}
+                                  </AccordionTrigger>
+                                  <AccordionContent>
+                                    <Accordion
+                                      type='single'
+                                      collapsible
+                                      defaultValue={`art-${capitulo.articulos[0]?.art}`}
+                                    >
+                                      {capitulo.articulos.map(
+                                        ({ art, texto }) => (
+                                          <AccordionItem
+                                            key={art}
+                                            value={`art-${art}`}
+                                          >
+                                            <AccordionTrigger className='font-serif text-sm'>
+                                              Artículo {art}°
+                                            </AccordionTrigger>
+                                            <AccordionContent className='whitespace-pre-wrap leading-6'>
+                                              {texto}
+                                            </AccordionContent>
+                                          </AccordionItem>
+                                        ),
+                                      )}
+                                    </Accordion>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                            </Accordion>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )
               ) : (
                 <p className='text-muted-foreground italic'>
                   No se encontraron artículos en esta norma.
