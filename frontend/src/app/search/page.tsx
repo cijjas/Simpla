@@ -6,7 +6,7 @@ import SearchForm from '@/components/search/SearchForm';
 import Results from '@/components/search/Results';
 import { searchNormas } from '@/lib/infoleg/infoleg';
 
-export default function BusquedaPage() {
+export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -43,13 +43,11 @@ export default function BusquedaPage() {
     }
   }, [searchParams]);
 
-  // page.tsx
   const doSearch = async (params: Record<string, unknown>) => {
     setLoading(true);
     try {
       const { view, anios, ...apiParams } = params;
 
-      // 🔥 fix: force string -> array of years
       const parsedAnios: number[] =
         typeof anios === 'string'
           ? anios
@@ -57,8 +55,6 @@ export default function BusquedaPage() {
               .map(a => parseInt(a.trim(), 10))
               .filter(a => !isNaN(a))
           : [];
-
-      console.log('parsedAnios:', parsedAnios);
 
       if (parsedAnios.length > 0) {
         const currentYear = new Date().getFullYear();
@@ -105,13 +101,11 @@ export default function BusquedaPage() {
     router.push(`/search?${buildQueryString({ ...params, view })}`);
   };
 
-  // Pagination: update URL
   const goToPage = (page: number) => {
     const p = Object.fromEntries(searchParams.entries());
-    const limit = parseInt(p.limit as string) || 10;
-    const offset = (page - 1) * limit + 1;
-    const next = { ...p, offset: offset.toString() };
+    const next = { ...p, offset: page.toString() };
     router.push(`/search?${buildQueryString(next)}`);
+    router.refresh();
   };
 
   // View toggle: update URL only

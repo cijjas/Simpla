@@ -83,7 +83,8 @@ export default function Results({
   loading,
   onReset,
 }: ResultsProps) {
-  const currentPage = meta ? Math.ceil(meta.offset / meta.limit) : 1;
+  // API uses 1-based offset where offset equals the current page number
+  const currentPage = meta ? meta.offset : 1;
   const totalPages = meta ? Math.ceil(meta.count / meta.limit) : 0;
 
   // Show skeleton placeholders

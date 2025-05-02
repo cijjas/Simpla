@@ -16,12 +16,15 @@ function buildQuery(params: Record<string, unknown>) {
 export async function POST(req: Request) {
   const body = await req.json();
   const { tipo, ...rest } = body;
+  console.log('📨 Incoming body:', body);
+  console.log('📤 Sending to Infoleg with:', { tipo, ...rest });
 
   if (!tipo) {
     return NextResponse.json({ error: 'tipo requerido' }, { status: 400 });
   }
 
   const url = `${BASE}/${tipo}?${buildQuery(rest)}`;
+  console.log('Fetching:', url);
   const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
   const data = await res.json();
 
