@@ -63,32 +63,33 @@ export function StatsSection() {
   /* fetch once on mount -------------------------------------------------- */
   useEffect(() => {
     async function load() {
-      try {
-        const [ov, pt, py, un, avg, mpy, tm] = await Promise.all([
-          fetch(`${baseUrl}/api/stats/overview`).then(r => r.json()),
-          fetch(`${baseUrl}/api/stats/normas-per-type`).then(r => r.json()),
-          fetch(`${baseUrl}/api/stats/normas-per-year`).then(r => r.json()),
-          fetch(`${baseUrl}/api/stats/untouched-vs-modified`).then(r =>
-            r.json(),
-          ),
-          fetch(`${baseUrl}/api/stats/avg-mods-per-type`).then(r => r.json()),
-          fetch(`${baseUrl}/api/stats/modificaciones-per-year`).then(r =>
-            r.json(),
-          ),
-          fetch(`${baseUrl}/api/stats/top-modifiers?limit=5`).then(r =>
-            r.json(),
-          ),
-        ]);
-        setOverview(ov);
-        setPerType(pt);
-        setPerYear(py);
-        setUntouched(un);
-        setAvgMods(avg);
-        setModsPerYear(mpy);
-        setTopModifiers(tm);
-      } catch (err) {
-        console.error(err);
-      }
+      const safeFetch = async (url: string) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          return await res.json();
+        } catch {
+          return null;
+        }
+      };
+
+      const [ov, pt, py, un, avg, mpy, tm] = await Promise.all([
+        safeFetch(`${baseUrl}/api/stats/overview`),
+        safeFetch(`${baseUrl}/api/stats/normas-per-type`),
+        safeFetch(`${baseUrl}/api/stats/normas-per-year`),
+        safeFetch(`${baseUrl}/api/stats/untouched-vs-modified`),
+        safeFetch(`${baseUrl}/api/stats/avg-mods-per-type`),
+        safeFetch(`${baseUrl}/api/stats/modificaciones-per-year`),
+        safeFetch(`${baseUrl}/api/stats/top-modifiers?limit=5`),
+      ]);
+
+      setOverview(ov);
+      setPerType(pt ?? []);
+      setPerYear(py ?? []);
+      setUntouched(un);
+      setAvgMods(avg ?? []);
+      setModsPerYear(mpy ?? []);
+      setTopModifiers(tm ?? []);
     }
     load();
   }, [baseUrl]);
@@ -154,6 +155,18 @@ export function StatsSection() {
       },
     ],
   };
+
+  if (
+    !overview ||
+    !untouched ||
+    perType.length === 0 ||
+    perYear.length === 0 ||
+    avgMods.length === 0 ||
+    modsPerYear.length === 0 ||
+    topModifiers.length === 0
+  ) {
+    return null;
+  }
 
   return (
     <section className='grid lg:grid-cols-3 md:grid-cols-2 gap-6 mb-16'>

@@ -31,17 +31,21 @@ function buildQuery(params: Record<string, unknown>) {
 export async function searchNormas(params: SearchParams) {
   // En cliente usamos nuestro proxy para evitar CORS
   if (typeof window !== 'undefined') {
+    console.log('📤 Sending request to /api/infoleg/search with:', params);
     const res = await fetch('/api/infoleg/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
+    console.log('DONE');
     if (!res.ok) throw new Error('Error al buscar normas');
     return res.json();
   }
 
   const { tipo, ...rest } = params;
+  console.log('here');
   const url = `${API_BASE}/${tipo}?${buildQuery(rest)}`;
+  console.log('📤 Direct server request to Infoleg URL:', url);
   const res = await fetch(url, {
     headers: { 'Accept-Encoding': 'gzip' },
     cache: 'no-store',

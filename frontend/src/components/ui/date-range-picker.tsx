@@ -382,24 +382,25 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
               </div>
             )}
           </div>
-          <div className='opacity-60 shrink-0 scale-125 p-0 m-0'>
-            {isOpen ? (
-              <ChevronUpIcon width={24} />
-            ) : (
-              <ChevronDownIcon width={24} />
-            )}
-          </div>
+          {isOpen ? (
+            <ChevronUpIcon className='size-4 opacity-60' />
+          ) : (
+            <ChevronDownIcon className='size-4 opacity-60' />
+          )}
         </Button>
       </DialogTrigger>
-
-      <DialogContent className='w-full min-w-[768px] max-w-[95vw]'>
+      <DialogContent className='w-full max-w-[95vw] sm:min-w-[768px] '>
         <DialogHeader>
           <DialogTitle>Seleccionar rango de fechas</DialogTitle>
         </DialogHeader>
         <Separator className='my-2' />
 
         {/* Your date picker content below — same as before */}
-        <div className='flex py-2 justify-between gap-2'>
+        <div
+          className={`flex py-2 ${
+            isSmallScreen ? 'justify-center' : 'justify-between'
+          }`}
+        >
           <div className='flex'>
             <div className='flex flex-col'>
               <div className='flex flex-col lg:flex-row gap-2 px-3 justify-center items-center lg:items-start pb-4 lg:pb-0'>
@@ -532,39 +533,45 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
                   </SelectContent>
                 </Select>
               )}
-              <div>
-                <Calendar
-                  mode='range'
-                  onSelect={(value: { from?: Date; to?: Date } | undefined) => {
-                    if (value?.from != null) {
-                      setRange({ from: value.from, to: value?.to });
+              {!isSmallScreen && (
+                <div>
+                  <Calendar
+                    mode='range'
+                    onSelect={(
+                      value: { from?: Date; to?: Date } | undefined,
+                    ) => {
+                      if (value?.from != null) {
+                        setRange({ from: value.from, to: value?.to });
+                      }
+                    }}
+                    selected={range}
+                    numberOfMonths={isSmallScreen ? 1 : 2}
+                    defaultMonth={
+                      new Date(
+                        new Date().setMonth(
+                          new Date().getMonth() - (isSmallScreen ? 0 : 1),
+                        ),
+                      )
                     }
-                  }}
-                  selected={range}
-                  numberOfMonths={isSmallScreen ? 1 : 2}
-                  defaultMonth={
-                    new Date(
-                      new Date().setMonth(
-                        new Date().getMonth() - (isSmallScreen ? 0 : 1),
-                      ),
-                    )
-                  }
-                />
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          {!isSmallScreen && (
+            <div className='flex flex-col items-end gap-1  '>
+              <div className='flex w-full flex-col items-end '>
+                {PRESETS.map(preset => (
+                  <PresetButton
+                    key={preset.name}
+                    preset={preset.name}
+                    label={preset.label}
+                    isSelected={selectedPreset === preset.name}
+                  />
+                ))}
               </div>
             </div>
-          </div>
-          <div className='flex flex-col items-end gap-1  '>
-            <div className='flex w-full flex-col items-end '>
-              {PRESETS.map(preset => (
-                <PresetButton
-                  key={preset.name}
-                  preset={preset.name}
-                  label={preset.label}
-                  isSelected={selectedPreset === preset.name}
-                />
-              ))}
-            </div>
-          </div>
+          )}
         </div>
         <DialogFooter className='flex justify-end gap-2  '>
           <Button

@@ -173,6 +173,8 @@ export default function SearchForm({
       offset: 1,
     };
 
+    console.log(params);
+
     if (values.dateRange?.from && values.dateRange?.to) {
       params['publicacion_desde'] = format(values.dateRange.from, 'yyyy-MM-dd');
       params['publicacion_hasta'] = format(values.dateRange.to, 'yyyy-MM-dd');
