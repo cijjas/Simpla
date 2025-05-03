@@ -40,7 +40,7 @@ export default function Hero() {
       <p className='text-2xl text-gray-700 mb-10 font-sans'>
         Encontrá info legal y accedé a datos útiles
       </p>
-      <div className='relative max-w-3xl mx-auto'>
+      {/* <div className='relative max-w-3xl mx-auto'>
         <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
           <Search className='h-5 w-5 text-gray-500' />
         </div>
@@ -49,7 +49,7 @@ export default function Hero() {
           placeholder='Buscar leyes, normas, artículos...'
           className='pl-10 py-6 text-xl rounded-lg border border-gray-300'
         />
-      </div>
+      </div> */}
     </section>
   );
 }
