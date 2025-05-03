@@ -4,12 +4,13 @@ import { getNormaDetalle } from '@/lib/infoleg/infoleg';
 import { parseNormaViaApi } from '@/lib/infoleg/parseNorma';
 import { notFound } from 'next/navigation';
 
-interface Params {
-  params: { id: string };
+interface Props {
+  params: Promise<{ id: string }>;
 }
 
-export default async function NormaPage({ params }: Params) {
-  const norma = await getNormaDetalle(Number(params.id));
+export default async function NormaPage({ params }: Props) {
+  const { id } = await params;
+  const norma = await getNormaDetalle(Number(id));
   if (!norma || norma.status === 404) notFound();
 
   const parsed = await parseNormaViaApi(norma);

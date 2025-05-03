@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
@@ -11,20 +10,18 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Sun, Moon, Laptop } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils'; // make sure this exists
 
 export default function Header() {
-  const { theme, setTheme, systemTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const currentTheme = theme === 'system' ? systemTheme : theme;
-  const logoSrc =
-    currentTheme === 'dark' ? '/logo_simple_dark.png' : '/logo_simple.png';
 
   return (
     <header className='w-full py-6 border-b'>
@@ -39,13 +36,26 @@ export default function Header() {
         </div>
 
         <nav className='hidden md:flex space-x-12'>
-          <Link href='/' className='text-navy-900 text-lg font-medium'>
+          <Link
+            href='/'
+            className={cn(
+              'text-lg font-medium transition-colors',
+              pathname === '/'
+                ? 'text-navy-900 font-bold lunderine underline-offset-4'
+                : 'text-navy-900 hover:opacity-70',
+            )}
+          >
             Inicio
           </Link>
-          {/* <Link href='/dashboard' className='text-navy-900 text-lg font-medium'>
-            Dashboard
-          </Link> */}
-          <Link href='/search' className='text-navy-900 text-lg font-medium'>
+          <Link
+            href='/search'
+            className={cn(
+              'text-lg font-medium transition-colors',
+              pathname === '/search' || pathname.startsWith('/busqueda')
+                ? 'text-navy-900 font-bold underline underline-offset-4'
+                : 'text-navy-900 hover:opacity-70',
+            )}
+          >
             Búsqueda
           </Link>
         </nav>
@@ -79,10 +89,6 @@ export default function Header() {
               </SelectContent>
             </Select>
           )}
-
-          {/* <Button variant='outline' className='rounded-md border-slate-300'>
-            Sign In
-          </Button> */}
         </div>
       </div>
     </header>
