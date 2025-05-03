@@ -32,7 +32,6 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { DateSelect } from '@/components/ui/date-select';
 import {
   Command,
   CommandEmpty,
@@ -42,7 +41,6 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import {
-  Calendar as CalendarIcon,
   Check,
   ChevronsUpDown,
   Search as SearchIcon,
@@ -74,10 +72,8 @@ const TIPOS_HARDCODEADOS = [
   { detalle: 'Acordada', route: 'acordadas' },
   { detalle: 'Acta', route: 'actas' },
   { detalle: 'Actuacion', route: 'actuaciones' },
-  // … (mantén el resto como en tu archivo original)
 ];
 
-// Para no inflar el archivo, cortamos dependencias a pocas de ejemplo. Reemplázalas por la lista completa si lo necesitás.
 const DEPENDENCIAS_HARDCODEADAS = [
   'ADMINISTRACION FEDERAL DE INGRESOS PUBLICOS',
   'MINISTERIO DE JUSTICIA Y DERECHOS HUMANOS',
@@ -103,10 +99,24 @@ const schema = z.object({
       from: z.date(),
       to: z.date(),
     })
-    .optional(),
+    .optional()
+    .refine(
+      range =>
+        !range ||
+        (range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24) <=
+          1472,
+      {
+        message: 'El rango de fechas no puede ser mayor a 1472 días',
+      },
+    ),
 });
 
 type FormValues = z.infer<typeof schema>;
+
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day); // JS months are 0-based
+}
 
 export default function SearchForm({
   onSearch,
@@ -151,13 +161,10 @@ export default function SearchForm({
       dateRange:
         initialValues?.publicacion_desde && initialValues?.publicacion_hasta
           ? {
-              from: new Date(initialValues.publicacion_desde),
-              to: new Date(initialValues.publicacion_hasta),
+              from: parseLocalDate(initialValues.publicacion_desde),
+              to: parseLocalDate(initialValues.publicacion_hasta),
             }
-          : {
-              from: new Date(1810, 0, 1), // January = 0
-              to: new Date(),
-            },
+          : undefined,
     },
   });
 
@@ -428,7 +435,6 @@ export default function SearchForm({
                     initialDateFrom={field.value?.from}
                     initialDateTo={field.value?.to}
                     onUpdate={({ range }) => field.onChange(range)}
-                    showCompare={false}
                   />
                   <FormMessage />
                 </FormItem>
