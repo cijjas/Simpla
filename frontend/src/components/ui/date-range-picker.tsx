@@ -15,11 +15,7 @@ import {
   SelectValue,
 } from './select';
 import { Switch } from './switch';
-import {
-  ChevronUpIcon,
-  ChevronDownIcon,
-  CheckIcon,
-} from '@radix-ui/react-icons';
+import { CheckIcon } from '@radix-ui/react-icons';
 import { cn, formatDatePretty } from '@/lib/utils';
 import {
   Dialog,
@@ -30,51 +26,35 @@ import {
   DialogTrigger,
 } from './dialog';
 import { Separator } from './separator';
+import { CalendarFold, CalendarIcon } from 'lucide-react';
 
 export interface DateRangePickerProps {
   /** Click handler for applying the updates from DateRangePicker. */
-  onUpdate?: (values: { range: DateRange; rangeCompare?: DateRange }) => void;
+  onUpdate?: (values: { range: DateRange }) => void;
   /** Initial value for start date */
   initialDateFrom?: Date | string;
   /** Initial value for end date */
   initialDateTo?: Date | string;
-  /** Initial value for start date for compare */
-  initialCompareFrom?: Date | string;
-  /** Initial value for end date for compare */
-  initialCompareTo?: Date | string;
   /** Alignment of popover */
   align?: 'start' | 'center' | 'end';
   /** Option for locale */
   locale?: string;
-  /** Option for showing compare feature */
-  showCompare?: boolean;
 }
 
-const formatDate = (date: Date, locale: string = 'en-us'): string => {
-  return date.toLocaleDateString(locale, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
-
-const getDateAdjustedForTimezone = (dateInput: Date | string): Date => {
+const getDateAdjustedForTimezone = (
+  dateInput: Date | string | undefined,
+): Date | undefined => {
+  if (dateInput == null) return undefined;
   if (typeof dateInput === 'string') {
-    // Split the date string to get year, month, and day parts
-    const parts = dateInput.split('-').map(part => parseInt(part, 10));
-    // Create a new Date object using the local timezone
-    // Note: Month is 0-indexed, so subtract 1 from the month part
-    const date = new Date(parts[0], parts[1] - 1, parts[2]);
-    return date;
-  } else {
-    // If dateInput is already a Date object, return it directly
-    return dateInput;
+    const [year, month, day] = dateInput.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
   }
+  return dateInput;
 };
 
 interface DateRange {
-  from: Date;
-  to: Date | undefined;
+  from?: Date;
+  to?: Date;
 }
 
 interface Preset {
@@ -95,73 +75,82 @@ const PRESETS: Preset[] = [
   { name: 'lastMonth', label: 'Mes pasado' },
 ];
 
-/** The DateRangePicker component allows a user to select a range of dates */
+/**
+ * DateRangePicker – separates the *committed* range (saved) from the *draft* range (being edited).
+ *
+ * Behaviour
+ *  - If `initialDateFrom/To` are provided → they become the *committed* range and are shown on the button immediately.
+ *  - If not provided → the committed range starts **undefined** so the button shows the placeholder «Fechas de publicación».
+ *    When the dialog opens we still pre‑populate the calendar with *today → today* so the user has something handy to begin with.
+ *  - Clicking «Guardar» copies the draftRange into committedRange **and** fires `onUpdate` (if the range really changed).
+ *  - Clicking «Cancelar» or closing the dialog discards the draft.
+ */
 export const DateRangePicker: FC<DateRangePickerProps> & {
   filePath: string;
-} = ({
-  initialDateFrom = new Date(new Date().setHours(0, 0, 0, 0)),
-  initialDateTo,
-  initialCompareFrom,
-  initialCompareTo,
-  onUpdate,
-  align = 'end',
-  locale = 'en-US',
-  showCompare = true,
-}): JSX.Element => {
-  const [isOpen, setIsOpen] = useState(false);
+} = ({ initialDateFrom, initialDateTo, onUpdate }): JSX.Element => {
+  /* ---------------------------------------------------------------------
+   * Internal helpers & constants
+   * -------------------------------------------------------------------*/
+  const buildTodayRange = (): DateRange => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return { from: today, to: today };
+  };
 
-  const [range, setRange] = useState<DateRange>({
-    from: getDateAdjustedForTimezone(initialDateFrom),
-    to: initialDateTo
-      ? getDateAdjustedForTimezone(initialDateTo)
-      : getDateAdjustedForTimezone(initialDateFrom),
-  });
-  const [rangeCompare, setRangeCompare] = useState<DateRange | undefined>(
-    initialCompareFrom
+  const initialCommitted: DateRange | undefined =
+    initialDateFrom != null
       ? {
-          from: new Date(new Date(initialCompareFrom).setHours(0, 0, 0, 0)),
-          to: initialCompareTo
-            ? new Date(new Date(initialCompareTo).setHours(0, 0, 0, 0))
-            : new Date(new Date(initialCompareFrom).setHours(0, 0, 0, 0)),
+          from: getDateAdjustedForTimezone(initialDateFrom),
+          to:
+            getDateAdjustedForTimezone(initialDateTo) ??
+            getDateAdjustedForTimezone(initialDateFrom),
         }
-      : undefined,
+      : undefined;
+
+  /**
+   * committedRange – what the outside world currently ‘has’.
+   * draftRange – what the user is tweaking inside the modal.
+   */
+  const [committedRange, setCommittedRange] = useState<DateRange | undefined>(
+    initialCommitted,
   );
-
-  // Refs to store the values of range and rangeCompare when the date picker is opened
-  const openedRangeRef = useRef<DateRange | undefined>(undefined);
-  const openedRangeCompareRef = useRef<DateRange | undefined>(undefined);
-
-  const [selectedPreset, setSelectedPreset] = useState<string | undefined>(
-    undefined,
+  const [draftRange, setDraftRange] = useState<DateRange>(
+    initialCommitted ?? buildTodayRange(),
   );
-
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string | undefined>();
   const [isSmallScreen, setIsSmallScreen] = useState(
     typeof window !== 'undefined' ? window.innerWidth < 960 : false,
   );
 
-  // right after your `useState` calls, add:
+  /* ---------------------------------------------------------------------
+   * Synchronise external prop changes → committed state
+   * -------------------------------------------------------------------*/
   useEffect(() => {
-    setRange({
-      from: getDateAdjustedForTimezone(initialDateFrom),
-      to: initialDateTo
-        ? getDateAdjustedForTimezone(initialDateTo)
-        : getDateAdjustedForTimezone(initialDateFrom),
-    });
+    const updatedCommitted: DateRange | undefined =
+      initialDateFrom != null
+        ? {
+            from: getDateAdjustedForTimezone(initialDateFrom),
+            to:
+              getDateAdjustedForTimezone(initialDateTo) ??
+              getDateAdjustedForTimezone(initialDateFrom),
+          }
+        : undefined;
+    setCommittedRange(updatedCommitted);
   }, [initialDateFrom, initialDateTo]);
 
+  /* ---------------------------------------------------------------------
+   * Responsive helper
+   * -------------------------------------------------------------------*/
   useEffect(() => {
-    const handleResize = (): void => {
-      setIsSmallScreen(window.innerWidth < 960);
-    };
-
+    const handleResize = (): void => setIsSmallScreen(window.innerWidth < 960);
     window.addEventListener('resize', handleResize);
-
-    // Clean up event listener on unmount
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  /* ---------------------------------------------------------------------
+   * Preset handling
+   * -------------------------------------------------------------------*/
   const getPresetRange = (presetName: string): DateRange => {
     const preset = PRESETS.find(({ name }) => name === presetName);
     if (!preset) throw new Error(`Unknown date range preset: ${presetName}`);
@@ -176,8 +165,8 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
         break;
       case 'yesterday':
         from.setDate(from.getDate() - 1);
-        from.setHours(0, 0, 0, 0);
         to.setDate(to.getDate() - 1);
+        from.setHours(0, 0, 0, 0);
         to.setHours(23, 59, 59, 999);
         break;
       case 'last7':
@@ -214,8 +203,9 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       case 'lastMonth':
         from.setMonth(from.getMonth() - 1);
         from.setDate(1);
-        from.setHours(0, 0, 0, 0);
+        to.setMonth(to.getMonth() - 1);
         to.setDate(0);
+        from.setHours(0, 0, 0, 0);
         to.setHours(23, 59, 59, 999);
         break;
     }
@@ -223,93 +213,49 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     return { from, to };
   };
 
-  const setPreset = (preset: string): void => {
-    const range = getPresetRange(preset);
-    setRange(range);
-    if (rangeCompare) {
-      const rangeCompare = {
-        from: new Date(
-          range.from.getFullYear() - 1,
-          range.from.getMonth(),
-          range.from.getDate(),
-        ),
-        to: range.to
-          ? new Date(
-              range.to.getFullYear() - 1,
-              range.to.getMonth(),
-              range.to.getDate(),
-            )
-          : undefined,
-      };
-      setRangeCompare(rangeCompare);
-    }
+  const setPreset = (presetName: string): void => {
+    setDraftRange(getPresetRange(presetName));
   };
 
-  const checkPreset = (): void => {
-    for (const preset of PRESETS) {
-      const presetRange = getPresetRange(preset.name);
-
-      const normalizedRangeFrom = new Date(range.from);
-      normalizedRangeFrom.setHours(0, 0, 0, 0);
-      const normalizedPresetFrom = new Date(
-        presetRange.from.setHours(0, 0, 0, 0),
+  /* ---------------------------------------------------------------------
+   * Preset highlight (for the ghost tick ✓)
+   * -------------------------------------------------------------------*/
+  useEffect(() => {
+    const match = PRESETS.find(p => {
+      const pr = getPresetRange(p.name);
+      return (
+        draftRange.from?.setHours(0, 0, 0, 0) ===
+          pr.from?.setHours(0, 0, 0, 0) &&
+        draftRange.to?.setHours(0, 0, 0, 0) === pr.to?.setHours(0, 0, 0, 0)
       );
-
-      const normalizedRangeTo = new Date(range.to ?? 0);
-      normalizedRangeTo.setHours(0, 0, 0, 0);
-      const normalizedPresetTo = new Date(
-        presetRange.to?.setHours(0, 0, 0, 0) ?? 0,
-      );
-
-      if (
-        normalizedRangeFrom.getTime() === normalizedPresetFrom.getTime() &&
-        normalizedRangeTo.getTime() === normalizedPresetTo.getTime()
-      ) {
-        setSelectedPreset(preset.name);
-        return;
-      }
-    }
-
-    setSelectedPreset(undefined);
-  };
-
-  const resetValues = (): void => {
-    setRange({
-      from:
-        typeof initialDateFrom === 'string'
-          ? getDateAdjustedForTimezone(initialDateFrom)
-          : initialDateFrom,
-      to: initialDateTo
-        ? typeof initialDateTo === 'string'
-          ? getDateAdjustedForTimezone(initialDateTo)
-          : initialDateTo
-        : typeof initialDateFrom === 'string'
-        ? getDateAdjustedForTimezone(initialDateFrom)
-        : initialDateFrom,
     });
-    setRangeCompare(
-      initialCompareFrom
-        ? {
-            from:
-              typeof initialCompareFrom === 'string'
-                ? getDateAdjustedForTimezone(initialCompareFrom)
-                : initialCompareFrom,
-            to: initialCompareTo
-              ? typeof initialCompareTo === 'string'
-                ? getDateAdjustedForTimezone(initialCompareTo)
-                : initialCompareTo
-              : typeof initialCompareFrom === 'string'
-              ? getDateAdjustedForTimezone(initialCompareFrom)
-              : initialCompareFrom,
-          }
-        : undefined,
+    setSelectedPreset(match?.name);
+  }, [draftRange]);
+
+  /* ---------------------------------------------------------------------
+   * Equality helper – used to decide if we should call onUpdate
+   * -------------------------------------------------------------------*/
+  const areRangesEqual = (a?: DateRange, b?: DateRange): boolean => {
+    if (a == null || b == null) return a === b;
+    return (
+      a.from?.getTime() === b.from?.getTime() &&
+      a.to?.getTime() === b.to?.getTime()
     );
   };
 
+  /* ---------------------------------------------------------------------
+   * Modal open/close side‑effects
+   * -------------------------------------------------------------------*/
   useEffect(() => {
-    checkPreset();
-  }, [range]);
+    if (isOpen) {
+      // Every time we open the dialog start the draft from the *committed* range (or today‑today)
+      setDraftRange(committedRange ?? buildTodayRange());
+    }
+  }, [isOpen]);
 
+  /* ---------------------------------------------------------------------
+   * Render helpers
+   * -------------------------------------------------------------------*/
   const PresetButton = ({
     preset,
     label,
@@ -320,45 +266,25 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
     isSelected: boolean;
   }): JSX.Element => (
     <Button
-      className={cn(isSelected && 'pointer-events-none')}
       variant='ghost'
-      onClick={() => {
-        setPreset(preset);
-      }}
+      className={cn(isSelected && 'pointer-events-none')}
+      onClick={() => setPreset(preset)}
     >
-      <>
-        <span className={cn('pr-2 opacity-0', isSelected && 'opacity-70')}>
-          <CheckIcon width={18} height={18} />
-        </span>
-        {label}
-      </>
+      <span className={cn('pr-2 opacity-0', isSelected && 'opacity-70')}>
+        <CheckIcon width={18} height={18} />
+      </span>
+      {label}
     </Button>
   );
 
-  // Helper function to check if two date ranges are equal
-  const areRangesEqual = (a?: DateRange, b?: DateRange): boolean => {
-    if (!a || !b) return a === b; // If either is undefined, return true if both are undefined
-    return (
-      a.from.getTime() === b.from.getTime() &&
-      (!a.to || !b.to || a.to.getTime() === b.to.getTime())
-    );
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      openedRangeRef.current = range;
-      openedRangeCompareRef.current = rangeCompare;
-    }
-  }, [isOpen]);
-
+  /* ---------------------------------------------------------------------
+   * JSX
+   * -------------------------------------------------------------------*/
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={open => {
-        if (!open) resetValues();
-        setIsOpen(open);
-      }}
-    >
+    <Dialog open={isOpen} onOpenChange={open => setIsOpen(open)}>
+      {/* -----------------------------------------------------------------
+       * Trigger Button
+       * ---------------------------------------------------------------*/}
       <DialogTrigger asChild>
         <Button
           variant='outline'
@@ -366,231 +292,142 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
         >
           <div className='flex flex-col text-left w-full overflow-hidden p-0 m-0'>
             <div className='truncate'>
-              {range.from
-                ? `${formatDatePretty(range.from)}${
-                    range.to ? ` → ${formatDatePretty(range.to)}` : ''
-                  }`
-                : 'Seleccionar fechas'}
+              {committedRange?.from
+                ? `${formatDatePretty(
+                    committedRange.from,
+                  )} → ${formatDatePretty(committedRange.to as Date)}`
+                : 'Fechas de publicación'}
             </div>
-            {rangeCompare && (
-              <div className='opacity-60 text-xs -mt-1 truncate'>
-                {`vs. ${formatDatePretty(rangeCompare.from)}${
-                  rangeCompare.to
-                    ? ` → ${formatDatePretty(rangeCompare.to)}`
-                    : ''
-                }`}
-              </div>
-            )}
           </div>
           {isOpen ? (
-            <ChevronUpIcon className='size-4 opacity-60' />
+            <CalendarFold className='size-4 opacity-60' />
           ) : (
-            <ChevronDownIcon className='size-4 opacity-60' />
+            <CalendarIcon className='size-4 opacity-60' />
           )}
         </Button>
       </DialogTrigger>
-      <DialogContent className='w-full max-w-[95vw] sm:min-w-[768px] '>
+
+      {/* -----------------------------------------------------------------
+       * Dialog Content
+       * ---------------------------------------------------------------*/}
+      <DialogContent className='w-full max-w-[95vw] sm:min-w-[768px]'>
         <DialogHeader>
           <DialogTitle>Seleccionar rango de fechas</DialogTitle>
         </DialogHeader>
         <Separator className='my-2' />
 
-        {/* Your date picker content below — same as before */}
+        {/* Calendar & Presets */}
         <div
-          className={`flex py-2 ${
-            isSmallScreen ? 'justify-center' : 'justify-between'
-          }`}
+          className={cn(
+            'flex py-2',
+            isSmallScreen ? 'justify-center' : 'justify-between',
+          )}
         >
+          {/* Draft selectors (calendars & inputs) */}
           <div className='flex'>
             <div className='flex flex-col'>
               <div className='flex flex-col lg:flex-row gap-2 px-3 justify-center items-center lg:items-start pb-4 lg:pb-0'>
-                {showCompare && (
-                  <div className='flex items-center space-x-2 pr-4 py-1'>
-                    <Switch
-                      defaultChecked={Boolean(rangeCompare)}
-                      onCheckedChange={(checked: boolean) => {
-                        if (checked) {
-                          if (!range.to) {
-                            setRange({
-                              from: range.from,
-                              to: range.from,
-                            });
-                          }
-                          setRangeCompare({
-                            from: new Date(
-                              range.from.getFullYear(),
-                              range.from.getMonth(),
-                              range.from.getDate() - 365,
-                            ),
-                            to: range.to
-                              ? new Date(
-                                  range.to.getFullYear() - 1,
-                                  range.to.getMonth(),
-                                  range.to.getDate(),
-                                )
-                              : new Date(
-                                  range.from.getFullYear() - 1,
-                                  range.from.getMonth(),
-                                  range.from.getDate(),
-                                ),
-                          });
-                        } else {
-                          setRangeCompare(undefined);
-                        }
-                      }}
-                      id='compare-mode'
-                    />
-                    <Label htmlFor='compare-mode'>Compare</Label>
-                  </div>
-                )}
-                <div className='flex flex-col gap-2'>
-                  <div className='flex gap-2'>
-                    <DateInput
-                      value={range.from}
-                      onChange={date => {
-                        const toDate =
-                          range.to == null || date > range.to ? date : range.to;
-                        setRange(prevRange => ({
-                          ...prevRange,
-                          from: date,
-                          to: toDate,
-                        }));
-                      }}
-                    />
-                    <div className='py-1'>→</div>
-                    <DateInput
-                      value={range.to}
-                      onChange={date => {
-                        const fromDate = date < range.from ? date : range.from;
-                        setRange(prevRange => ({
-                          ...prevRange,
-                          from: fromDate,
-                          to: date,
-                        }));
-                      }}
-                    />
-                  </div>
-                  {rangeCompare != null && (
-                    <div className='flex gap-2'>
-                      <DateInput
-                        value={rangeCompare?.from}
-                        onChange={date => {
-                          if (rangeCompare) {
-                            const compareToDate =
-                              rangeCompare.to == null || date > rangeCompare.to
-                                ? date
-                                : rangeCompare.to;
-                            setRangeCompare(prevRangeCompare => ({
-                              ...prevRangeCompare,
-                              from: date,
-                              to: compareToDate,
-                            }));
-                          } else {
-                            setRangeCompare({
-                              from: date,
-                              to: new Date(),
-                            });
-                          }
-                        }}
-                      />
-                      <div className='py-1'>-</div>
-                      <DateInput
-                        value={rangeCompare?.to}
-                        onChange={date => {
-                          if (rangeCompare && rangeCompare.from) {
-                            const compareFromDate =
-                              date < rangeCompare.from
-                                ? date
-                                : rangeCompare.from;
-                            setRangeCompare({
-                              ...rangeCompare,
-                              from: compareFromDate,
-                              to: date,
-                            });
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
+                <div className='flex gap-2'>
+                  <DateInput
+                    value={draftRange.from}
+                    onChange={date => {
+                      const toDate =
+                        !draftRange.to || date > draftRange.to
+                          ? date
+                          : draftRange.to;
+                      setDraftRange({ ...draftRange, from: date, to: toDate });
+                    }}
+                  />
+                  <div className='py-1'>→</div>
+                  <DateInput
+                    value={draftRange.to}
+                    onChange={date => {
+                      const fromDate =
+                        date < (draftRange.from as Date)
+                          ? date
+                          : draftRange.from;
+                      setDraftRange({
+                        ...draftRange,
+                        from: fromDate,
+                        to: date,
+                      });
+                    }}
+                  />
                 </div>
               </div>
+
+              {/* Mobile preset select */}
               {isSmallScreen && (
                 <Select
                   defaultValue={selectedPreset}
-                  onValueChange={value => {
-                    setPreset(value);
-                  }}
+                  onValueChange={value => setPreset(value)}
                 >
                   <SelectTrigger className='w-[180px] mx-auto mb-2'>
                     <SelectValue placeholder='Select...' />
                   </SelectTrigger>
                   <SelectContent>
-                    {PRESETS.map(preset => (
-                      <SelectItem key={preset.name} value={preset.name}>
-                        {preset.label}
+                    {PRESETS.map(p => (
+                      <SelectItem key={p.name} value={p.name}>
+                        {p.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
+
+              {/* Desktop calendars */}
               {!isSmallScreen && (
-                <div>
-                  <Calendar
-                    mode='range'
-                    onSelect={(
-                      value: { from?: Date; to?: Date } | undefined,
-                    ) => {
-                      if (value?.from != null) {
-                        setRange({ from: value.from, to: value?.to });
-                      }
-                    }}
-                    selected={range}
-                    numberOfMonths={isSmallScreen ? 1 : 2}
-                    defaultMonth={
-                      new Date(
-                        new Date().setMonth(
-                          new Date().getMonth() - (isSmallScreen ? 0 : 1),
-                        ),
-                      )
-                    }
-                  />
-                </div>
+                <Calendar
+                  mode='range'
+                  selected={
+                    draftRange.from && draftRange.to
+                      ? { from: draftRange.from, to: draftRange.to }
+                      : undefined
+                  }
+                  onSelect={(v: { from?: Date; to?: Date } | undefined) => {
+                    if (v?.from != null)
+                      setDraftRange({ from: v.from, to: v.to ?? v.from });
+                  }}
+                  numberOfMonths={2}
+                  defaultMonth={
+                    new Date(new Date().setMonth(new Date().getMonth() - 1))
+                  }
+                />
               )}
             </div>
           </div>
+
+          {/* Desktop preset buttons */}
           {!isSmallScreen && (
-            <div className='flex flex-col items-end gap-1  '>
-              <div className='flex w-full flex-col items-end '>
-                {PRESETS.map(preset => (
-                  <PresetButton
-                    key={preset.name}
-                    preset={preset.name}
-                    label={preset.label}
-                    isSelected={selectedPreset === preset.name}
-                  />
-                ))}
-              </div>
+            <div className='flex flex-col items-end'>
+              {PRESETS.map(p => (
+                <PresetButton
+                  key={p.name}
+                  preset={p.name}
+                  label={p.label}
+                  isSelected={selectedPreset === p.name}
+                />
+              ))}
             </div>
           )}
         </div>
-        <DialogFooter className='flex justify-end gap-2  '>
+
+        {/* Footer buttons */}
+        <DialogFooter className='flex justify-end gap-2'>
           <Button
-            onClick={() => {
-              setIsOpen(false);
-              resetValues();
-            }}
             variant='outline'
+            onClick={() => {
+              setIsOpen(false); // auto‑discard draft
+            }}
           >
             Cancelar
           </Button>
           <Button
             onClick={() => {
               setIsOpen(false);
-              if (
-                !areRangesEqual(range, openedRangeRef.current) ||
-                !areRangesEqual(rangeCompare, openedRangeCompareRef.current)
-              ) {
-                onUpdate?.({ range, rangeCompare });
+              if (!areRangesEqual(draftRange, committedRange)) {
+                setCommittedRange(draftRange);
+                onUpdate?.({ range: draftRange });
               }
             }}
           >
