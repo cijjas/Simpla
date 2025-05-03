@@ -55,6 +55,7 @@ import {
 import { cn } from '@/lib/utils';
 import InfoSearch from './InfoSearch';
 import { DateRangePicker } from '../ui/date-range-picker';
+import { Calendar } from '../ui/calendar';
 
 interface Props {
   onSearch: (params: Record<string, unknown>) => void;
@@ -90,23 +91,25 @@ const schema = z.object({
     .string()
     .optional()
     .refine(val => !val || /^[0-9]+(\/[0-9]{2,4})?$/.test(val.trim()), {
-      message: 'Debe ser un número o un formato tipo 123/23',
+      message: 'Debe ser un número sin comas o con formato tipo 70/2023',
     }),
   texto: z.string().optional(),
   dependencia: z.string().optional(),
   dateRange: z
     .object({
-      from: z.date(),
-      to: z.date(),
+      from: z.date().optional(),
+      to: z.date().optional(),
     })
     .optional()
     .refine(
       range =>
         !range ||
+        !range.from ||
+        !range.to ||
         (range.to.getTime() - range.from.getTime()) / (1000 * 60 * 60 * 24) <=
-          1472,
+          1461,
       {
-        message: 'El rango de fechas no puede ser mayor a 1472 días',
+        message: 'El rango de fechas no puede ser mayor a 4 años',
       },
     ),
 });
@@ -219,17 +222,14 @@ export default function SearchForm({
     onSearch(params);
   };
 
-  const emptyValues: FormValues = {
-    tipo: '',
-    numero: '',
-    texto: '',
-    dependencia: '',
-    dateRange: undefined,
-  };
-
   const handleReset = () => {
-    form.reset(); // <- aquí sí “olvidas” el viejo default
-    onReset?.();
+    form.reset({
+      tipo: '',
+      numero: '',
+      texto: '',
+      dependencia: '',
+      dateRange: { from: undefined, to: undefined },
+    });
   };
 
   // ------------------------------------------------------------------
@@ -252,11 +252,7 @@ export default function SearchForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Norma *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    required
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Seleccionar' />
@@ -290,7 +286,7 @@ export default function SearchForm({
                       type='text' // ← was 'number'
                       inputMode='numeric'
                       pattern='[0-9]+(/[0-9]{1,4})?'
-                      placeholder='Ej: 123 o 123/45'
+                      placeholder='Ej: 70 o 70/23'
                       {...field}
                     />
                   </FormControl>
@@ -353,7 +349,6 @@ export default function SearchForm({
                 </FormItem>
               )}
             />
-
             {/* Dependencia (Combobox) */}
             <Controller
               control={form.control}
@@ -367,7 +362,7 @@ export default function SearchForm({
                         variant='outline'
                         role='combobox'
                         aria-expanded={openDep}
-                        className='w-full justify-between truncate'
+                        className='bg-card cursor-pointer hover:bg-card w-full justify-between truncate'
                       >
                         <span
                           className={cn(
@@ -431,11 +426,14 @@ export default function SearchForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Fechas de Publicación</FormLabel>
-                  <DateRangePicker
-                    initialDateFrom={field.value?.from}
-                    initialDateTo={field.value?.to}
-                    onUpdate={({ range }) => field.onChange(range)}
-                  />
+                  <FormControl>
+                    <DateRangePicker
+                      placeholder='Desde - Hasta'
+                      initialDateFrom={field.value?.from}
+                      initialDateTo={field.value?.to}
+                      onUpdate={({ range }) => field.onChange(range)}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
