@@ -95,11 +95,18 @@ export default function Results({
       return (
         <section className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
           {Array.from({ length: count }).map((_, i) => (
-            <div key={i} className='p-4 bg-card rounded-xl animate-pulse'>
-              <div className='h-24 w-full mb-4 bg-muted rounded-lg' />
-              <div className='h-6 w-3/4 mb-2 bg-muted rounded' />
-              <div className='h-4 w-full bg-muted rounded' />
-            </div>
+            <Card
+              key={i}
+              className='flex h-full flex-col bg-card rounded-xl animate-pulse'
+            >
+              <CardContent className='flex grow flex-col gap-3 '>
+                <div className='h-36 w-full bg-muted rounded-lg mt-auto' />
+                <div className='flex-1' />
+
+                <div className='h-7 w-3/4 mb-2 bg-muted rounded' />
+                <div className='h-4 w-1/2 bg-muted rounded' />
+              </CardContent>
+            </Card>
           ))}
         </section>
       );
@@ -108,25 +115,32 @@ export default function Results({
     return (
       <div className='space-y-4'>
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className='p-4 bg-card rounded-xl animate-pulse'>
-            {/* big top placeholder */}
-            <div className='h-20 w-full mb-4 bg-muted rounded-lg' />
+          <Card
+            key={i}
+            className=' py-0 bg-card rounded-xl animate-pulse border-none'
+          >
+            <div className='flex flex-col gap-3 p-4'>
+              {/* Title line */}
+              <div className='h-6 w-2/3 bg-muted rounded' />
+              {/* Summary block */}
+              <div className='relative h-20 w-full bg-muted rounded-lg' />
 
-            {/* bottom row: left group & right group */}
-            <div className='flex justify-between'>
-              {/* left bars */}
-              <div className='space-y-2 w-1/2'>
-                <div className='h-4 w-full bg-muted rounded' />
-                <div className='h-4 w-1/2 bg-muted rounded' />
-              </div>
+              {/* Meta Info */}
+              <div className='flex flex-wrap justify-between items-start gap-4 border-t pt-2 text-xs'>
+                {/* Left block */}
+                <div className='space-y-2 w-1/2'>
+                  <div className='h-4 w-3/4 bg-muted rounded' />
+                  <div className='h-4 w-1/2 bg-muted rounded' />
+                </div>
 
-              {/* right bars */}
-              <div className='flex flex-col space-y-2 items-end text-right'>
-                <div className='h-4 w-24 bg-muted rounded' />
-                <div className='h-4 w-12 bg-muted rounded' />
+                {/* Right block */}
+                <div className='flex flex-col items-end gap-2'>
+                  <div className='h-4 w-24 bg-muted rounded' />
+                  <div className='h-4 w-12 bg-muted rounded' />
+                </div>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     );
