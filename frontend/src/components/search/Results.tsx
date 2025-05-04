@@ -31,7 +31,6 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
-import { Skeleton } from '../ui/skeleton';
 
 // -----------------------------------------------------------------------------
 // Tipos

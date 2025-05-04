@@ -3,8 +3,6 @@
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 
 export default function Hero() {
   const { theme, systemTheme } = useTheme();

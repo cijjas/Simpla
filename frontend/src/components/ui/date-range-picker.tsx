@@ -1,13 +1,7 @@
 /* eslint-disable max-lines */
 'use client';
 
-import React, {
-  type FC,
-  useState,
-  useEffect,
-  type JSX,
-  forwardRef,
-} from 'react';
+import React, { useState, useEffect, type JSX, forwardRef } from 'react';
 import { Button } from './button';
 import { Calendar } from './calendar';
 import { DateInput } from './date-input';

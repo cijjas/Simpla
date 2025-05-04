@@ -7,7 +7,6 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { NormaActions } from './NormaActions'; // client
-import { Separator } from '@/components/ui/separator';
 
 /**
  * Shape of a full "norma" object returned by Infoleg (v2) API.

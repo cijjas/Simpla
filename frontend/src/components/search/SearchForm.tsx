@@ -55,7 +55,6 @@ import {
 import { cn } from '@/lib/utils';
 import InfoSearch from './InfoSearch';
 import { DateRangePicker } from '../ui/date-range-picker';
-import { Calendar } from '../ui/calendar';
 
 interface Props {
   onSearch: (params: Record<string, unknown>) => void;
