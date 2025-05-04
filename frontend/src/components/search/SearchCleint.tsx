@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SearchForm from '@/components/search/SearchForm';
 import Results from '@/components/search/Results';
 import { searchNormas } from '@/lib/infoleg/infoleg';
+import { cn } from '@/lib/utils';
 
 export default function SearchClient() {
   const router = useRouter();
@@ -120,7 +121,20 @@ export default function SearchClient() {
   };
 
   return (
-    <div className='container mx-auto grid grid-cols-1 gap-6 py-6 md:grid-cols-3'>
+    <div
+      className={cn(
+        // container centrado
+        'container mx-auto',
+        // padding horizontal mínimo en mobile
+        'px-4',
+        // un poco más de aire en ≥ sm
+        'sm:px-6',
+        // en desktop lo maneja container, por eso lo quitamos
+        'md:px-0',
+        // grid
+        'grid grid-cols-1 gap-6 py-6 md:grid-cols-3',
+      )}
+    >
       <aside className='md:col-span-1'>
         <SearchForm
           onSearch={handleSearch}

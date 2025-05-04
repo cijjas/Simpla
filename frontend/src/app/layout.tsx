@@ -3,7 +3,9 @@ import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import { ThemeProvider } from 'next-themes';
-
+import { Footer } from '@/components/layout/Footer';
+import { FeedbackContact } from '@/components/feedback/FeedbackContact';
+import { Toaster } from '@/components/ui/sonner';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -21,7 +23,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Simpla',
-  description: 'El lugar donde entendes todo.',
+  description: 'El lugar donde entendés todo.',
 };
 
 export default function RootLayout({
@@ -30,13 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang='es' suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} antialiased min-h-screen flex flex-col`}
       >
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
           <Header />
-          {children}
+          <main className='flex-1'>{children}</main>
+          <Footer />
+          <FeedbackContact />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
