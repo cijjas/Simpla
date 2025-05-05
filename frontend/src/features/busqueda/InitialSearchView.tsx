@@ -1,11 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Card } from '@/components/ui/card';
-import SvgSearch from '../icons/Search';
+import SvgSearch from '@/components/icons/Search';
 
-export default function InitialSearchView({ imgSrc }: { imgSrc: string }) {
+export default function InitialSearchView() {
   return (
     <section className='relative flex flex-col items-center justify-center py-50 overflow-hidden'>
       {/* Background grid cards */}

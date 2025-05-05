@@ -159,7 +159,7 @@ function NormaListItem({
       )}
 
       <Link
-        href={`/search/${data.id}`}
+        href={`/busqueda/${data.id}`}
         className='font-medium text-foreground font-serif hover:underline'
       >
         N° {data.idNormas?.[0]?.numero ?? data.id}

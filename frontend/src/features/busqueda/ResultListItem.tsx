@@ -44,7 +44,7 @@ export default function ResultListItem({
 
   return (
     <Link
-      href={`/search/${norma.id}`}
+      href={`/norma/${norma.id}`}
       className='group relative block rounded-xl border bg-card transition hover:bg-accent hover:shadow-md'
     >
       {/* Copy button */}

@@ -1,5 +1,5 @@
-import Hero from '@/components/hero/Hero';
-import { StatsSection } from '@/components/dashboard/StatsSection';
+import Hero from '@/features/home/Hero';
+import { StatsSection } from '@/features/dashboard/StatsSection';
 
 export default function Home() {
   return (

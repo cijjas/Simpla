@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import SearchForm from '@/components/search/SearchForm';
-import Results from '@/components/search/Results';
 import { searchNormas } from '@/lib/infoleg/api';
 import { cn } from '@/lib/utils';
+import SearchForm from './SearchForm';
+import Results from './Results';
 
 /**
  * --------------------------------------------------------------------------
@@ -144,19 +144,19 @@ export default function SearchClient() {
   /* ---------------------------------------------------------------------- */
   const handleSearch = (params: Record<string, unknown>) => {
     console.log('handleSearch', params);
-    router.push(`/search?${buildQueryString(params)}`);
+    router.push(`/busqueda?${buildQueryString(params)}`);
   };
 
   const goToPage = (page: number) => {
     const p = Object.fromEntries(searchParams.entries());
     const next = { ...p, offset: page.toString() };
-    router.push(`/search?${buildQueryString(next)}`);
+    router.push(`/busqueda?${buildQueryString(next)}`);
   };
 
   const handleReset = () => {
     setResults([]); // optimistic clear
     setMeta(null);
-    router.replace('/search'); // wipe URL & history entry
+    router.replace('/busqueda'); // wipe URL & history entry
   };
 
   /* initial values for <SearchForm /> (mirror URL) */

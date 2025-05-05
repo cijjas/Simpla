@@ -1,4 +1,4 @@
-import SearchClient from '@/components/search/SearchClient';
+import SearchClient from '@/features/busqueda/SearchClient';
 import { Suspense } from 'react';
 
 export default function Page() {

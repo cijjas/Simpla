@@ -54,7 +54,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import InfoSearch from './InfoSearch';
-import { DateRangePicker } from '../ui/date-range-picker';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 interface Props {
   onSearch: (params: Record<string, unknown>) => void;

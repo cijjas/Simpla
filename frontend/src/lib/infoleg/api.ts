@@ -49,7 +49,7 @@ export async function searchNormas(params: SearchParams): Promise<{
   }
 
   //  Client → use local proxy to bypass CORS
-  const res = await fetch('/api/infoleg/search', {
+  const res = await fetch('/api/infoleg/busqueda', {
     method: 'POST',
     body: JSON.stringify({ tipo, ...query }),
     headers: { 'Content-Type': 'application/json' },
