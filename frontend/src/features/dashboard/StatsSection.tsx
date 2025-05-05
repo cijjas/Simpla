@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { GraphCard } from '@/components/dashboard/GraphCard';
 
 import {
   Chart as ChartJS,
@@ -14,6 +13,7 @@ import {
 } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { ListOrdered } from 'lucide-react';
+import { GraphCard } from './GraphCard';
 
 // register needed chart.js elements once
 ChartJS.register(

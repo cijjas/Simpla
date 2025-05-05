@@ -1,6 +1,6 @@
 import { getNormaDetalle } from '@/lib/infoleg/api';
-import { NormaHeader } from '@/components/search/norma/NormaHeader';
-import { NormaBody } from '@/components/search/norma/NormaBody';
+import { NormaHeader } from '@/features/norma/NormaHeader';
+import { NormaBody } from '@/features/norma/NormaBody';
 import { notFound } from 'next/navigation';
 
 export default async function NormaPage({

@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { usePathname } from 'next/navigation';
 import { Menu, Sun, Moon, Laptop, Mail, MessageCircle } from 'lucide-react';
-import { FeedbackContact } from '../feedback/FeedbackContact';
 import { cn } from '@/lib/utils';
 
 import {
@@ -39,12 +38,12 @@ export default function Header() {
         {/* Logo */}
         <Link
           href='/'
-          className='flex items-center gap-2 hover:opacity-80 transition'
+          className='flex items-center gap-0.5 hover:opacity-80 transition'
         >
-          <Logo className='h-6 w-auto text-navy-900 dark:text-white' />
           <span className='font-serif text-3xl font-bold text-navy-900 dark:text-white'>
-            CEIBOS
+            SIMPL
           </span>
+          <Logo className='h-[1.375rem] w-auto text-navy-900 dark:text-white' />
         </Link>
         {/* --------------- NAV DESKTOP --------------- */}
         <nav className='hidden md:flex space-x-12'>
@@ -58,10 +57,10 @@ export default function Header() {
             Inicio
           </Link>
           <Link
-            href='/search'
+            href='/busqueda'
             className={cn(
               'text-lg font-medium transition-colors',
-              pathname === '/search' || pathname.startsWith('/busqueda')
+              pathname === '/busqueda' || pathname.startsWith('/busqueda')
                 ? 'font-bold '
                 : 'hover:opacity-70',
             )}
@@ -95,7 +94,6 @@ export default function Header() {
               </SelectContent>
             </Select>
           )}
-          <FeedbackContact />
         </div>
         {/* --------------- MENÚ MOBILE --------------- */}
         <Sheet>
@@ -140,9 +138,10 @@ export default function Header() {
                 </SheetClose>
                 <SheetClose asChild>
                   <Link
-                    href='/search'
+                    href='/busqueda'
                     className={cn(
-                      pathname === '/search' || pathname.startsWith('/busqueda')
+                      pathname === '/busqueda' ||
+                        pathname.startsWith('/busqueda')
                         ? 'underline'
                         : 'opacity-80',
                     )}

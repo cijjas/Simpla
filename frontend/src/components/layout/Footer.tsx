@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Mail, MessageCircle } from 'lucide-react';
-import { CONTACT_EMAIL, WHATSAPP_LINK } from '../feedback/contact.config';
+import {
+  CONTACT_EMAIL,
+  WHATSAPP_LINK,
+} from '@/features/feedback/contact.config';
 
 export function Footer() {
   return (

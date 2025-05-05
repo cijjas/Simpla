@@ -10,21 +10,15 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import {
-  LayoutGrid,
-  List,
-  Search as SearchIcon,
-  RotateCcw,
-} from 'lucide-react';
+import { LayoutGrid, List, RotateCcw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ResultCard from './ResultCard';
 import ResultListItem from './ResultListItem';
-import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import InitialSearchView from './InitialSearchView';
-import SvgSearch from '../icons/Search';
 import { Norma } from '@/lib/infoleg/types';
+import SvgSearch from '@/components/icons/Search';
 
 interface Meta {
   count: number;
@@ -141,13 +135,11 @@ export default function Results({
     );
   }
 
-  const imgSrc =
-    resolvedTheme === 'dark' ? '/search_dark.png' : '/search_light.png';
   /* --------------------------------------------------------------------- *
    *  2. EMPTY & FIRST‑TIME SCREENS                                         *
    * --------------------------------------------------------------------- */
   if (isInitial) {
-    return <InitialSearchView imgSrc={imgSrc}></InitialSearchView>;
+    return <InitialSearchView></InitialSearchView>;
   }
 
   if (isEmptyResults) {

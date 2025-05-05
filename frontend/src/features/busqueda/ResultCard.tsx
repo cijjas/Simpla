@@ -35,7 +35,7 @@ export default function ResultCard({ norma }: { norma: Norma }): JSX.Element {
 
   return (
     <Link
-      href={`/search/${norma.id}`}
+      href={`/norma/${norma.id}`}
       className='group block h-full rounded-xl border bg-card transition hover:bg-accent hover:shadow-md relative'
     >
       {/* Copy button */}
