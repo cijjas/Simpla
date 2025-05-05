@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
-import { Norma } from './models';
+import { Norma } from '@/lib/infoleg/types';
 
 export default function ResultCard({ norma }: { norma: Norma }): JSX.Element {
   const [copied, setCopied] = useState(false);
@@ -113,10 +113,12 @@ export default function ResultCard({ norma }: { norma: Norma }): JSX.Element {
                   <span>{formatDatePretty(norma.publicacion)}</span>
                 </div>
               )}
-              {norma.numeroBoletin && (
+              {norma.nroBoletin && (
                 <div className='flex items-center gap-1'>
                   <FileTextIcon className='h-4 w-4' />
-                  <span>Boletín {norma.numeroBoletin}</span>
+                  <span>
+                    B.O.R.A. {norma.nroBoletin} • pág. {norma.pagBoletin}
+                  </span>
                 </div>
               )}
             </div>

@@ -29,7 +29,7 @@ const schema = z.object({
   message: z
     .string()
     .min(10, 'Debe tener al menos 10 caracteres')
-    .max(1000, 'Máximo 1 000 caracteres'),
+    .max(1000, 'Máximo 1000 caracteres'),
 });
 type FeedbackValues = z.infer<typeof schema>;
 

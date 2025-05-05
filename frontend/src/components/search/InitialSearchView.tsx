@@ -3,13 +3,9 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
-import { useTheme } from 'next-themes';
+import SvgSearch from '../icons/Search';
 
-export default function InitialSearchView() {
-  const { resolvedTheme } = useTheme();
-  const imageSrc =
-    resolvedTheme === 'dark' ? '/search_dark.png' : '/search_light.png';
-
+export default function InitialSearchView({ imgSrc }: { imgSrc: string }) {
   return (
     <section className='relative flex flex-col items-center justify-center py-50 overflow-hidden'>
       {/* Background grid cards */}
@@ -41,14 +37,8 @@ export default function InitialSearchView() {
         className='relative z-10'
       >
         <Card className='flex flex-col lg:flex-row items-center gap-8 px-10 md:px-10 py-10 shadow-md max-w-4xl mx-auto bg-card'>
-          <Image
-            src={imageSrc}
-            alt='Buscar'
-            width={220}
-            height={220}
-            priority
-            className='rounded-lg'
-          />
+          <SvgSearch className='w-48 h-auto text-black dark:text-white' />
+
           <div className='text-center md:text-left max-w-md'>
             <h2 className='text-3xl md:text-4xl font-bold tracking-tight mb-4'>
               ¡Empecemos!

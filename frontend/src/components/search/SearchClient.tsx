@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchForm from '@/components/search/SearchForm';
 import Results from '@/components/search/Results';
-import { searchNormas } from '@/lib/infoleg/infoleg';
+import { searchNormas } from '@/lib/infoleg/api';
 import { cn } from '@/lib/utils';
 
 /**
@@ -77,28 +77,41 @@ export default function SearchClient() {
   const doSearch = async (params: Record<string, unknown>) => {
     setLoading(true);
     try {
-      const { anios, ...apiParams } = params;
+      const { sancion, ...apiParams } = params;
+      const currentYear = new Date().getFullYear();
+      const today = new Date().toISOString().slice(0, 10);
+      let parsedAnios: number[] = [];
 
-      /* -------- year buckets -------------------------------------------- */
-      const parsedAnios: number[] =
-        typeof anios === 'string'
-          ? anios
-              .split(',')
-              .map(a => parseInt(a.trim(), 10))
-              .filter(a => !isNaN(a))
+      if (sancion && typeof sancion === 'string') {
+        const y = sancion.trim();
+        const isTwoDigit = /^\d{2}$/.test(y);
+        const isFourDigit = /^\d{4}$/.test(y);
+
+        parsedAnios = isTwoDigit
+          ? [1800, 1900, 2000]
+              .map(base => base + parseInt(y, 10))
+              .filter(year => year <= currentYear)
+          : isFourDigit
+          ? [parseInt(y, 10)].filter(year => year <= currentYear)
           : [];
+      }
 
-      if (parsedAnios.length > 0) {
-        const currentYear = new Date().getFullYear();
-        const today = new Date().toISOString().slice(0, 10);
+      if (parsedAnios.length === 1) {
+        // If it's a single year, use sancion param directly
+        const data = await searchNormas({
+          ...apiParams,
+          sancion: parsedAnios[0],
+        } as any);
+        setResults(data.results);
+        setMeta(data.metadata.resultset);
+      } else if (parsedAnios.length > 1) {
+        // Smart search by year buckets
         const buckets: any[] = [];
 
         await Promise.all(
           parsedAnios.map(async year => {
-            if (year > currentYear) return;
             const desde = `${year}-01-01`;
             const hasta = year === currentYear ? today : `${year}-12-31`;
-
             const q = {
               ...apiParams,
               publicacion_desde: desde,
@@ -116,6 +129,7 @@ export default function SearchClient() {
           offset: 1,
         });
       } else {
+        // No valid year in sancion, fall back to basic search
         const data = await searchNormas(apiParams as any);
         setResults(data.results);
         setMeta(data.metadata.resultset);
@@ -129,6 +143,7 @@ export default function SearchClient() {
   /*  Handlers – these **only** update the URL                               */
   /* ---------------------------------------------------------------------- */
   const handleSearch = (params: Record<string, unknown>) => {
+    console.log('handleSearch', params);
     router.push(`/search?${buildQueryString(params)}`);
   };
 
@@ -146,7 +161,26 @@ export default function SearchClient() {
 
   /* initial values for <SearchForm /> (mirror URL) */
   const initialValues = Object.fromEntries(searchParams.entries());
+  // Handle smart `sancion` initial display
 
+  if (typeof initialValues.sancion === 'string') {
+    const years = initialValues.sancion
+      .split(',')
+      .map(y => parseInt(y.trim(), 10))
+      .filter(y => !isNaN(y));
+
+    if (years.length > 1) {
+      const lastTwo = years.map(y => y % 100);
+      const allSameLastTwo = lastTwo.every(d => d === lastTwo[0]);
+      if (allSameLastTwo) {
+        // All years share same last two digits — display just those
+        initialValues.sancion = lastTwo[0].toString().padStart(2, '0');
+      }
+    } else if (years.length === 1) {
+      // Only one year — use full year
+      initialValues.sancion = years[0].toString();
+    }
+  }
   /* ---------------------------------------------------------------------- */
   /*  RENDER                                                                 */
   /* ---------------------------------------------------------------------- */

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -84,12 +84,14 @@ const DEPENDENCIAS_HARDCODEADAS = [
 // --------------------------------------------------
 // Zod schema & types
 // --------------------------------------------------
+const currentYear = new Date().getFullYear();
+
 const schema = z.object({
   tipo: z.string().min(1, 'Seleccioná un tipo de norma'),
   numero: z
     .string()
     .optional()
-    .refine(val => !val || /^[0-9]+(\/[0-9]{2,4})?$/.test(val.trim()), {
+    .refine(val => !val || /^[0-9]+(\/[0-9]{1,4})?$/.test(val.trim()), {
       message: 'Debe ser un número sin comas o con formato tipo 70/2023',
     }),
   texto: z.string().optional(),
@@ -109,6 +111,32 @@ const schema = z.object({
           1461,
       {
         message: 'El rango de fechas no puede ser mayor a 4 años',
+      },
+    ),
+  sancion: z
+    .string()
+    .optional()
+    .refine(
+      val => {
+        if (!val || val.trim() === '') return true;
+
+        /* four‑digit year ----------------------------------------------- */
+        if (/^\d{4}$/.test(val)) {
+          const n = +val;
+          return n >= 1810 && n <= currentYear;
+        }
+
+        /* two‑digit year ------------------------------------------------- */
+        if (/^\d{2}$/.test(val)) {
+          const n = +val;
+          const possibilities = [1800 + n, 1900 + n, 2000 + n];
+          return possibilities.some(y => y >= 1810 && y <= currentYear);
+        }
+
+        return false;
+      },
+      {
+        message: 'Ingresá 2 o 4 dígitos (1810-presente)',
       },
     ),
 });
@@ -167,57 +195,78 @@ export default function SearchForm({
               to: parseLocalDate(initialValues.publicacion_hasta),
             }
           : undefined,
+      sancion: initialValues?.sancion || '',
     },
   });
 
+  /* ------------------------------------------------------------------ */
+  /*  Smart numero → sancion UX                                          */
+  /* ------------------------------------------------------------------ */
+  const sancionInputRef = useRef<HTMLInputElement | null>(null);
+  const watchNumero = form.watch('numero');
+
+  /* jump focus on "/" -------------------------------------------------- */
+  const handleNumeroKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === '/' || e.key === '-') {
+      // allow typing full 70/2023 too; only jump if "/" is FIRST typed
+      if (!e.currentTarget.value.includes('/')) {
+        e.preventDefault();
+        sancionInputRef.current?.focus();
+      }
+    }
+  };
+
+  /* split "70/2023" into numero + sancion ------------------------------ */
+  useEffect(() => {
+    if (!watchNumero || !watchNumero.includes('/')) return;
+
+    const [numPart, yearPartRaw] = watchNumero.split('/');
+    const yearPart = yearPartRaw?.slice(0, 4) ?? '';
+
+    if (yearPart) {
+      form.setValue('numero', numPart, { shouldValidate: true });
+      form.setValue('sancion', yearPart, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      sancionInputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchNumero]);
+
   // Submit ------------------------------------------------------------
   const onSubmit = (values: FormValues) => {
-    let numero = values.numero?.trim();
+    const { numero, texto, dependencia, tipo, sancion, dateRange } = values;
 
     const params: Record<string, unknown> = {
-      texto: values.texto || undefined,
-      dependencia: values.dependencia || undefined,
-      tipo: values.tipo,
+      tipo,
+      texto: texto || undefined,
+      dependencia: dependencia || undefined,
+      numero: numero ? Number(numero.trim()) : undefined,
       limit: 12,
       offset: 1,
     };
 
-    console.log(params);
-
-    if (values.dateRange?.from && values.dateRange?.to) {
-      params['publicacion_desde'] = format(values.dateRange.from, 'yyyy-MM-dd');
-      params['publicacion_hasta'] = format(values.dateRange.to, 'yyyy-MM-dd');
+    if (dateRange?.from && dateRange?.to) {
+      params.publicacion_desde = format(dateRange.from, 'yyyy-MM-dd');
+      params.publicacion_hasta = format(dateRange.to, 'yyyy-MM-dd');
     }
 
-    if (numero && numero.includes('/')) {
-      const [rawNro, rawYear] = numero.split('/');
-      const nro = rawNro.trim();
-      const y = rawYear.trim();
+    if (sancion) {
+      const y = sancion.trim();
+      const isTwoDigit = /^\d{2}$/.test(y);
+      const isFourDigit = /^\d{4}$/.test(y);
 
-      // Build a list of candidate years ≤ today
-      const currentYear = new Date().getFullYear();
-      const years: number[] = [];
-      if (/^\d{2}$/.test(y)) {
-        const two = parseInt(y, 10);
-        [1800 + two, 1900 + two, 2000 + two].forEach(yy => {
-          if (yy <= currentYear) years.push(yy);
-        });
-      } else if (/^\d{4}$/.test(y)) {
-        const full = parseInt(y, 10);
-        if (full <= currentYear) years.push(full);
-      }
+      const aniosSancion = isTwoDigit
+        ? [1800, 1900, 2000]
+            .map(base => base + parseInt(y, 10))
+            .filter(year => year <= currentYear)
+        : isFourDigit
+        ? [parseInt(y, 10)].filter(year => year <= currentYear)
+        : [];
 
-      params['numero'] = nro;
-      params['anios'] = years;
-
-      console.log(params['numero']);
-      console.log(params['anios']);
-    } else if (numero) {
-      params['numero'] = Number(numero);
+      if (aniosSancion.length > 0) params.sancion = aniosSancion;
     }
-
-    if (values.tipo) params['tipo'] = values.tipo;
-
     onSearch(params);
   };
 
@@ -227,9 +276,24 @@ export default function SearchForm({
       numero: '',
       texto: '',
       dependencia: '',
+      sancion: '',
       dateRange: { from: undefined, to: undefined },
     });
+    onReset?.();
   };
+
+  const watchTipo = form.watch('tipo');
+  const watchSancion = form.watch('sancion');
+
+  useEffect(() => {
+    if (watchTipo === 'leyes' && watchSancion) {
+      form.setValue('sancion', '', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchTipo]);
 
   // ------------------------------------------------------------------
   // UI
@@ -273,26 +337,70 @@ export default function SearchForm({
               )}
             />
 
-            {/* Número */}
-            <FormField
-              control={form.control}
-              name='numero'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número</FormLabel>
-                  <FormControl>
-                    <Input
-                      type='text' // ← was 'number'
-                      inputMode='numeric'
-                      pattern='[0-9]+(/[0-9]{1,4})?'
-                      placeholder='Ej: 70 o 70/23'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div className='flex gap-4'>
+              {/* Número (3/5) */}
+              <div className={watchTipo === 'leyes' ? 'w-full' : 'w-3/5'}>
+                <FormField
+                  control={form.control}
+                  name='numero'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='text'
+                          inputMode='numeric'
+                          pattern='[0-9]+(/[0-9]{1,4})?'
+                          placeholder='Ej: 70 o 70/23'
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                          onKeyDown={handleNumeroKeyDown}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Sanción (2/5) – hide when tipo is "leyes" */}
+              {watchTipo !== 'leyes' && (
+                <div className='w-2/5'>
+                  <FormField
+                    control={form.control}
+                    name='sancion'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className='flex items-center gap-1'>
+                          Sanción
+                        </FormLabel>
+
+                        <FormControl>
+                          <Input
+                            type='number'
+                            placeholder='Ej: 2023 o 95'
+                            min={0}
+                            max={currentYear}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={el => {
+                              field.ref(el);
+                              sancionInputRef.current = el;
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               )}
-            />
+            </div>
 
             {/* Texto */}
             <FormField
@@ -309,12 +417,32 @@ export default function SearchForm({
                         </TooltipTrigger>
                         <TooltipContent side='right'>
                           <div className='max-w-xs text-sm'>
-                            Usá operadores lógicos para refinar tu búsqueda.
+                            Refiná tu búsqueda usando operadores lógicos y
+                            frases exactas.
                             <br />
-                            Podés usar paréntesis para agrupar condiciones.
+                            <strong className='block mt-2'>
+                              Frases exactas:
+                            </strong>
+                            Usá{' '}
+                            <strong>
+                              comillas dobles (<code>"</code>)
+                            </strong>{' '}
+                            para buscar frases, por ejemplo:
+                            <code>"república argentina"</code>.
                             <br />
-                            <strong>Ejemplos</strong>
+                            No uses comillas simples (<code>'</code>), ya que no
+                            son interpretadas correctamente.
+                            <strong className='block mt-2'>
+                              Operadores lógicos:
+                            </strong>
+                            Podés usar <code>AND</code>, <code>OR</code>,{' '}
+                            <code>NOT</code> y paréntesis para agrupar
+                            condiciones.
+                            <strong className='block mt-2'>Ejemplos:</strong>
                             <ul className='list-disc list-inside mt-1 space-y-1'>
+                              <li>
+                                <code>"de república argentina"</code>
+                              </li>
                               <li>
                                 <code>educación AND salud</code>
                               </li>
@@ -325,7 +453,7 @@ export default function SearchForm({
                                 <code>salud NOT privada</code>
                               </li>
                               <li>
-                                <code>'derechos humanos' AND constitución</code>
+                                <code>"derechos humanos" AND constitución</code>
                               </li>
                               <li>
                                 <code>(salud AND educación) OR justicia</code>

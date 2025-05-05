@@ -7,34 +7,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { NormaActions } from './NormaActions'; // client
-
-/**
- * Shape of a full "norma" object returned by Infoleg (v2) API.
- */
-export interface Norma {
-  id: number;
-  jurisdiccion?: string;
-  claseNorma?: string;
-  tipoNorma?: string;
-  sancion?: string;
-  publicacion?: string;
-  idNormas?: {
-    numero: string;
-    dependencia?: string;
-    ramaDigesto?: string;
-  }[];
-  tituloSumario?: string;
-  tituloResumido?: string;
-  observaciones?: string;
-  nroBoletin?: string;
-  pagBoletin?: string;
-  textoResumido?: string;
-  textoNorma?: string;
-  estado?: string;
-  listaNormasQueComplementa?: number[];
-  listaNormasQueLaComplementan?: number[];
-  copyText: string;
-}
+import { Norma } from '@/lib/infoleg/types';
 
 /**
  * Lighter response when calling `?resumen=true` for a single id.
@@ -83,7 +56,7 @@ export async function NormaHeader({ norma }: { norma: Norma }) {
       {/* Title + actions */}
       <div className='flex items-center justify-between gap-4 flex-wrap'>
         <h1 className='text-3xl font-bold font-serif leading-tight break-words'>
-          {norma.tituloResumido || norma.tituloSumario || 'Sin título'}
+          {norma.tituloSumario || norma.tituloResumido || 'Sin título'}
         </h1>
         <NormaActions copyText={norma.copyText} />
       </div>
@@ -94,9 +67,9 @@ export async function NormaHeader({ norma }: { norma: Norma }) {
         {norma.claseNorma?.trim() && (
           <Badge variant='secondary'>{norma.claseNorma}</Badge>
         )}
-        {norma.idNormas?.[0]?.numero && (
+        {norma.nombreNorma && (
           <span className='text-foreground font-serif font-bold'>
-            Nº {norma.idNormas[0].numero}
+            {norma.nombreNorma}
           </span>
         )}
 

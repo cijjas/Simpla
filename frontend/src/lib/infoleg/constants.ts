@@ -1,0 +1,32 @@
+export const TIPOS_CON_NUMERO = new Set<string>([
+  'Ley',
+  'Decreto',
+  'Decreto/Ley',
+  'Decisión Administrativa',
+  'Decisión',
+  'Resolución',
+  'Disposición',
+  'Acordada',
+  'Acta',
+  'Nota Externa',
+  'Circular',
+  'Providencia',
+  'Directiva',
+  'Interpretación',
+  'Instrucción',
+  'Protocolo',
+]);
+
+export const TIPOS_CON_NUMERO_Y_ANIO = new Set<string>([
+  'Decreto',
+  'Decreto/Ley',
+  'Decisión Administrativa',
+  'Decisión',
+  'Resolución',
+  'Disposición',
+  'Providencia',
+  'Directiva',
+  'Instrucción',
+  'Interpretación',
+  'Protocolo',
+]);
