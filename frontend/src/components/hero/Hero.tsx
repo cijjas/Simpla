@@ -14,7 +14,9 @@ export default function Hero() {
 
   const currentTheme = theme === 'system' ? systemTheme : theme;
   const logoSrc =
-    currentTheme === 'dark' ? '/logo_completo_dark.png' : '/logo_completo.png';
+    currentTheme === 'dark'
+      ? '/logo_completo_dark.png'
+      : '/logo_completo_light.png';
 
   return (
     <section className='text-center mb-16'>

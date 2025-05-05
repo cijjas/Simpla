@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import {
   Pagination,
   PaginationContent,
@@ -16,46 +15,16 @@ import {
   List,
   Search as SearchIcon,
   RotateCcw,
-  CalendarIcon,
-  FileTextIcon,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatDatePretty } from '@/lib/utils';
-
-import { Copy, CheckIcon } from 'lucide-react';
-import { useState } from 'react';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from '@/components/ui/tooltip';
-
-// -----------------------------------------------------------------------------
-// Tipos
-// -----------------------------------------------------------------------------
-interface Norma {
-  id: number;
-  tipoNorma: string;
-  claseNorma?: string;
-  idNormas?: {
-    numero: string;
-    dependencia: string;
-    ramaDigesto: string;
-  }[];
-  numeroBoletin?: number;
-  numeroPagina?: number;
-  publicacion?: string;
-  sancion?: string;
-  tituloSumario?: string;
-  tituloResumido?: string;
-  textoResumido?: string;
-  estado?: string;
-  jurisdiccion?: string;
-  nombreNorma: string;
-  esNumerada: boolean;
-}
+import ResultCard from './ResultCard';
+import ResultListItem from './ResultListItem';
+import { Norma } from './models';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { motion } from 'framer-motion';
+import InitialSearchView from './InitialSearchView';
 
 interface Meta {
   count: number;
@@ -73,6 +42,12 @@ interface ResultsProps {
   onReset?: () => void;
 }
 
+/**
+ * ------------------------------------------------------------------------
+ *  RESULTS COMPONENT
+ *  – Purely presentational (no URL / network work)
+ * ------------------------------------------------------------------------
+ */
 export default function Results({
   results,
   meta,
@@ -82,26 +57,44 @@ export default function Results({
   loading,
   onReset,
 }: ResultsProps) {
-  // API uses 1-based offset where offset equals the current page number
-  const currentPage = meta ? meta.offset : 1;
-  const totalPages = meta ? Math.ceil(meta.count / meta.limit) : 0;
+  /* keep view in LocalStorage for next visit */
+  const handleViewChange = (val: 'list' | 'grid') => {
+    localStorage.setItem('resultsViewPreference', val);
+    onViewChange(val);
+  };
 
-  // Show skeleton placeholders
+  /* quick flags ---------------------------------------------------------- */
+  const isInitial = !loading && meta === null;
+  const isEmptyResults = !loading && meta !== null && results.length === 0;
+  const currentPage = meta ? meta.offset : 1; // API is 1‑based
+  const totalPages = meta ? Math.ceil(meta.count / meta.limit) : 0;
+  const { resolvedTheme } = useTheme();
+
+  /* --------------------------------------------------------------------- *
+   *  1. SKELETONS                                                          *
+   * --------------------------------------------------------------------- */
   if (loading) {
-    const count = meta?.limit ?? (view === 'grid' ? 6 : 8);
-    // GRID SKELETON
     if (view === 'grid') {
       return (
-        <section className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-          {Array.from({ length: count }).map((_, i) => (
+        <section
+          className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+          style={{
+            WebkitMaskImage:
+              'linear-gradient(to bottom, black 70%, transparent 100%)',
+            maskImage:
+              'linear-gradient(to bottom, black 70%, transparent 100%)',
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+          }}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card
               key={i}
               className='flex h-full flex-col bg-card rounded-xl animate-pulse'
             >
-              <CardContent className='flex grow flex-col gap-3 '>
+              <CardContent className='flex grow flex-col gap-3'>
                 <div className='h-36 w-full bg-muted rounded-lg mt-auto' />
                 <div className='flex-1' />
-
                 <div className='h-7 w-3/4 mb-2 bg-muted rounded' />
                 <div className='h-4 w-1/2 bg-muted rounded' />
               </CardContent>
@@ -110,29 +103,32 @@ export default function Results({
         </section>
       );
     }
-    // LIST SKELETON
+
+    /* list skeleton */
     return (
-      <div className='space-y-4'>
-        {Array.from({ length: count }).map((_, i) => (
+      <div
+        className='space-y-4'
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to bottom, black 70%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
+          WebkitMaskRepeat: 'no-repeat',
+          maskRepeat: 'no-repeat',
+        }}
+      >
+        {Array.from({ length: 3 }).map((_, i) => (
           <Card
             key={i}
-            className=' py-0 bg-card rounded-xl animate-pulse border-none'
+            className='py-0 bg-card rounded-xl animate-pulse border-none'
           >
             <div className='flex flex-col gap-3 p-4'>
-              {/* Title line */}
               <div className='h-6 w-2/3 bg-muted rounded' />
-              {/* Summary block */}
               <div className='relative h-20 w-full bg-muted rounded-lg' />
-
-              {/* Meta Info */}
               <div className='flex flex-wrap justify-between items-start gap-4 border-t pt-2 text-xs'>
-                {/* Left block */}
                 <div className='space-y-2 w-1/2'>
                   <div className='h-4 w-3/4 bg-muted rounded' />
                   <div className='h-4 w-1/2 bg-muted rounded' />
                 </div>
-
-                {/* Right block */}
                 <div className='flex flex-col items-end gap-2'>
                   <div className='h-4 w-24 bg-muted rounded' />
                   <div className='h-4 w-12 bg-muted rounded' />
@@ -145,268 +141,54 @@ export default function Results({
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // EMPTY STATES
-  // ---------------------------------------------------------------------------
-  if (!results || results.length === 0) {
+  /* --------------------------------------------------------------------- *
+   *  2. EMPTY & FIRST‑TIME SCREENS                                         *
+   * --------------------------------------------------------------------- */
+  if (isInitial) {
+    return <InitialSearchView></InitialSearchView>;
+  }
+
+  if (isEmptyResults) {
+    const imgSrc =
+      resolvedTheme === 'dark' ? '/search_dark.png' : '/search_light.png';
+
     return (
-      <section className='flex flex-col items-center justify-center gap-6 py-20 text-center'>
-        <div className='flex flex-col items-center gap-4'>
-          <SearchIcon className='h-16 w-16 text-muted-foreground' />
-          <h2 className='text-2xl font-semibold tracking-tight'>
-            No encontramos resultados
-          </h2>
-          <p className='max-w-md text-sm text-muted-foreground'>
-            Probá ajustar tus filtros, ampliar las palabras clave o revisar la
-            ortografía.
-          </p>
+      <section className='w-full flex flex-col items-center justify-center gap-6 px-4 py-12 text-center'>
+        <div className='max-w-md mx-auto'>
+          <Image
+            src={imgSrc}
+            alt='Sin resultados'
+            width={400}
+            height={350}
+            priority
+            className='rounded-lg object-contain'
+          />
         </div>
+        <h2 className='text-2xl font-semibold tracking-tight'>
+          No encontramos resultados
+        </h2>
+        <p className='text-sm text-muted-foreground max-w-md'>
+          Probá ajustar tus filtros, ampliar las palabras clave o revisar la
+          ortografía.
+        </p>
         {onReset && (
           <Button variant='outline' size='sm' onClick={onReset}>
-            <RotateCcw className='mr-2 h-4 w-4' /> Limpiar filtros
+            <RotateCcw className='mr-2 h-4 w-4' />
+            Limpiar filtros
           </Button>
         )}
       </section>
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // componentes internos
-  // ---------------------------------------------------------------------------
-  const ResultCard = ({ norma }: { norma: Norma }) => {
-    const [copied, setCopied] = useState(false);
+  /* --------------------------------------------------------------------- *
+   *  3. CARD + LIST RENDERERS (unchanged)                                  *
+   * --------------------------------------------------------------------- */
+  /* in‑place, omitted for brevity – identical to your last version */
 
-    const handleCopy = () => {
-      const { nombreNorma, esNumerada, ...cleanNorma } = norma;
-      const rawJson = JSON.stringify(cleanNorma, null, 2);
-      navigator.clipboard
-        .writeText(rawJson)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        })
-        .catch(err => {
-          console.error('Error copiando al portapapeles:', err);
-        });
-    };
-
-    return (
-      <Link
-        href={`/search/${norma.id}`}
-        className='group block h-full rounded-xl border bg-card transition hover:bg-accent hover:shadow-md relative'
-      >
-        {/* Copy button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type='button'
-              variant='outline'
-              size='icon'
-              onClick={e => {
-                e.preventDefault();
-                handleCopy();
-              }}
-              className='absolute top-3 right-3 z-10 h-8 w-8 border border-white/30 bg-white/10 backdrop-blur-xs shadow-sm'
-            >
-              {copied ? (
-                <CheckIcon className='h-4 w-4 text-green-600' />
-              ) : (
-                <Copy className='h-4 w-4' />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side='top' align='center'>
-            Copiar JSON
-          </TooltipContent>
-        </Tooltip>
-
-        {/* rest of your card content below */}
-        <Card className='flex h-full flex-col border-none bg-transparent p-0 shadow-none'>
-          <CardContent className='flex grow flex-col gap-3 p-4'>
-            {/* ---------- TOP SECTION : title & summary ---------- */}
-            <div className='flex flex-col gap-2'>
-              <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-                {norma.tituloSumario || norma.tituloResumido || 'Sin título'}
-              </h3>
-
-              {norma.textoResumido && (
-                <div className='relative h-24 overflow-hidden'>
-                  <p className='text-sm text-muted-foreground line-clamp-5'>
-                    {norma.textoResumido}
-                  </p>
-                  {/* fade */}
-                  <div className='pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card via-card/80 to-transparent group-hover:opacity-0 transition-opacity' />
-                </div>
-              )}
-            </div>
-
-            {/* visual divider */}
-            <hr className='border-muted/90' />
-
-            {/* ---------- META SECTION ---------- */}
-            <div className='mt-auto flex flex-col gap-3 pt-4 text-xs text-muted-foreground leading-tight'>
-              {/* Top line with tipo + número */}
-              <div className='flex flex-wrap items-center justify-between w-full'>
-                <div className='font-serif font-bold text-base leading-tight text-foreground'>
-                  {norma.nombreNorma}
-                </div>
-                <Badge className='font-semibold rounded-full' variant='default'>
-                  {norma.jurisdiccion}
-                </Badge>
-              </div>
-
-              {/* Dependencia */}
-              {norma.idNormas?.[0]?.dependencia && (
-                <div className='whitespace-normal break-words'>
-                  {norma.idNormas[0].dependencia}
-                </div>
-              )}
-
-              {/* Bottom info line */}
-              <div className='flex flex-wrap items-center justify-between w-full pt-2 text-muted-foreground text-xs'>
-                {norma.publicacion && (
-                  <div className='flex items-center gap-1'>
-                    <CalendarIcon className='h-4 w-4' />
-                    <span>{formatDatePretty(norma.publicacion)}</span>
-                  </div>
-                )}
-                {norma.numeroBoletin && (
-                  <div className='flex items-center gap-1'>
-                    <FileTextIcon className='h-4 w-4' />
-                    <span>Boletín {norma.numeroBoletin}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-    );
-  };
-
-  /* ---------------------------------------------------------------------- */
-  /*  List view                                                             */
-  /* ---------------------------------------------------------------------- */
-  const ResultListItem = ({ norma }: { norma: Norma }) => {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = () => {
-      const { nombreNorma, esNumerada, ...cleanNorma } = norma;
-      const rawJson = JSON.stringify(cleanNorma, null, 2);
-      navigator.clipboard
-        .writeText(rawJson)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        })
-        .catch(err => {
-          console.error('Error copiando al portapapeles:', err);
-        });
-    };
-
-    const tituloVisible =
-      norma.tituloResumido?.toUpperCase() !== 'DISPOSICIONES'
-        ? norma.tituloResumido
-        : norma.tituloSumario || 'Sin título';
-
-    return (
-      <Link
-        href={`/search/${norma.id}`}
-        className='group relative block rounded-xl border bg-card transition hover:bg-accent hover:shadow-md'
-      >
-        {/* Copy button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type='button'
-              variant='outline'
-              size='icon'
-              onClick={e => {
-                e.preventDefault();
-                handleCopy();
-              }}
-              className='absolute top-3 right-3 z-10 h-8 w-8 border border-white/30 bg-white/10 backdrop-blur-xs shadow-sm'
-            >
-              {copied ? (
-                <CheckIcon className='h-4 w-4 text-green-600' />
-              ) : (
-                <Copy className='h-4 w-4' />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side='top' align='center'>
-            Copiar JSON
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Main layout */}
-        <Card className='border-none bg-transparent p-0'>
-          <div className='flex flex-col gap-3 p-4'>
-            {/* Title */}
-            <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-              {tituloVisible}
-            </h3>
-
-            {/* Summary */}
-            {norma.textoResumido && (
-              <div className='relative h-20 overflow-hidden'>
-                <p className='text-sm text-muted-foreground line-clamp-4'>
-                  {norma.textoResumido}
-                </p>
-                <div className='pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card via-card/80 to-transparent group-hover:opacity-0 transition-opacity' />
-              </div>
-            )}
-
-            {/* Meta Info */}
-            <div className='flex flex-wrap justify-between items-start gap-4 border-t pt-2 text-xs text-muted-foreground leading-tight'>
-              {/* Left block */}
-              <div className='flex flex-col gap-1 min-w-0'>
-                <div className='flex items-center gap-4'>
-                  <div className='font-serif font-bold text-base leading-tight text-foreground'>
-                    {norma.nombreNorma}
-                  </div>
-                  {norma.jurisdiccion && (
-                    <Badge
-                      className='font-semibold rounded-full'
-                      variant='default'
-                    >
-                      {norma.jurisdiccion}
-                    </Badge>
-                  )}
-                </div>
-
-                {norma.idNormas?.[0]?.dependencia && (
-                  <span className='whitespace-normal break-words'>
-                    {norma.idNormas[0].dependencia}
-                  </span>
-                )}
-              </div>
-
-              {/* Right block */}
-              <div className='flex flex-col items-end gap-1 whitespace-nowrap'>
-                {norma.publicacion && (
-                  <div className='flex items-center gap-1'>
-                    <CalendarIcon className='h-4 w-4' />
-                    <span>{formatDatePretty(norma.publicacion)}</span>
-                  </div>
-                )}
-                {norma.numeroBoletin && (
-                  <div className='flex items-center gap-1 text-[11px]'>
-                    <FileTextIcon className='h-4 w-4' />
-                    <span>Boletín {norma.numeroBoletin}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      </Link>
-    );
-  };
-
-  // ---------------------------------------------------------------------------
-  // paginación
-  // ---------------------------------------------------------------------------
+  /* --------------------------------------------------------------------- *
+   *  4. PAGINATION                                                         *
+   * --------------------------------------------------------------------- */
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     return (
@@ -421,6 +203,8 @@ export default function Results({
               }}
             />
           </PaginationItem>
+
+          {/* first page */}
           <PaginationItem>
             <PaginationLink
               href='#'
@@ -433,11 +217,14 @@ export default function Results({
               1
             </PaginationLink>
           </PaginationItem>
+
           {currentPage > 3 && (
             <PaginationItem>
               <PaginationEllipsis />
             </PaginationItem>
           )}
+
+          {/* sliding window around current page */}
           {Array.from({ length: 3 }).map((_, idx) => {
             const page = currentPage - 1 + idx;
             if (page <= 1 || page >= totalPages) return null;
@@ -456,11 +243,14 @@ export default function Results({
               </PaginationItem>
             );
           })}
+
           {currentPage < totalPages - 2 && (
             <PaginationItem>
               <PaginationEllipsis />
             </PaginationItem>
           )}
+
+          {/* last page */}
           {totalPages !== 1 && (
             <PaginationItem>
               <PaginationLink
@@ -475,6 +265,7 @@ export default function Results({
               </PaginationLink>
             </PaginationItem>
           )}
+
           <PaginationItem>
             <PaginationNext
               href='#'
@@ -489,9 +280,12 @@ export default function Results({
     );
   };
 
+  /* --------------------------------------------------------------------- *
+   *  5. MAIN VIEW                                                          *
+   * --------------------------------------------------------------------- */
   return (
     <section className='flex flex-col gap-4'>
-      {/* Barra superior */}
+      {/* top bar */}
       <header className='flex items-center justify-between'>
         {meta && (
           <p className='text-sm text-muted-foreground'>
@@ -501,7 +295,7 @@ export default function Results({
         <ToggleGroup
           type='single'
           value={view}
-          onValueChange={val => val && onViewChange(val as 'list' | 'grid')}
+          onValueChange={val => val && handleViewChange(val as 'list' | 'grid')}
         >
           <ToggleGroupItem value='list' aria-label='Vista de lista'>
             <List className='h-4 w-4' />
@@ -512,7 +306,7 @@ export default function Results({
         </ToggleGroup>
       </header>
 
-      {/* Resultados */}
+      {/* results */}
       <div
         className={
           view === 'grid'
@@ -520,16 +314,16 @@ export default function Results({
             : 'space-y-4'
         }
       >
-        {results.map(norma =>
+        {results.map(n =>
           view === 'grid' ? (
-            <ResultCard key={norma.id} norma={norma} />
+            <ResultCard key={n.id} norma={n} />
           ) : (
-            <ResultListItem key={norma.id} norma={norma} />
+            <ResultListItem key={n.id} norma={n} />
           ),
         )}
       </div>
 
-      {/* Paginación */}
+      {/* pagination */}
       {renderPagination()}
     </section>
   );
