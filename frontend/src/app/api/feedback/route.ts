@@ -10,6 +10,16 @@ export async function POST(req: Request) {
     if (message.trim().length < 3) {
       return NextResponse.json({ error: 'Mensaje inválido' }, { status: 400 });
     }
+    const feedbackEmails = process.env.FEEDBACK_EMAILS?.split(',').map(email =>
+      email.trim(),
+    );
+
+    if (!feedbackEmails || feedbackEmails.length === 0) {
+      return NextResponse.json(
+        { error: `Missing env var: FEEDBACK_EMAILS` },
+        { status: 500 },
+      );
+    }
 
     const feedbackEmail = process.env.FEEDBACK_EMAIL;
     const domain = process.env.DOMAIN;
@@ -24,22 +34,17 @@ export async function POST(req: Request) {
 
     const response = await resend.emails.send({
       from: `Feedback <feedback@${domain}>`,
-      to: feedbackEmail,
+      to: feedbackEmails,
       subject: `Nuevo feedback (${origin})`,
       text: message,
     });
 
-    console.log('📨 Resend API response:', response);
-
     return NextResponse.json(response);
   } catch (error: unknown) {
-    console.error('[Resend error]', error);
-
     const maybeResendError = error as { response?: Response };
     if (maybeResendError?.response) {
       try {
         const data = await maybeResendError.response.json();
-        console.error('[Resend error details]', data);
         return NextResponse.json(data, { status: 500 });
       } catch (parseError) {
         console.error('[Resend response parse error]', parseError);

@@ -52,9 +52,7 @@ export default function Header() {
             href='/'
             className={cn(
               'text-lg font-medium transition-colors',
-              pathname === '/'
-                ? 'font-bold underline underline-offset-4'
-                : 'hover:opacity-70',
+              pathname === '/' ? 'font-bold ' : 'hover:opacity-70',
             )}
           >
             Inicio
@@ -64,7 +62,7 @@ export default function Header() {
             className={cn(
               'text-lg font-medium transition-colors',
               pathname === '/search' || pathname.startsWith('/busqueda')
-                ? 'font-bold underline underline-offset-4'
+                ? 'font-bold '
                 : 'hover:opacity-70',
             )}
           >
