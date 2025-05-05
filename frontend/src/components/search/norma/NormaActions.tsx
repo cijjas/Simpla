@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Copy, Download, Share2 } from 'lucide-react';
 import { useState } from 'react';
 
-export function NormaActions({ copyText }: { copyText: string }) {
+export function NormaActions({ copyText }: { copyText?: string }) {
   const [copied, setCopied] = useState(false);
+
+  if (!copyText) return null;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(copyText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (

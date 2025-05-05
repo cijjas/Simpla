@@ -15,26 +15,49 @@ export default function InfoSearch() {
         <TooltipTrigger asChild>
           <Info className='h-4 w-4 text-muted-foreground hover:text-primary cursor-pointer' />
         </TooltipTrigger>
-        <TooltipContent className='max-w-sm text-sm' align='end'>
-          <div className='space-y-2'>
-            <p className='font-semibold'>¿Cómo usar el buscador?</p>
-            <p className='leading-relaxed'>
-              Comenzá seleccionando el <strong>Tipo de Norma*</strong>, que es
-              obligatorio. Luego podés completar los campos opcionales para
-              refinar la búsqueda:
-              <br />- <strong>Número:</strong> si conocés el número exacto.
-              <br />- <strong>Texto:</strong> buscá por contenido, usando
-              operadores lógicos como <strong>AND</strong>, <strong>OR</strong>,{' '}
-              <strong>NOT</strong> o agrupaciones como{' '}
-              <code>(educación AND salud) OR justicia</code>.
-              <br />- <strong>Dependencia:</strong> filtrá por organismo que
-              emitió la norma.
-              <br />- <strong>Fechas:</strong> acotás el rango de publicación.
-            </p>
+        <TooltipContent className='p-4 text-sm shadow-xl border rounded-xl'>
+          <div className='space-y-3'>
+            <p className='text-base font-semibold'>¿Cómo usar el buscador?</p>
+
+            <ul className='space-y-1 leading-relaxed list-disc list-inside'>
+              <li>
+                Seleccioná el <strong>Tipo de Norma</strong> (obligatorio).
+              </li>
+              <li>
+                Usá el campo <strong>Número</strong> si conocés el número exacto
+                (ej. <code>70/2023</code>).
+              </li>
+              <li>
+                Si el número contiene año (ej. <code>70/2023</code>), el campo{' '}
+                <strong>Año de Sanción</strong> <br />
+                se completa automáticamente.
+              </li>
+              <li>
+                El campo <strong>Año de Sanción</strong> permite filtrar por año
+                (ej. <code>2023</code> o <code>95</code>).
+              </li>
+              <li>
+                Para normas tipo <strong>Ley</strong>, el año se ignora
+                automáticamente.
+              </li>
+              <li>
+                En <strong>Texto</strong> podés usar operadores como{' '}
+                <code>AND</code>, <code>OR</code>, <code>NOT</code> y
+                paréntesis.
+              </li>
+              <li>
+                En <strong>Dependencia</strong>, seleccioná el organismo que
+                emitió la norma.
+              </li>
+              <li>
+                Filtrá por <strong>Fechas</strong> de publicación para acotar
+                resultados.
+              </li>
+            </ul>
+
             <p className='text-xs text-muted-foreground'>
-              Recomendamos combinar <strong>Texto</strong> con{' '}
-              <strong>Fechas</strong> o <strong>Dependencia</strong> para
-              mejores resultados.
+              Tip: Combiná <strong>Texto</strong> con <strong>Fechas</strong> o{' '}
+              <strong>Dependencia</strong> para una búsqueda más precisa.
             </p>
           </div>
         </TooltipContent>

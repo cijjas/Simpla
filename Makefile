@@ -53,6 +53,14 @@ clean:             ## Stop containers & remove volumes, images, and networks
 	docker volume prune -f
 	docker network prune -f
 
+recycle:: ## make down, make clean and make up
+	@echo "♻️   Recycling containers, volumes, images, and networks…"
+	$(COMPOSE) down -v --rmi all --remove-orphans
+	docker volume prune -f
+	docker network prune -f
+	$(COMPOSE) up -d --build
+	@echo "🚀  Bringing up entire stack…"
+
 # --------------------------------------------------------------------- #
 # NEW:  Fine‑grained build / (re)start helpers                          #
 # --------------------------------------------------------------------- #

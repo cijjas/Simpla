@@ -43,7 +43,7 @@ export default function Header() {
         >
           <Logo className='h-6 w-auto text-navy-900 dark:text-white' />
           <span className='font-serif text-3xl font-bold text-navy-900 dark:text-white'>
-            SIMPLA
+            CEIBOS
           </span>
         </Link>
         {/* --------------- NAV DESKTOP --------------- */}

@@ -20,11 +20,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ResultCard from './ResultCard';
 import ResultListItem from './ResultListItem';
-import { Norma } from './models';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
-import { motion } from 'framer-motion';
 import InitialSearchView from './InitialSearchView';
+import SvgSearch from '../icons/Search';
+import { Norma } from '@/lib/infoleg/types';
 
 interface Meta {
   count: number;
@@ -141,28 +141,20 @@ export default function Results({
     );
   }
 
+  const imgSrc =
+    resolvedTheme === 'dark' ? '/search_dark.png' : '/search_light.png';
   /* --------------------------------------------------------------------- *
    *  2. EMPTY & FIRST‑TIME SCREENS                                         *
    * --------------------------------------------------------------------- */
   if (isInitial) {
-    return <InitialSearchView></InitialSearchView>;
+    return <InitialSearchView imgSrc={imgSrc}></InitialSearchView>;
   }
 
   if (isEmptyResults) {
-    const imgSrc =
-      resolvedTheme === 'dark' ? '/search_dark.png' : '/search_light.png';
-
     return (
       <section className='w-full flex flex-col items-center justify-center gap-6 px-4 py-12 text-center'>
         <div className='max-w-md mx-auto'>
-          <Image
-            src={imgSrc}
-            alt='Sin resultados'
-            width={400}
-            height={350}
-            priority
-            className='rounded-lg object-contain'
-          />
+          <SvgSearch className='w-[300px] h-[300px] text-black dark:text-white' />
         </div>
         <h2 className='text-2xl font-semibold tracking-tight'>
           No encontramos resultados

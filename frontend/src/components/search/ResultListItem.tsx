@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
-import { Norma } from './models';
+import { Norma } from '@/lib/infoleg/types';
 
 export default function ResultListItem({
   norma,
@@ -123,10 +123,12 @@ export default function ResultListItem({
                   <span>{formatDatePretty(norma.publicacion)}</span>
                 </div>
               )}
-              {norma.numeroBoletin && (
+              {norma.nroBoletin && (
                 <div className='flex items-center gap-1 text-[11px]'>
                   <FileTextIcon className='h-4 w-4' />
-                  <span>Boletín {norma.numeroBoletin}</span>
+                  <span>
+                    Boletín Oficial {norma.nroBoletin} • pág. {norma.pagBoletin}
+                  </span>
                 </div>
               )}
             </div>
