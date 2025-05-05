@@ -100,7 +100,7 @@ export function FeedbackContact() {
           <p className='text-sm text-muted-foreground'>
             Estamos comenzando y tu feedback es clave. ¿Tenés sugerencias,
             problemas, o algo que te gustaría ver en la app? Escribinos abajo o
-            contáctanos directamente.
+            contactanos directamente.
           </p>
 
           <Form {...form}>
