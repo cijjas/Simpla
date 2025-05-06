@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { FeedbackContact } from '@/features/feedback/FeedbackContact';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from '@/components/ui/sonner';
+
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -25,6 +26,29 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Simpla',
   description: 'El lugar donde entendés todo.',
+  metadataBase: new URL('https://simplar.com.ar'),
+  openGraph: {
+    title: 'Simpla - Una manera simple de navegar las leyes.',
+    description: 'Buscá normas argentinas con claridad.',
+    url: '/',
+    siteName: 'Simpla',
+    images: [
+      {
+        url: '/images/preview.png',
+        width: 1200,
+        height: 630,
+        alt: 'Vista previa de Simpla',
+      },
+    ],
+    locale: 'es_AR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Simpla - Una manera simple de navegar las leyes.',
+    description: 'Buscá normas argentinas con claridad.',
+    images: ['/images/preview.png'],
+  },
 };
 
 export default function RootLayout({

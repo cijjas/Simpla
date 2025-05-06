@@ -5,6 +5,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import {
+  TIPOS_HARDCODEADOS,
+  DEPENDENCIAS_HARDCODEADAS,
+} from '@/lib/infoleg/constants';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,24 +66,6 @@ interface Props {
   initialValues?: Record<string, string>;
   onReset?: () => void;
 }
-
-const TIPOS_HARDCODEADOS = [
-  { detalle: 'Ley', route: 'leyes' },
-  { detalle: 'Decreto', route: 'decretos' },
-  { detalle: 'Decisión Administrativa', route: 'decisiones_administrativas' },
-  { detalle: 'Resolución', route: 'resoluciones' },
-  { detalle: 'Disposición', route: 'disposiciones' },
-  { detalle: 'Acordada', route: 'acordadas' },
-  { detalle: 'Acta', route: 'actas' },
-  { detalle: 'Actuacion', route: 'actuaciones' },
-];
-
-const DEPENDENCIAS_HARDCODEADAS = [
-  'ADMINISTRACION FEDERAL DE INGRESOS PUBLICOS',
-  'MINISTERIO DE JUSTICIA Y DERECHOS HUMANOS',
-  'PODER EJECUTIVO NACIONAL (P.E.N.)',
-  'CORTE SUPREMA DE JUSTICIA DE LA NACION',
-];
 
 // --------------------------------------------------
 // Zod schema & types
@@ -170,7 +156,7 @@ export default function SearchForm({
       })
       .catch(() => {});
 
-    fetch('/api/infoleg/dependencies')
+    fetch('/api/infoleg/dependencias')
       .then(r => r.json())
       .then(fetched => {
         if (Array.isArray(fetched) && fetched.length) setDependencias(fetched);
@@ -324,11 +310,48 @@ export default function SearchForm({
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>Tipo de norma</SelectLabel>
-                        {tipos.map(t => (
-                          <SelectItem key={t.route} value={t.route}>
-                            {t.detalle}
-                          </SelectItem>
-                        ))}
+
+                        {/* Top fixed group */}
+                        {[
+                          'Decreto',
+                          'Ley',
+                          'Decreto/Ley',
+                          'Resolución',
+                          'Disposición',
+                          'Decisión Administrativa',
+                        ].map(detalle => {
+                          const tipo = tipos.find(t => t.detalle === detalle);
+                          return (
+                            tipo && (
+                              <SelectItem key={tipo.route} value={tipo.route}>
+                                {tipo.detalle}
+                              </SelectItem>
+                            )
+                          );
+                        })}
+
+                        {/* Divider */}
+                        <div className='my-1 h-px bg-border' />
+
+                        {/* Other tipos (alphabetically) */}
+                        {tipos
+                          .filter(
+                            t =>
+                              ![
+                                'Decreto',
+                                'Ley',
+                                'Decreto/Ley',
+                                'Resolución',
+                                'Disposición',
+                                'Decisión Administrativa',
+                              ].includes(t.detalle),
+                          )
+                          .sort((a, b) => a.detalle.localeCompare(b.detalle))
+                          .map(t => (
+                            <SelectItem key={t.route} value={t.route}>
+                              {t.detalle}
+                            </SelectItem>
+                          ))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -351,7 +374,7 @@ export default function SearchForm({
                           type='text'
                           inputMode='numeric'
                           pattern='[0-9]+(/[0-9]{1,4})?'
-                          placeholder='Ej: 70 o 70/23'
+                          placeholder='Ej: 70 o 70/2023'
                           value={field.value}
                           onChange={field.onChange}
                           onBlur={field.onBlur}

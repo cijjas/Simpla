@@ -13,13 +13,41 @@ export type SearchParams = {
   offset?: number;
 };
 
+const isServer = typeof window === 'undefined';
+
 function buildQuery(params: Record<string, unknown>) {
   return Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== '')
+    .filter(([, value]) => value !== undefined && value !== '')
     .map(
-      ([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`,
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
     )
     .join('&');
+}
+
+async function fetchNormaFromAPI(id: number, resumen = false): Promise<Norma> {
+  const suffix = resumen ? '&resumen=true' : '';
+  const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos?id=${id}${suffix}`;
+  const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
+
+  if (!res.ok) throw new Error('Norma no encontrada');
+  const raw = await res.json();
+  return enrichNorma(raw as Norma);
+}
+
+async function fetchNormaFromClient(id: number): Promise<Norma> {
+  const res = await fetch(`/api/infoleg/detail?id=${id}`);
+  if (!res.ok) throw new Error('Norma no encontrada');
+  const raw = await res.json();
+  return enrichNorma(raw as Norma);
+}
+
+export async function getNormaDetalle(id: number): Promise<Norma> {
+  return isServer ? fetchNormaFromAPI(id, false) : fetchNormaFromClient(id);
+}
+
+export async function getNormaDetalleResumen(id: number): Promise<Norma> {
+  return isServer ? fetchNormaFromAPI(id, true) : fetchNormaFromClient(id);
 }
 
 export async function searchNormas(params: SearchParams): Promise<{
@@ -27,12 +55,11 @@ export async function searchNormas(params: SearchParams): Promise<{
   metadata: { resultset: { count: number; limit: number; offset: number } };
 }> {
   const { tipo, ...query } = params;
-  const isServer = typeof window === 'undefined';
 
   if (isServer) {
-    //  Server → fetch Infoleg API directly (faster)
     const queryString = buildQuery(query);
     const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos/${tipo}?${queryString}`;
+
     const res = await fetch(url, {
       headers: { 'Accept-Encoding': 'gzip' },
     });
@@ -48,7 +75,7 @@ export async function searchNormas(params: SearchParams): Promise<{
     };
   }
 
-  //  Client → use local proxy to bypass CORS
+  // Client: use local proxy to bypass CORS
   const res = await fetch('/api/infoleg/busqueda', {
     method: 'POST',
     body: JSON.stringify({ tipo, ...query }),
@@ -60,23 +87,8 @@ export async function searchNormas(params: SearchParams): Promise<{
 
   return {
     results: enrichNormas(data.results ?? []),
-    metadata: data.metadata ?? { resultset: { count: 0, offset: 0, limit: 0 } },
+    metadata: data.metadata ?? {
+      resultset: { count: 0, offset: 0, limit: 0 },
+    },
   };
-}
-
-export async function getNormaDetalle(id: number): Promise<Norma> {
-  if (typeof window === 'undefined') {
-    // SSR/server
-    const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos?id=${id}`;
-    const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
-    if (!res.ok) throw new Error('Norma no encontrada');
-    const raw = await res.json();
-    return enrichNorma(raw as Norma);
-  }
-
-  // Client
-  const res = await fetch(`/api/infoleg/detail?id=${id}`);
-  if (!res.ok) throw new Error('Norma no encontrada');
-  const raw = await res.json();
-  return enrichNorma(raw as Norma);
 }
