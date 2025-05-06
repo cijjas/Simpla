@@ -25,16 +25,18 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Simpla',
-  description: 'Buscá normas argentinas con claridad.',
-  metadataBase: new URL('https://simplar.com.ar'),
+  description:
+    'Simpla te permite buscar, entender y compartir normas jurídicas argentinas de forma rápida y clara.',
+  metadataBase: new URL('https://www.simplar.com.ar'),
   openGraph: {
-    title: 'Simpla - Una manera simple de navegar las leyes.',
-    description: 'Buscá normas argentinas con claridad.',
+    title: 'Simpla — Una manera simple de navegar las leyes.',
+    description:
+      'Simpla te permite buscar, entender y compartir normas jurídicas argentinas de forma rápida y clara.',
     url: '/',
     siteName: 'Simpla',
     images: [
       {
-        url: '/images/preview.png',
+        url: 'https://www.simplar.com.ar/images/preview.png',
         width: 1200,
         height: 630,
         alt: 'Vista previa de Simpla',
@@ -45,9 +47,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Simpla - Una manera simple de navegar las leyes.',
-    description: 'Buscá normas argentinas con claridad.',
-    images: ['/images/preview.png'],
+    title: 'Simpla — Una manera simple de navegar las leyes.',
+    description:
+      'Simpla te permite buscar, entender y compartir normas jurídicas argentinas de forma rápida y clara.',
+    images: ['https://www.simplar.com.ar/images/preview.png'],
   },
 };
 
