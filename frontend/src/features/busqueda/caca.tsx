@@ -362,6 +362,7 @@ export default function SearchForm({
                       <FormControl>
                         <Input
                           type='text'
+                          inputMode='numeric'
                           pattern='[0-9]+(/[0-9]{1,4})?'
                           placeholder='Ej: 70 o 70/2023'
                           value={field.value}
@@ -393,7 +394,6 @@ export default function SearchForm({
                         <FormControl>
                           <Input
                             type='number'
-                            inputMode='numeric'
                             placeholder='Ej: 2023 o 95'
                             min={0}
                             max={currentYear}
@@ -507,15 +507,9 @@ export default function SearchForm({
                             variant='outline'
                             role='combobox'
                             aria-expanded={openDep}
-                            className='w-full bg-card hover:bg-card cursor-pointer justify-between overflow-hidden relative pr-10 h-auto'
+                            className='w-full justify-between overflow-hidden relative pr-10 h-auto min-h-10'
                           >
-                            <div
-                              className={cn(
-                                'truncate text-left',
-                                !field.value &&
-                                  'text-muted-foreground font-normal',
-                              )}
-                            >
+                            <div className='truncate text-left'>
                               {field.value
                                 ? dependencias.find(
                                     dep => dep === field.value,
@@ -578,7 +572,7 @@ export default function SearchForm({
                     {field.value && (
                       <Button
                         type='button'
-                        variant='outline'
+                        variant='ghost'
                         size='icon'
                         onClick={() => {
                           form.setValue('dependencia', '', {
