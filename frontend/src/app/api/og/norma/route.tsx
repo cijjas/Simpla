@@ -3,27 +3,24 @@ import { getNormaDetalleResumen } from '@/lib/infoleg/api';
 import type { Norma } from '@/lib/infoleg/types';
 
 export const runtime = 'edge';
-export const revalidate = 60 * 60 * 24 * 7;
-
-// Load fonts from /public
-const geistFont = fetch(
-  new URL('../../../../../public/fonts/Geist-Regular.ttf', import.meta.url),
-).then(res => res.arrayBuffer());
-
-const loraFont = fetch(
-  new URL('../../../../../public/fonts/Lora-Bold.ttf', import.meta.url),
-).then(res => res.arrayBuffer());
-
-// Load PNG logo
-const logoBuffer = await fetch(
-  new URL('../../../../../public/images/estampa.png', import.meta.url),
-).then(res => res.arrayBuffer());
-
-const logoBase64 = `data:image/png;base64,${Buffer.from(logoBuffer).toString(
-  'base64',
-)}`;
 
 export async function GET(req: Request) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!baseUrl) {
+    return new Response('Missing NEXT_PUBLIC_SITE_URL', { status: 500 });
+  }
+
+  // Load fonts and image from public folder over HTTP
+  const [geistFontData, loraFontData, logoBuffer] = await Promise.all([
+    fetch(`${baseUrl}/fonts/Geist-Regular.ttf`).then(res => res.arrayBuffer()),
+    fetch(`${baseUrl}/fonts/Lora-Bold.ttf`).then(res => res.arrayBuffer()),
+    fetch(`${baseUrl}/images/estampa.png`).then(res => res.arrayBuffer()),
+  ]);
+
+  const logoBase64 = `data:image/png;base64,${Buffer.from(logoBuffer).toString(
+    'base64',
+  )}`;
+
   const { searchParams } = new URL(req.url);
   const id = Number(searchParams.get('id'));
   if (!id) return new Response('Missing ID', { status: 400 });
@@ -63,7 +60,6 @@ export async function GET(req: Request) {
           position: 'relative',
         }}
       >
-        {/* Ghosted logo */}
         <img
           src={logoBase64}
           alt='Logo'
@@ -77,7 +73,6 @@ export async function GET(req: Request) {
           }}
         />
 
-        {/* Title */}
         <h1
           style={{
             fontFamily: 'Lora',
@@ -89,7 +84,6 @@ export async function GET(req: Request) {
           {title}
         </h1>
 
-        {/* Dependencia */}
         <p
           style={{
             fontFamily: 'Geist',
@@ -101,7 +95,6 @@ export async function GET(req: Request) {
           {dependencia}
         </p>
 
-        {/* Footer Info */}
         <div
           style={{
             marginTop: 'auto',
@@ -122,8 +115,8 @@ export async function GET(req: Request) {
       width: 1200,
       height: 630,
       fonts: [
-        { name: 'Geist', data: await geistFont },
-        { name: 'Lora', data: await loraFont },
+        { name: 'Geist', data: geistFontData },
+        { name: 'Lora', data: loraFontData },
       ],
     },
   );
