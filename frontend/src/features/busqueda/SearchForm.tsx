@@ -433,59 +433,61 @@ export default function SearchForm({
                 <FormItem>
                   <FormLabel className='flex items-center gap-1'>
                     Texto
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className='h-4 w-4 text-muted-foreground cursor-pointer' />
-                        </TooltipTrigger>
-                        <TooltipContent side='right'>
-                          <div className='max-w-xs text-sm'>
-                            Refiná tu búsqueda usando operadores lógicos y
-                            frases exactas.
-                            <br />
-                            <strong className='block mt-2'>
-                              Frases exactas:
-                            </strong>
-                            Usá{' '}
-                            <strong>
-                              comillas dobles (<code>"</code>)
-                            </strong>{' '}
-                            para buscar frases, por ejemplo:
-                            <code>"república argentina"</code>.
-                            <br />
-                            No uses comillas simples (<code>'</code>), ya que no
-                            son interpretadas correctamente.
-                            <strong className='block mt-2'>
-                              Operadores lógicos:
-                            </strong>
-                            Podés usar <code>AND</code>, <code>OR</code>,{' '}
-                            <code>NOT</code> y paréntesis para agrupar
-                            condiciones.
-                            <strong className='block mt-2'>Ejemplos:</strong>
-                            <ul className='list-disc list-inside mt-1 space-y-1'>
-                              <li>
-                                <code>"de república argentina"</code>
-                              </li>
-                              <li>
-                                <code>educación AND salud</code>
-                              </li>
-                              <li>
-                                <code>salud OR medicina</code>
-                              </li>
-                              <li>
-                                <code>salud NOT privada</code>
-                              </li>
-                              <li>
-                                <code>"derechos humanos" AND constitución</code>
-                              </li>
-                              <li>
-                                <code>(salud AND educación) OR justicia</code>
-                              </li>
-                            </ul>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Info className='h-4 w-4 text-muted-foreground cursor-pointer' />
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side='right'
+                        align='start'
+                        className='bg-gray-900 text-white border border-card shadow-md rounded-md p-3 max-w-xs text-sm'
+                      >
+                        <div>
+                          Refiná tu búsqueda usando operadores lógicos y frases
+                          exactas.
+                          <br />
+                          <strong className='block mt-2'>
+                            Frases exactas:
+                          </strong>
+                          Usá{' '}
+                          <strong>
+                            comillas dobles (<code>"</code>)
+                          </strong>{' '}
+                          para buscar frases, por ejemplo:{' '}
+                          <code>"república argentina"</code>.
+                          <br />
+                          No uses comillas simples (<code>'</code>), ya que no
+                          son interpretadas correctamente.
+                          <strong className='block mt-2'>
+                            Operadores lógicos:
+                          </strong>
+                          Podés usar <code>AND</code>, <code>OR</code>,{' '}
+                          <code>NOT</code> y paréntesis para agrupar
+                          condiciones.
+                          <strong className='block mt-2'>Ejemplos:</strong>
+                          <ul className='list-disc list-inside mt-1 space-y-1'>
+                            <li>
+                              <code>"de república argentina"</code>
+                            </li>
+                            <li>
+                              <code>educación AND salud</code>
+                            </li>
+                            <li>
+                              <code>salud OR medicina</code>
+                            </li>
+                            <li>
+                              <code>salud NOT privada</code>
+                            </li>
+                            <li>
+                              <code>"derechos humanos" AND constitución</code>
+                            </li>
+                            <li>
+                              <code>(salud AND educación) OR justicia</code>
+                            </li>
+                          </ul>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </FormLabel>
                   <FormControl>
                     <Textarea
