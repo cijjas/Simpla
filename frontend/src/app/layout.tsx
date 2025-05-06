@@ -25,7 +25,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Simpla',
-  description: 'El lugar donde entendés todo.',
+  description: 'Buscá normas argentinas con claridad.',
   metadataBase: new URL('https://simplar.com.ar'),
   openGraph: {
     title: 'Simpla - Una manera simple de navegar las leyes.',
