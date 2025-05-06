@@ -2,6 +2,7 @@ import { getNormaDetalle } from '@/lib/infoleg/api';
 import { NormaHeader } from '@/features/norma/NormaHeader';
 import { NormaBody } from '@/features/norma/NormaBody';
 import { notFound } from 'next/navigation';
+import type { Metadata, ResolvingMetadata } from 'next';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -17,4 +18,38 @@ export default async function NormaPage({ params }: Props) {
       <NormaBody originalHtml={norma.textoNorma} />
     </section>
   );
+}
+
+/* ---------- 2.  METADATA  ---------- */
+export async function generateMetadata(
+  { params }: Props,
+  _parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const { id } = await params;
+
+  const norma = await getNormaDetalle(Number(id));
+  if (!norma) return { title: 'Norma no encontrada' };
+
+  const title = norma.nombreNorma ?? `Norma #${Number(id)}`;
+  const summary = norma.tituloSumario ?? norma.tituloResumido ?? '';
+
+  const ogImageUrl = `/api/og/norma?id=${Number(id)}`;
+
+  return {
+    title,
+    description: summary,
+    openGraph: {
+      title,
+      description: summary,
+      type: 'article',
+      url: `https://simplar.com.ar/norma/${Number(id)}`,
+      images: [{ url: ogImageUrl, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: summary,
+      images: [ogImageUrl],
+    },
+  };
 }
