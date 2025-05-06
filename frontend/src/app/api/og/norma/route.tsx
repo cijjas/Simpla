@@ -34,6 +34,7 @@ export async function GET(req: Request) {
     : '';
   const title = `${norma.tipoNorma ?? 'Norma'} ${numero}/${anio}`;
   const dependencia = norma.idNormas?.[0]?.dependencia ?? '';
+  const normaTitle = norma.tituloSumario ?? norma.tituloResumido ?? '';
   const fechaPublicacion = norma.publicacion
     ? new Date(norma.publicacion).toLocaleDateString('es-AR', {
         day: 'numeric',
@@ -92,7 +93,7 @@ export async function GET(req: Request) {
             color: '#555',
           }}
         >
-          {dependencia}
+          {normaTitle}
         </p>
 
         <div
