@@ -523,13 +523,16 @@ export default function SearchForm({
                                 : 'Seleccionar dependencia'}
                             </div>
                             <div className='absolute right-0 top-0 h-full flex items-center pr-3'>
-                              <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                              {!field.value && (
+                                <ChevronsUpDown className='h-4 w-4 shrink-0 opacity-50' />
+                              )}
                             </div>
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
+
                       <PopoverContent
-                        className='p-0 w-[--radix-popover-trigger-width]'
+                        className='min-w-[var(--radix-popover-trigger-width)] p-0 overflow-y-auto'
                         align='start'
                       >
                         <Command className='max-h-[300px]'>

@@ -20,6 +20,7 @@ export function enrichNormas(rawResults: any[]) {
 
     return {
       ...norma,
+      textoNorma: norma.textoNorma ?? norma.textoNormaAct ?? '', // added fallback
       esNumerada,
       nombreNorma,
     };

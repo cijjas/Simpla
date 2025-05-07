@@ -40,4 +40,5 @@ export interface Norma extends NormaSummary {
   listaNormasQueComplementa?: number[];
   listaNormasQueLaComplementan?: number[];
   copyText?: string;
+  textoNormaAct?: string;
 }

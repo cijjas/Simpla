@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { NormaActions } from './NormaActions'; // client
 import { Norma } from '@/lib/infoleg/types';
+import { getNormaDetalleResumen } from '@/lib/infoleg/api'; // adjust path if needed
 
 /**
  * Lighter response when calling `?resumen=true` for a single id.
@@ -22,31 +23,18 @@ interface NormaSummary {
   tituloResumido?: string;
 }
 
-const API =
-  'https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos';
-
-async function fetchNormaSummary(id: number): Promise<NormaSummary | null> {
-  try {
-    const res = await fetch(`${API}?id=${id}&resumen=true`, {
-      // re‑fetch once a day on the server, client never revalidates
-      next: { revalidate: 86_400 },
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as NormaSummary;
-  } catch {
-    return null;
-  }
-}
-
 export async function NormaHeader({ norma }: { norma: Norma }) {
   // Fetch summaries for related normas in parallel (server‑side)
+
   const [modifica, modificadaPor] = await Promise.all([
     Promise.all(
-      (norma.listaNormasQueComplementa ?? []).map(id => fetchNormaSummary(id)),
+      (norma.listaNormasQueComplementa ?? []).map(id =>
+        getNormaDetalleResumen(id),
+      ),
     ),
     Promise.all(
       (norma.listaNormasQueLaComplementan ?? []).map(id =>
-        fetchNormaSummary(id),
+        getNormaDetalleResumen(id),
       ),
     ),
   ]);
