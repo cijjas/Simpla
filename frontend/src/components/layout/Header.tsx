@@ -31,21 +31,23 @@ export default function Header() {
 
   useEffect(() => setMounted(true), []);
 
-  /* ----------------------------- RENDER ---------------------------- */
   return (
     <header className='w-full border-b py-6'>
       <div className='mx-auto flex max-w-7xl items-center justify-between px-4'>
         {/* Logo */}
         <Link
           href='/'
-          className='flex items-center gap-0.5 hover:opacity-80 transition'
+          className='flex items-center gap-3 hover:opacity-80 transition'
         >
-          <span className='font-serif text-3xl font-bold text-navy-900 dark:text-white'>
-            SIMPL
-          </span>
           <Logo className='h-[1.375rem] w-auto text-navy-900 dark:text-white' />
+          {/* <Arrow className='w-10 h-auto text-black dark:text-white' /> */}
+
+          <span className='font-serif text-3xl font-bold text-navy-900 dark:text-white'>
+            SIMPLA
+          </span>
         </Link>
-        {/* --------------- NAV DESKTOP --------------- */}
+
+        {/* Desktop nav */}
         <nav className='hidden md:flex space-x-12'>
           <Link
             href='/'
@@ -68,9 +70,10 @@ export default function Header() {
             Búsqueda
           </Link>
         </nav>
-        {/* --------------- CONTROLES DESKTOP --------------- */}
+
+        {/* Desktop controls */}
         <div className='hidden md:flex items-center space-x-4'>
-          {mounted && (
+          {mounted ? (
             <Select value={theme} onValueChange={setTheme}>
               <SelectTrigger className='w-36'>
                 <SelectValue placeholder='Tema' />
@@ -93,14 +96,16 @@ export default function Header() {
                 </SelectItem>
               </SelectContent>
             </Select>
+          ) : (
+            <div className='w-36 h-10 rounded-md bg-muted opacity-50 animate-pulse' />
           )}
         </div>
-        {/* --------------- MENÚ MOBILE --------------- */}
+
+        {/* Mobile menu */}
         <Sheet>
           <SheetTrigger aria-label='Abrir menú' className='md:hidden'>
             <Menu className='h-6 w-6 text-navy-900' />
           </SheetTrigger>
-
           <SheetContent
             side='left'
             className='w-64 border-r px-0 py-0 bg-background/95 backdrop-blur-lg'
@@ -110,7 +115,7 @@ export default function Header() {
             </SheetHeader>
 
             <div className='flex h-full flex-col'>
-              {/* Header del Sheet */}
+              {/* Sheet header */}
               <div className='flex items-center justify-between border-b px-6 py-4'>
                 <Link
                   href='/'
@@ -124,7 +129,7 @@ export default function Header() {
                 <SheetClose aria-label='Cerrar menú'></SheetClose>
               </div>
 
-              {/* Links de navegación */}
+              {/* Sheet nav */}
               <nav className='flex flex-col gap-4 px-6 py-6 text-lg font-medium'>
                 <SheetClose asChild>
                   <Link
@@ -151,12 +156,15 @@ export default function Header() {
                 </SheetClose>
               </nav>
 
-              {/* Footer del Sheet */}
+              {/* Sheet footer */}
               <div className='mt-auto flex flex-col gap-6 border-t px-6 py-6'>
-                {/* Selector de tema */}
-                {mounted && (
-                  <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger className='w-full'>
+                {mounted ? (
+                  <Select
+                    value={mounted ? theme : 'system'}
+                    onValueChange={setTheme}
+                    disabled={!mounted}
+                  >
+                    <SelectTrigger className='w-36'>
                       <SelectValue placeholder='Tema' />
                     </SelectTrigger>
                     <SelectContent>
@@ -177,9 +185,11 @@ export default function Header() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                ) : (
+                  <div className='w-full h-10 rounded-md bg-muted opacity-50 animate-pulse' />
                 )}
 
-                {/* Accesos de contacto */}
+                {/* Contact */}
                 <div className='flex items-center gap-6'>
                   <Link
                     href='mailto:contacto@simpla.com'
