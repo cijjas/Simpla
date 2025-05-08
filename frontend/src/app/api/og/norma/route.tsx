@@ -1,6 +1,6 @@
+import { getNormaDetalladaResumen } from '@/lib/infoleg/api';
+import { NormaDetalladaResumen } from '@/lib/infoleg/types';
 import { ImageResponse } from 'next/og';
-import { getNormaDetalleResumen } from '@/lib/infoleg/api';
-import type { Norma } from '@/lib/infoleg/types';
 
 export const runtime = 'edge';
 
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   const id = Number(searchParams.get('id'));
   if (!id) return new Response('Missing ID', { status: 400 });
 
-  const norma: Norma = await getNormaDetalleResumen(id);
+  const norma: NormaDetalladaResumen = await getNormaDetalladaResumen(id);
   if (!norma) return new Response('Norma no encontrada', { status: 404 });
 
   const numero = norma.idNormas?.[0]?.numero ?? '';

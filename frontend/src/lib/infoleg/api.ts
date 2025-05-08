@@ -1,94 +1,151 @@
-import { Norma, NormaSummary } from './types';
-import { enrichNorma, enrichNormas } from './transform';
+// src/lib/infoleg/api.ts
 
-export type SearchParams = {
-  tipo: string;
-  numero?: number;
-  texto?: string;
-  dependencia?: string;
-  publicacion_desde?: string;
-  publicacion_hasta?: string;
-  sancion?: string;
-  limit?: number;
-  offset?: number;
+import {
+  NormaItemDto,
+  NormaDetalladaDto,
+  NormaDetalladaResumenDto,
+  IdNormaDto,
+  ListadoNormasDto,
+  InfolegErrorDto,
+  SearchParamsDto,
+} from './dto';
+
+import {
+  NormaDetallada,
+  NormaItem,
+  NormaDetalladaResumen,
+  ListadoNormas,
+} from './types';
+
+import {
+  TIPOS_CON_NUMERO,
+  TIPOS_CON_NUMERO_Y_ANIO,
+  infolegErrorMessages,
+} from './constants';
+import { getApiUrl } from './utils';
+import { formatDatePretty } from '../utils';
+
+const handle = async <T>(res: Response): Promise<T> => {
+  if (!res.ok) {
+    try {
+      const err: InfolegErrorDto = await res.json();
+      const message =
+        infolegErrorMessages[err.errorCode] ||
+        err.userMessage ||
+        'Ocurrió un error inesperado.';
+      throw new Error(message);
+    } catch {
+      throw new Error('No se pudo procesar la respuesta del servidor.');
+    }
+  }
+  return res.json();
 };
 
-const isServer = typeof window === 'undefined';
+const getNumero = (id: number, arr?: IdNormaDto[]) =>
+  arr?.[0]?.numero ?? String(id);
 
-function buildQuery(params: Record<string, unknown>) {
-  return Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== '')
-    .map(
-      ([key, value]) =>
-        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
-    )
-    .join('&');
-}
+const getYear = (s?: string, p?: string) =>
+  s || p ? new Date(s ?? p!).getFullYear() : undefined;
 
-async function fetchNormaFromAPI(id: number, resumen = false): Promise<Norma> {
-  const suffix = resumen ? '&resumen=true' : '';
-  const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos?id=${id}${suffix}`;
-  const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
+const buildNombre = (
+  tipo: string,
+  numero?: string | number,
+  year?: number,
+): string => {
+  const t = tipo.trim();
+  if (!TIPOS_CON_NUMERO.has(t)) return t;
+  if (numero == null) return t;
+  return TIPOS_CON_NUMERO_Y_ANIO.has(t) && year
+    ? `${t} ${numero}/${year}`
+    : `${t} ${numero}`;
+};
 
-  if (!res.ok) throw new Error('Norma no encontrada');
-  const raw = await res.json();
-  return enrichNorma(raw as Norma);
-}
+/* ---------------------------- enrichment ---------------------------- */
 
-async function fetchNormaFromClient(id: number): Promise<Norma> {
-  const res = await fetch(`/api/infoleg/detail?id=${id}`);
-  if (!res.ok) throw new Error('Norma no encontrada');
-  const raw = await res.json();
-  return enrichNorma(raw as Norma);
-}
+const dtoToListadoNormas = (dto: ListadoNormasDto): ListadoNormas => ({
+  metadata: dto.metadata,
+  results: dto.results.map(enrichItem),
+});
 
-export async function getNormaDetalle(id: number): Promise<Norma> {
-  return isServer ? fetchNormaFromAPI(id, false) : fetchNormaFromClient(id);
-}
+const enrichItem = (d: NormaItemDto): NormaItem => {
+  const numero = getNumero(d.id, d.idNormas);
+  const year = getYear(d.sancion, d.publicacion);
+  return {
+    ...d,
+    esNumerada: TIPOS_CON_NUMERO.has(d.tipoNorma?.trim() ?? ''),
+    nombreNorma: buildNombre(d.tipoNorma ?? '', numero, year),
+    nroBoletin: d.numeroBoletin?.toString(),
+    pagBoletin: d.numeroPagina?.toString(),
+  };
+};
 
-export async function getNormaDetalleResumen(id: number): Promise<Norma> {
-  return isServer ? fetchNormaFromAPI(id, true) : fetchNormaFromClient(id);
-}
+const enrichDetallada = (d: NormaDetalladaDto): NormaDetallada => {
+  const numero = getNumero(d.id, d.idNormas);
+  const year = getYear(d.sancion, d.publicacion);
+  return {
+    ...d,
+    esNumerada: TIPOS_CON_NUMERO.has(d.tipoNorma?.trim() ?? ''),
+    nombreNorma: buildNombre(d.tipoNorma ?? '', numero, year),
+    copyTextoNorma: [
+      buildNombre(d.tipoNorma ?? '', numero, year),
+      d.tituloSumario || d.tituloResumido || '(Sin título)',
+      d.textoResumido?.trim(),
+      '',
+      `Publicado en el Boletín Oficial${
+        d.nroBoletin ? ` N° ${d.nroBoletin}` : ''
+      }${d.pagBoletin ? `, página ${d.pagBoletin}` : ''}${
+        d.publicacion ? ` el ${formatDatePretty(d.publicacion)}` : ''
+      }${d.sancion ? ` – Sancionada el ${formatDatePretty(d.sancion)}` : ''}${
+        d.jurisdiccion ? ` – Jurisdicción: ${d.jurisdiccion}` : ''
+      }`,
+      '',
+      `Fuente: https://www.simplar.com.ar/norma/${d.id}`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  };
+};
 
-export async function searchNormas(params: SearchParams): Promise<{
-  results: NormaSummary[];
-  metadata: { resultset: { count: number; limit: number; offset: number } };
-}> {
-  const { tipo, ...query } = params;
+const enrichResumen = (d: NormaDetalladaResumenDto): NormaDetalladaResumen => {
+  const numero = getNumero(d.id, d.idNormas);
+  const year = getYear(d.sancion, d.publicacion);
+  return {
+    ...d,
+    esNumerada: TIPOS_CON_NUMERO.has(d.tipoNorma?.trim() ?? ''),
+    nombreNorma: buildNombre(d.tipoNorma ?? '', numero, year),
+  };
+};
 
-  if (isServer) {
-    const queryString = buildQuery(query);
-    const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos/${tipo}?${queryString}`;
+/* ---------------------- public API ---------------------- */
 
-    const res = await fetch(url, {
-      headers: { 'Accept-Encoding': 'gzip' },
-    });
+// src/lib/infoleg/api.ts
 
-    if (!res.ok) throw new Error('Error al buscar normas');
-    const data = await res.json();
-
-    return {
-      results: enrichNormas(data.results ?? []),
-      metadata: data.metadata ?? {
-        resultset: { count: 0, offset: 0, limit: 0 },
-      },
-    };
-  }
-
-  // Client: use local proxy to bypass CORS
-  const res = await fetch('/api/infoleg/busqueda', {
+export const getNormas = async (
+  params: SearchParamsDto,
+): Promise<ListadoNormas> => {
+  const res = await fetch(getApiUrl(`/api/infoleg/busqueda`), {
     method: 'POST',
-    body: JSON.stringify({ tipo, ...query }),
+    body: JSON.stringify(params),
     headers: { 'Content-Type': 'application/json' },
   });
 
-  if (!res.ok) throw new Error('Error al buscar normas');
-  const data = await res.json();
+  const dto = await handle<ListadoNormasDto>(res);
 
-  return {
-    results: enrichNormas(data.results ?? []),
-    metadata: data.metadata ?? {
-      resultset: { count: 0, offset: 0, limit: 0 },
-    },
-  };
-}
+  return dtoToListadoNormas(dto);
+};
+
+export const getNormaDetallada = async (
+  id: number,
+): Promise<NormaDetallada> => {
+  const res = await fetch(getApiUrl(`/api/infoleg/norma/${id}`));
+  const dto = await handle<NormaDetalladaDto>(res);
+  return enrichDetallada(dto);
+};
+
+export const getNormaDetalladaResumen = async (
+  id: number,
+): Promise<NormaDetalladaResumen> => {
+  const res = await fetch(getApiUrl(`/api/infoleg/norma/${id}?resumen=true`));
+  const dto = await handle<NormaDetalladaResumenDto>(res);
+  return enrichResumen(dto);
+};

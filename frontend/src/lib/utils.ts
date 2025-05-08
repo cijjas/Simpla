@@ -21,20 +21,8 @@ export function debounce<T extends (...args: unknown[]) => void>(
   return Object.assign(debounced, { cancel });
 }
 
-// ARG date formatter
+/* ──────── DATE FORMATTERS FOR ARG 🇦🇷 ──────── */
 
-// src/lib/utils.ts
-
-import { format, parse, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-
-/**
- * Formatea una fecha en formato amigable en español.
- *
- * @param date - La fecha a formatear
- * @param options - Opciones para mostrar nombre largo o corto
- * @returns La fecha formateada
- */
 const MONTHS_SHORT = [
   'ene',
   'feb',
@@ -52,11 +40,16 @@ const MONTHS_SHORT = [
 const DAYS_SHORT = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
 /**
+ * Safely parses a "YYYY-MM-DD" date string as local Date
+ */
+export function parseArgDate(input: string): Date {
+  const [year, month, day] = input.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Formatea una fecha en español sin errores de zona horaria.
- *
- * @param input - Fecha tipo Date o string "YYYY-MM-DD"
- * @param options - { full?: boolean } para formato largo
- * @returns Fecha formateada tipo "mié 24 abr 2024"
+ * Ej: "mié 24 abr 2024"
  */
 export function formatDatePretty(
   input: string | Date,
@@ -64,23 +57,13 @@ export function formatDatePretty(
 ): string {
   if (!input) return '';
 
-  if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
-    const [year, month, day] = input.split('-');
-    const d = parseInt(day, 10);
-    const m = parseInt(month, 10) - 1;
-    const y = parseInt(year, 10);
+  const date =
+    typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)
+      ? parseArgDate(input)
+      : input instanceof Date
+      ? input
+      : new Date(input);
 
-    const date = new Date(y, m, d); // local Date, avoids UTC bug
-    const dayName = DAYS_SHORT[date.getDay()];
-    const monthName = MONTHS_SHORT[m];
-
-    return full
-      ? `${dayName} ${d} de ${monthName} de ${y}`
-      : `${dayName} ${d} ${monthName} ${y}`;
-  }
-
-  // fallback: format real Date objects
-  const date = input instanceof Date ? input : new Date(input);
   const day = date.getDate();
   const month = MONTHS_SHORT[date.getMonth()];
   const year = date.getFullYear();
@@ -89,4 +72,47 @@ export function formatDatePretty(
   return full
     ? `${dayName} ${day} de ${month} de ${year}`
     : `${dayName} ${day} ${month} ${year}`;
+}
+
+/**
+ * Devuelve una fecha como "dd/mm/yyyy" sin errores UTC
+ */
+export function formatDateSlash(
+  input: string | Date,
+  { full }: { full?: boolean } = {},
+): string {
+  if (!input) return '';
+
+  const date =
+    typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)
+      ? parseArgDate(input)
+      : input instanceof Date
+      ? input
+      : new Date(input);
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+
+  return full
+    ? `${day}/${month}/${year}`
+    : `${String(day).padStart(2, '0')}/${String(month).padStart(
+        2,
+        '0',
+      )}/${year}`;
+}
+
+/**
+ * Ej: "Publicado en el Boletín Oficial nro 123 • pág 4 el mié 24 abr 2024"
+ */
+export function formatBoletinInfo(
+  nro?: string | null,
+  pag?: string | null,
+  fecha?: string | null,
+): string | null {
+  if (!nro && !pag && !fecha) return null;
+  const fechaFormatted = fecha ? formatDatePretty(fecha, { full: true }) : '';
+  return `Publicado en el Boletín Oficial${nro ? ` nro ${nro}` : ''}${
+    pag ? ` • pág ${pag}` : ''
+  }${fechaFormatted ? ` el ${fechaFormatted}` : ''}`;
 }

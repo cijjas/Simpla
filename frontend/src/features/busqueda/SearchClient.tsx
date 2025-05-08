@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { searchNormas } from '@/lib/infoleg/api';
 import { cn } from '@/lib/utils';
 import SearchForm from './SearchForm';
 import Results from './Results';
+import { getNormas } from '@/lib/infoleg/api';
+import { SearchParamsDto } from '@/lib/infoleg/dto';
+import { ListadoNormas, NormaItem } from '@/lib/infoleg/types';
 
 /**
  * --------------------------------------------------------------------------
@@ -21,7 +23,7 @@ export default function SearchClient() {
   /* ---------------------------------------------------------------------- */
   /*  UI STATE                                                               */
   /* ---------------------------------------------------------------------- */
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<NormaItem[]>([]);
   const [meta, setMeta] = useState<{
     count: number;
     limit: number;
@@ -98,15 +100,15 @@ export default function SearchClient() {
 
       if (parsedAnios.length === 1) {
         // If it's a single year, use sancion param directly
-        const data = await searchNormas({
+        const data = await getNormas({
           ...apiParams,
-          sancion: parsedAnios[0],
-        } as any);
+          sancion: String(parsedAnios[0]),
+        } as SearchParamsDto);
         setResults(data.results);
         setMeta(data.metadata.resultset);
       } else if (parsedAnios.length > 1) {
         // Smart search by year buckets
-        const buckets: any[] = [];
+        const buckets: NormaItem[] = [];
 
         await Promise.all(
           parsedAnios.map(async year => {
@@ -117,7 +119,7 @@ export default function SearchClient() {
               publicacion_desde: desde,
               publicacion_hasta: hasta,
             };
-            const res = await searchNormas(q as any);
+            const res = await getNormas(q as SearchParamsDto);
             buckets.push(...res.results);
           }),
         );
@@ -130,7 +132,7 @@ export default function SearchClient() {
         });
       } else {
         // No valid year in sancion, fall back to basic search
-        const data = await searchNormas(apiParams as any);
+        const data = await getNormas(apiParams as SearchParamsDto);
         setResults(data.results);
         setMeta(data.metadata.resultset);
       }

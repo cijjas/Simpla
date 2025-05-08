@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
-import { Norma } from '@/lib/infoleg/types';
+import { Norma } from '@/lib/infoleg/domain';
 
 export default function ResultListItem({
   norma,

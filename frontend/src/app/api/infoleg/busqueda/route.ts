@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { enrichNormas } from '@/lib/infoleg/transform';
-import { SearchParams } from '@/lib/infoleg/api';
 
 const BASE =
   'https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos';
@@ -18,14 +16,8 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { tipo, ...rest } = body;
 
-  const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos/${tipo}?${buildQuery(
-    rest,
-  )}`;
+  const url = `${BASE}/${tipo}?${buildQuery(rest)}`;
   const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
-  const data = await res.json();
 
-  return NextResponse.json({
-    ...data,
-    results: enrichNormas(data.results),
-  });
+  return NextResponse.json(await res.json());
 }
