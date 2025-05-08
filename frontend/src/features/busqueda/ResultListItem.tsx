@@ -14,12 +14,12 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
-import { Norma } from '@/lib/infoleg/domain';
+import { NormaItem } from '@/lib/infoleg/types';
 
 export default function ResultListItem({
   norma,
 }: {
-  norma: Norma;
+  norma: NormaItem;
 }): JSX.Element {
   const [copied, setCopied] = useState(false);
 
@@ -38,9 +38,9 @@ export default function ResultListItem({
   };
 
   const tituloVisible =
-    norma.tituloResumido?.toUpperCase() !== 'DISPOSICIONES'
-      ? norma.tituloResumido
-      : norma.tituloSumario || 'Sin título';
+    norma.tituloResumidoFormateado?.toUpperCase() !== 'DISPOSICIONES'
+      ? norma.tituloResumidoFormateado
+      : norma.tituloSumarioFormateado || 'Sin título';
 
   return (
     <Link
@@ -81,10 +81,10 @@ export default function ResultListItem({
           </h3>
 
           {/* Summary */}
-          {norma.textoResumido && (
+          {norma.textoResumidoFormateado && (
             <div className='relative h-20 overflow-hidden'>
               <p className='text-sm text-muted-foreground line-clamp-4'>
-                {norma.textoResumido}
+                {norma.textoResumidoFormateado}
               </p>
               <div className='pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-card via-card/80 to-transparent group-hover:opacity-0 transition-opacity' />
             </div>

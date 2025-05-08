@@ -4,7 +4,6 @@ import {
   NormaItemDto,
   NormaDetalladaDto,
   NormaDetalladaResumenDto,
-  IdNormaDto,
   ListadoNormasDto,
   InfolegErrorDto,
   SearchParamsDto,
@@ -17,13 +16,16 @@ import {
   ListadoNormas,
 } from './types';
 
+import { TIPOS_CON_NUMERO, infolegErrorMessages } from './constants';
 import {
-  TIPOS_CON_NUMERO,
-  TIPOS_CON_NUMERO_Y_ANIO,
-  infolegErrorMessages,
-} from './constants';
-import { getApiUrl } from './utils';
-import { formatDatePretty } from '../utils';
+  buildCopyTexto,
+  buildNombre,
+  getApiUrl,
+  getNumero,
+  getYear,
+  recaseUpperText,
+  recaseUpperTitle,
+} from './utils';
 
 const handle = async <T>(res: Response): Promise<T> => {
   if (!res.ok) {
@@ -39,25 +41,6 @@ const handle = async <T>(res: Response): Promise<T> => {
     }
   }
   return res.json();
-};
-
-const getNumero = (id: number, arr?: IdNormaDto[]) =>
-  arr?.[0]?.numero ?? String(id);
-
-const getYear = (s?: string, p?: string) =>
-  s || p ? new Date(s ?? p!).getFullYear() : undefined;
-
-const buildNombre = (
-  tipo: string,
-  numero?: string | number,
-  year?: number,
-): string => {
-  const t = tipo.trim();
-  if (!TIPOS_CON_NUMERO.has(t)) return t;
-  if (numero == null) return t;
-  return TIPOS_CON_NUMERO_Y_ANIO.has(t) && year
-    ? `${t} ${numero}/${year}`
-    : `${t} ${numero}`;
 };
 
 /* ---------------------------- enrichment ---------------------------- */
@@ -76,6 +59,10 @@ const enrichItem = (d: NormaItemDto): NormaItem => {
     nombreNorma: buildNombre(d.tipoNorma ?? '', numero, year),
     nroBoletin: d.numeroBoletin?.toString(),
     pagBoletin: d.numeroPagina?.toString(),
+    copyTexto: buildCopyTexto(d),
+    textoResumidoFormateado: recaseUpperText(d.textoResumido),
+    tituloResumidoFormateado: recaseUpperTitle(d.tituloResumido),
+    tituloSumarioFormateado: recaseUpperTitle(d.tituloSumario),
   };
 };
 
@@ -86,23 +73,10 @@ const enrichDetallada = (d: NormaDetalladaDto): NormaDetallada => {
     ...d,
     esNumerada: TIPOS_CON_NUMERO.has(d.tipoNorma?.trim() ?? ''),
     nombreNorma: buildNombre(d.tipoNorma ?? '', numero, year),
-    copyTextoNorma: [
-      buildNombre(d.tipoNorma ?? '', numero, year),
-      d.tituloSumario || d.tituloResumido || '(Sin título)',
-      d.textoResumido?.trim(),
-      '',
-      `Publicado en el Boletín Oficial${
-        d.nroBoletin ? ` N° ${d.nroBoletin}` : ''
-      }${d.pagBoletin ? `, página ${d.pagBoletin}` : ''}${
-        d.publicacion ? ` el ${formatDatePretty(d.publicacion)}` : ''
-      }${d.sancion ? ` – Sancionada el ${formatDatePretty(d.sancion)}` : ''}${
-        d.jurisdiccion ? ` – Jurisdicción: ${d.jurisdiccion}` : ''
-      }`,
-      '',
-      `Fuente: https://www.simplar.com.ar/norma/${d.id}`,
-    ]
-      .filter(Boolean)
-      .join('\n'),
+    copyTexto: buildCopyTexto(d),
+    textoResumidoFormateado: recaseUpperText(d.textoResumido),
+    tituloResumidoFormateado: recaseUpperTitle(d.tituloResumido),
+    tituloSumarioFormateado: recaseUpperTitle(d.tituloSumario),
   };
 };
 
@@ -113,6 +87,10 @@ const enrichResumen = (d: NormaDetalladaResumenDto): NormaDetalladaResumen => {
     ...d,
     esNumerada: TIPOS_CON_NUMERO.has(d.tipoNorma?.trim() ?? ''),
     nombreNorma: buildNombre(d.tipoNorma ?? '', numero, year),
+    copyTexto: buildCopyTexto(d),
+    textoResumidoFormateado: recaseUpperText(d.textoResumido),
+    tituloResumidoFormateado: recaseUpperTitle(d.tituloResumido),
+    tituloSumarioFormateado: recaseUpperTitle(d.tituloSumario),
   };
 };
 

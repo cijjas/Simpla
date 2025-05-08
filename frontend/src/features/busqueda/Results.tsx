@@ -17,8 +17,8 @@ import ResultCard from './ResultCard';
 import ResultListItem from './ResultListItem';
 import { useTheme } from 'next-themes';
 import InitialSearchView from './InitialSearchView';
-import { Norma } from '@/lib/infoleg/domain';
 import SvgSearch from '@/components/icons/Search';
+import { NormaItem } from '@/lib/infoleg/types';
 
 interface Meta {
   count: number;
@@ -27,7 +27,7 @@ interface Meta {
 }
 
 interface ResultsProps {
-  results: Norma[];
+  results: NormaItem[];
   meta: Meta | null;
   view: 'list' | 'grid';
   onViewChange: (v: 'list' | 'grid') => void;

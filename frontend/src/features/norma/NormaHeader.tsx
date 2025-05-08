@@ -80,7 +80,9 @@ export default function NormaHeader({ norma }: Props) {
     <header className='space-y-6'>
       <div className='flex items-center justify-between gap-4 flex-wrap'>
         <h1 className='text-3xl font-bold font-serif leading-tight break-words'>
-          {norma.tituloSumario || norma.tituloResumido || 'Sin título'}
+          {norma.tituloSumarioFormateado ||
+            norma.tituloResumidoFormateado ||
+            'Sin título'}
         </h1>
         <NormaActions norma={norma} />
       </div>
@@ -159,9 +161,9 @@ export default function NormaHeader({ norma }: Props) {
         </Accordion>
       )}
 
-      {norma.textoResumido && (
+      {norma.textoResumidoFormateado && (
         <blockquote className='border-l-4 border-primary pl-4 italic text-muted-foreground'>
-          {norma.textoResumido}
+          {norma.textoResumidoFormateado}
         </blockquote>
       )}
     </header>
@@ -202,7 +204,9 @@ function NormaListItem({
         </span>
       )}
       <span className='flex-1 truncate text-sm'>
-        {data.tituloSumario || data.tituloResumido || 'Sin título'}
+        {data.tituloSumarioFormateado ||
+          data.tituloResumidoFormateado ||
+          'Sin título'}
       </span>
     </li>
   );

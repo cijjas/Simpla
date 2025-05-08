@@ -14,9 +14,13 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
-import { Norma } from '@/lib/infoleg/domain';
+import { NormaItem } from '@/lib/infoleg/types';
 
-export default function ResultCard({ norma }: { norma: Norma }): JSX.Element {
+export default function ResultCard({
+  norma,
+}: {
+  norma: NormaItem;
+}): JSX.Element {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -69,13 +73,15 @@ export default function ResultCard({ norma }: { norma: Norma }): JSX.Element {
           {/* ---------- TOP SECTION : title & summary ---------- */}
           <div className='flex flex-col gap-2'>
             <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-              {norma.tituloSumario || norma.tituloResumido || 'Sin título'}
+              {norma.tituloSumarioFormateado ||
+                norma.tituloResumidoFormateado ||
+                'Sin título'}
             </h3>
 
-            {norma.textoResumido && (
+            {norma.textoResumidoFormateado && (
               <div className='relative h-24 overflow-hidden'>
                 <p className='text-sm text-muted-foreground line-clamp-5'>
-                  {norma.textoResumido}
+                  {norma.textoResumidoFormateado}
                 </p>
                 {/* fade */}
                 <div className='pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card via-card/80 to-transparent group-hover:opacity-0 transition-opacity' />

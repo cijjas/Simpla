@@ -6,31 +6,33 @@ import type {
   NormaDetalladaResumenDto,
 } from './dto';
 
-/**
- * App model: Norma item shown in a search result.
- */
 export type NormaItem = NormaItemDto & {
   esNumerada: boolean;
   nombreNorma: string;
   nroBoletin?: string;
   pagBoletin?: string;
+  copyTexto: string;
+  textoResumidoFormateado?: string;
+  tituloResumidoFormateado?: string;
+  tituloSumarioFormateado?: string;
 };
 
-/**
- * App model: Norma detallada con texto y resumen.
- */
 export type NormaDetallada = NormaDetalladaDto & {
   esNumerada: boolean;
   nombreNorma: string;
-  copyTextoNorma?: string;
+  copyTexto: string;
+  textoResumidoFormateado?: string;
+  tituloResumidoFormateado?: string;
+  tituloSumarioFormateado?: string;
 };
 
-/**
- * App model: Norma resumen sin texto (for linked references).
- */
 export type NormaDetalladaResumen = NormaDetalladaResumenDto & {
   esNumerada: boolean;
   nombreNorma: string;
+  copyTexto: string;
+  textoResumidoFormateado?: string;
+  tituloResumidoFormateado?: string;
+  tituloSumarioFormateado?: string;
 };
 
 export type ListadoNormas = {
