@@ -32,7 +32,8 @@ export async function generateMetadata(
   if (!norma) return { title: 'Norma no encontrada' };
 
   const title = norma.nombreNorma ?? `Norma #${Number(id)}`;
-  const summary = norma.tituloSumario ?? norma.tituloResumido ?? '';
+  const summary =
+    norma.tituloSumarioFormateado ?? norma.tituloResumidoFormateado ?? '';
 
   const ogImageUrl = `/api/og/norma?id=${Number(id)}`;
 

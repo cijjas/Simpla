@@ -26,7 +26,7 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   /* ───────── Copy ───────── */
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(norma?.copyTextoNorma || '');
+      await navigator.clipboard.writeText(norma?.copyTexto || '');
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
@@ -138,7 +138,9 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
     // Title
     pdf.setFont('Lora', 'normal').setFontSize(20);
     const titleLines = pdf.splitTextToSize(
-      norma.tituloSumario || norma.tituloResumido || 'Sin título',
+      norma.tituloSumarioFormateado ||
+        norma.tituloResumidoFormateado ||
+        'Sin título',
       maxWidth,
     );
     titleLines.forEach((line: string) => {
@@ -147,10 +149,10 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
     });
 
     // Resumen blockquote-style
-    if (norma.textoResumido) {
+    if (norma.textoResumidoFormateado) {
       y += 10;
 
-      const resumenText = `“${norma.textoResumido.trim()}”`;
+      const resumenText = `“${norma.textoResumidoFormateado.trim()}”`;
 
       // Adjusted width: same as maxWidth, minus only 6px padding on left
       const resumenLines = pdf.splitTextToSize(resumenText, 300);

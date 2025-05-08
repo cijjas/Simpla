@@ -13,24 +13,22 @@ export default function Hero() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className='mb-10'
       >
-        <Image
-          src='/images/logo_completo_light.png'
-          alt='SIMPLA logo claro'
-          width={300}
-          height={300}
-          className='mx-auto dark:hidden'
-          style={{ width: 'auto', height: 'auto' }}
-          priority
-        />
-        <Image
-          src='/images/logo_completo_dark.png'
-          alt='SIMPLA logo oscuro'
-          width={300}
-          height={300}
-          className='mx-auto hidden dark:block'
-          style={{ width: 'auto', height: 'auto' }}
-          priority
-        />
+        <div className='relative  h-[450px] mx-auto'>
+          <Image
+            src='/images/logo_completo_light.png'
+            alt='SIMPLA logo claro'
+            fill
+            className='object-contain dark:hidden'
+            priority
+          />
+          <Image
+            src='/images/logo_completo_dark.png'
+            alt='SIMPLA logo oscuro'
+            fill
+            className='object-contain hidden dark:block'
+            priority
+          />
+        </div>
       </motion.div>
 
       {/* Heading */}

@@ -1,19 +1,15 @@
-// src/app/api/infoleg/norma/[id]/route.ts
-import { NextResponse } from 'next/server';
-
-const BASE =
-  'https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = params;
+  const { id } = await params;
 
-  const query = new URL(req.url).searchParams;
+  const query = req.nextUrl.searchParams;
   const resumen = query.get('resumen') === 'true' ? '&resumen=true' : '';
 
-  const url = `${BASE}?id=${id}${resumen}`;
+  const url = `https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos?id=${id}${resumen}`;
   const res = await fetch(url, {
     headers: { 'Accept-Encoding': 'gzip' },
   });

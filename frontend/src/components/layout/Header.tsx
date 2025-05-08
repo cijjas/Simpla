@@ -23,6 +23,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import Logo from '@/components/icons/Logo';
+import Arrow from '../icons/Arrow';
+import SvgEstampa from '../icons/Estampa';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -39,12 +41,10 @@ export default function Header() {
           href='/'
           className='flex items-center gap-3 hover:opacity-80 transition'
         >
-          <Logo className='h-[1.375rem] w-auto text-navy-900 dark:text-white' />
-          {/* <Arrow className='w-10 h-auto text-black dark:text-white' /> */}
+          <SvgEstampa className='h-[2.3rem] w-auto' />
+          {/* <Arrow className='h-[2rem] w-auto text-navy-900 dark:text-white' /> */}
 
-          <span className='font-serif text-3xl font-bold text-navy-900 dark:text-white'>
-            SIMPLA
-          </span>
+          <span className='font-serif text-3xl font-bold'>SIMPLA</span>
         </Link>
 
         {/* Desktop nav */}
