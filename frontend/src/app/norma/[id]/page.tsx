@@ -1,21 +1,23 @@
-import { getNormaDetalle } from '@/lib/infoleg/api';
-import { NormaHeader } from '@/features/norma/NormaHeader';
-import { NormaBody } from '@/features/norma/NormaBody';
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
+import { getNormaDetallada, getNormaDetalladaResumen } from '@/lib/infoleg/api';
+import NormaHeader from '@/features/norma/NormaHeader';
+import { NormaBody } from '@/features/norma/NormaBody';
+import dynamic from 'next/dynamic';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
+
 export default async function NormaPage({ params }: Props) {
   const { id } = await params;
-  const norma = await getNormaDetalle(Number(id));
+  const norma = await getNormaDetallada(Number(id));
   if (!norma) notFound();
 
   return (
-    <section className='container mx-auto max-w-4xl py-10 space-y-10'>
+    <section className='container mx-auto max-w-5xl p-10 space-y-10'>
       <NormaHeader norma={norma} />
-      <NormaBody originalHtml={norma.textoNorma} />
+      <NormaBody originalHtml={norma.textoNorma || norma.textoNormaAct} />
     </section>
   );
 }
@@ -26,8 +28,7 @@ export async function generateMetadata(
   _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { id } = await params;
-
-  const norma = await getNormaDetalle(Number(id));
+  const norma = await getNormaDetalladaResumen(Number(id));
   if (!norma) return { title: 'Norma no encontrada' };
 
   const title = norma.nombreNorma ?? `Norma #${Number(id)}`;
@@ -42,7 +43,7 @@ export async function generateMetadata(
       title,
       description: summary,
       type: 'article',
-      url: `https://simplar.com.ar/norma/${Number(id)}`,
+      url: `https://www.simplar.com.ar/norma/${Number(id)}`,
       images: [{ url: ogImageUrl, width: 1200, height: 630 }],
     },
     twitter: {

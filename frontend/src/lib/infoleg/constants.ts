@@ -31,6 +31,39 @@ export const TIPOS_CON_NUMERO_Y_ANIO = new Set<string>([
   'Protocolo',
 ]);
 
+import { InfolegErrorCode } from './dto'; // Or from wherever your enum is
+
+export const infolegErrorMessages: Record<number, string> = {
+  [InfolegErrorCode.INTERNAL_ERROR]: 'Hubo un error interno en el servidor.',
+  [InfolegErrorCode.INVALID_PARAMS]: 'Los parámetros enviados no son válidos.',
+  [InfolegErrorCode.NOT_FOUND]: 'La norma solicitada no existe.',
+  [InfolegErrorCode.INVALID_PARAM]: 'Uno de los parámetros es inválido.',
+  [InfolegErrorCode.LIMIT_TOO_HIGH]: 'El límite solicitado es demasiado alto.',
+  [InfolegErrorCode.NUMBER_AND_YEAR_NOT_ALLOWED]:
+    'No se permite buscar por número y año juntos para este tipo de norma.',
+  [InfolegErrorCode.NON_NUMERIC_NUMBER]:
+    'El número de norma debe ser numérico.',
+  [InfolegErrorCode.INVALID_DATE_FROM]: 'La fecha "desde" es inválida.',
+  [InfolegErrorCode.INVALID_DATE_TO]: 'La fecha "hasta" es inválida.',
+  [InfolegErrorCode.NON_NUMERIC_YEAR]: 'El año debe ser numérico.',
+  [InfolegErrorCode.NON_NUMERIC_LIMIT]: 'El límite debe ser numérico.',
+  [InfolegErrorCode.NON_NUMERIC_OFFSET]: 'El offset debe ser numérico.',
+  [InfolegErrorCode.MISSING_DATE_TO]: 'Falta la fecha "hasta".',
+  [InfolegErrorCode.MISSING_DATE_FROM]: 'Falta la fecha "desde".',
+  [InfolegErrorCode.NO_VALID_PARAM]: 'No se proporcionaron parámetros válidos.',
+  [InfolegErrorCode.INVALID_LIMIT_OR_OFFSET]: 'Límite u offset inválido.',
+  [InfolegErrorCode.INVALID_DEPENDENCY]:
+    'La dependencia seleccionada no es válida.',
+  [InfolegErrorCode.SUMMARY_FETCH_ERROR]:
+    'Ocurrió un error al obtener el resumen de la norma.',
+  [InfolegErrorCode.INVALID_TYPE_NORMA]: 'El tipo de norma no es válido.',
+  [InfolegErrorCode.INVALID_RESOURCE_ID]: 'El recurso solicitado no existe.',
+  [InfolegErrorCode.NULL_PUBLICATION]:
+    'La fecha de publicación es obligatoria.',
+  [InfolegErrorCode.INVALID_PUBLICATION]:
+    'La fecha de publicación no es válida.',
+};
+
 export const TIPOS_HARDCODEADOS = [
   {
     detalle: 'Ley',

@@ -17,7 +17,7 @@ import ResultCard from './ResultCard';
 import ResultListItem from './ResultListItem';
 import { useTheme } from 'next-themes';
 import InitialSearchView from './InitialSearchView';
-import { Norma } from '@/lib/infoleg/types';
+import { Norma } from '@/lib/infoleg/domain';
 import SvgSearch from '@/components/icons/Search';
 
 interface Meta {
