@@ -21,7 +21,7 @@ export function NormaBody({ originalHtml = '' }: { originalHtml?: string }) {
 
   return (
     <div
-      className='prose max-w-none text-gray-700 dark:text-slate-300'
+      className='prose max-w-none text-gray-700 dark:text-slate-300 norma-html'
       dangerouslySetInnerHTML={{ __html: cleanHtml }}
     />
   );

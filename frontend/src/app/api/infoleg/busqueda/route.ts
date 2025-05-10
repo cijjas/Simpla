@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BASE =
-  'https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos';
+const BASE = `${process.env.INFOLEG_BASE_URL}/api/v2.0/nacionales/normativos`;
 
 function buildQuery(params: Record<string, unknown>) {
   return Object.entries(params)

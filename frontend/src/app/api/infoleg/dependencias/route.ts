@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const URL =
-  'https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0/nacionales/normativos/dependencias';
+const URL = `${process.env.INFOLEG_BASE_URL}/api/v2.0/nacionales/normativos/dependencias`;
 
 export async function GET() {
   const res = await fetch(URL, { headers: { 'Accept-Encoding': 'gzip' } });
