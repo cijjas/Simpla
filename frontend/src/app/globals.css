@@ -134,3 +134,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .norma-html img {
+    @apply mx-auto my-8 max-w-full h-auto rounded-md shadow-md;
+  }
+
+  .norma-html table {
+    @apply w-full my-8 border-collapse rounded-md shadow-sm overflow-hidden;
+  }
+
+  .norma-html table th,
+  .norma-html table td {
+    @apply border border-gray-200 px-4 py-3 text-left;
+  }
+
+  .norma-html table th {
+    @apply bg-slate-100 font-semibold;
+  }
+}
