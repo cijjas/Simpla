@@ -6,51 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { signIn } from 'next-auth/react';
-import router from 'next/router';
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'form'>) {
-  type SignupState = {
-    success?: boolean;
-    errors?: {
-      name?: string[];
-      email?: string[];
-      password?: string[];
-    };
-    values?: {
-      email?: string;
-      password?: string;
-      name?: string;
-    };
-  };
-
-  const [state, formAction, pending] = useActionState<SignupState, FormData>(
-    signup,
-    {
-      errors: {},
-      values: { name: '', email: '' },
-    },
-  );
-
-  useEffect(() => {
-    const autoLogin = async () => {
-      if (state.success && state.values?.email && state.values?.password) {
-        const result = await signIn('credentials', {
-          email: state.values.email,
-          password: state.values.password,
-        });
-        console.log('result', result);
-        if (result?.ok) {
-          router.push('/');
-        }
-      }
-    };
-
-    autoLogin();
-  }, [state, router]);
+  const [state, formAction, pending] = useActionState(signup, {
+    errors: {},
+    values: { name: '', email: '' },
+  });
 
   return (
     <form
