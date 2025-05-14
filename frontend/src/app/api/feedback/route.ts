@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     const response = await trySendEmail({
-      from: 'Feedback <noreply@resend.dev>',
+      from: `Feedback <${process.env.EMAIL_FROM!}>`,
       to: feedbackEmails,
       subject: `Nuevo feedback (${origin})`,
       text: message,

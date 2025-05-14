@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes';
 import { usePathname } from 'next/navigation';
 import { Menu, Sun, Moon, Laptop, Mail, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSession, signOut } from 'next-auth/react';
 
 import {
   Select,
@@ -22,14 +23,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import Logo from '@/components/icons/Logo';
-import Arrow from '../icons/Arrow';
 import SvgEstampa from '../icons/Estampa';
+import { Button } from '../ui/button';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  const { data: session, status } = useSession();
 
   useEffect(() => setMounted(true), []);
 
@@ -98,6 +99,25 @@ export default function Header() {
             </Select>
           ) : (
             <div className='w-36 h-10 rounded-md bg-muted opacity-50 animate-pulse' />
+          )}
+
+          {status === 'loading' && <span>Cargando…</span>}
+
+          {status === 'authenticated' && (
+            <>
+              <span className='text-sm text-muted-foreground'>
+                Sesión hasta: {new Date(session.expires).toLocaleString()}
+              </span>
+              <Button onClick={() => signOut({ callbackUrl: '/' })}>
+                Cerrar sesión
+              </Button>
+            </>
+          )}
+
+          {status === 'unauthenticated' && (
+            <Link href='/login'>
+              <Button>Iniciar sesión</Button>
+            </Link>
           )}
         </div>
 

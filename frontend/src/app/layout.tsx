@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/layout/Header';
+import AuthSessionProvider from '@/components/auth-session-provider';
 import { ThemeProvider } from 'next-themes';
-import { Footer } from '@/components/layout/Footer';
-import { FeedbackContact } from '@/features/feedback/FeedbackContact';
 import { Analytics } from '@vercel/analytics/react';
-import { Toaster } from '@/components/ui/sonner';
+import LayoutWrapper from '@/components/layout/LayoutWrapper';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -56,21 +54,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang='es' suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} antialiased min-h-screen flex flex-col`}
       >
-        <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-          <Header />
-          <main className='flex-1'>{children}</main>
-          <Footer />
-          <FeedbackContact />
-          <Toaster />
-        </ThemeProvider>
+        <AuthSessionProvider>
+          <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </ThemeProvider>
+        </AuthSessionProvider>
         <Analytics />
       </body>
     </html>
