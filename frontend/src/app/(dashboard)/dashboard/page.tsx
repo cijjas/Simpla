@@ -1,8 +1,5 @@
 // create a dashboard dummy page
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
   return (

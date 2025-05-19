@@ -70,6 +70,17 @@ export default function Header() {
           >
             Búsqueda
           </Link>
+          <Link
+            href='/chat'
+            className={cn(
+              'text-lg font-medium transition-colors',
+              pathname === '/chat' || pathname.startsWith('/chat')
+                ? 'font-bold '
+                : 'hover:opacity-70',
+            )}
+          >
+            SimpRAG
+          </Link>
         </nav>
 
         {/* Desktop controls */}

@@ -11,9 +11,18 @@ importers:
       '@auth/prisma-adapter':
         specifier: ^2.9.1
         version: 2.9.1(@prisma/client@6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3))(nodemailer@6.10.1)
+      '@google/generative-ai':
+        specifier: ^0.24.1
+        version: 0.24.1
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.0.1(react-hook-form@7.56.1(react@18.3.1))
+      '@huggingface/inference':
+        specifier: ^3.13.1
+        version: 3.13.1
+      '@pinecone-database/pinecone':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@prisma/client':
         specifier: ^6.7.0
         version: 6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3)
@@ -510,10 +519,25 @@ packages:
   '@floating-ui/utils@0.2.9':
     resolution: {integrity: sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg==}
 
+  '@google/generative-ai@0.24.1':
+    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}
+    engines: {node: '>=18.0.0'}
+
   '@hookform/resolvers@5.0.1':
     resolution: {integrity: sha512-u/+Jp83luQNx9AdyW2fIPGY6Y7NG68eN2ZW8FOJYL+M0i4s49+refdJdOp/A9n9HFQtQs3HIDHQvX3ZET2o7YA==}
     peerDependencies:
       react-hook-form: ^7.55.0
+
+  '@huggingface/inference@3.13.1':
+    resolution: {integrity: sha512-RIFaC295cL/0tco+HboS8abeApfn01/tWFgjYwLo6vRYGkuQBSzwgHuAdouOZu62UQYwrWA4Eyv1e+4zBxc+dQ==}
+    engines: {node: '>=18'}
+
+  '@huggingface/jinja@0.5.0':
+    resolution: {integrity: sha512-Ptc03/jGRiYRoi0bUYKZ14MkDslsBRT24oxmsvUlfYrvQMldrxCevhPnT+hfX8awKTT8/f/0ZBBWldoeAcMHdQ==}
+    engines: {node: '>=18'}
+
+  '@huggingface/tasks@0.19.5':
+    resolution: {integrity: sha512-WEwM/tZsRqw0TinTkQwqPsK5pdaGffAV6Nu6xxSTSZUsBvkDJxE9kTiMNSwvjeHvt9/MYAJKjZ+CMSo6Rugs4g==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -730,6 +754,10 @@ packages:
 
   '@panva/hkdf@1.2.1':
     resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
+
+  '@pinecone-database/pinecone@6.0.0':
+    resolution: {integrity: sha512-Qicqb5G7g01vMqm/gPdB8mW/6HmNb87NWz5M4TMtyLAMHxTjbnm8sgnUL2/eCyY1Th55oobjpM65exTatFMQvA==}
+    engines: {node: '>=18.0.0'}
 
   '@prisma/client@6.7.0':
     resolution: {integrity: sha512-+k61zZn1XHjbZul8q6TdQLpuI/cvyfil87zqK2zpreNIXyXtpUv3+H/oM69hcsFcZXaokHJIzPAt5Z8C8eK2QA==}
@@ -4126,10 +4154,21 @@ snapshots:
 
   '@floating-ui/utils@0.2.9': {}
 
+  '@google/generative-ai@0.24.1': {}
+
   '@hookform/resolvers@5.0.1(react-hook-form@7.56.1(react@18.3.1))':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.56.1(react@18.3.1)
+
+  '@huggingface/inference@3.13.1':
+    dependencies:
+      '@huggingface/jinja': 0.5.0
+      '@huggingface/tasks': 0.19.5
+
+  '@huggingface/jinja@0.5.0': {}
+
+  '@huggingface/tasks@0.19.5': {}
 
   '@humanfs/core@0.19.1': {}
 
@@ -4293,6 +4332,8 @@ snapshots:
   '@nolyfill/is-core-module@1.0.39': {}
 
   '@panva/hkdf@1.2.1': {}
+
+  '@pinecone-database/pinecone@6.0.0': {}
 
   '@prisma/client@6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3)':
     optionalDependencies:

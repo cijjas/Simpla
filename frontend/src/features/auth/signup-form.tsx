@@ -6,15 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'form'>) {
+  const router = useRouter();
+
   const [state, formAction, pending] = useActionState(signup, {
     errors: {},
-    values: { name: '', email: '' },
   });
+
+  // If redirect triggered from server action
+  useEffect(() => {
+    if ('redirect' in state && state.redirect) {
+      router.push(state.redirect);
+    }
+  }, [state, router]);
 
   return (
     <form
@@ -32,12 +41,7 @@ export function SignupForm({
       <div className='grid gap-4'>
         <div className='grid gap-2'>
           <Label htmlFor='name'>Nombre</Label>
-          <Input
-            id='name'
-            name='name'
-            placeholder='Juan Pérez'
-            defaultValue={state.values?.name ?? ''}
-          />
+          <Input id='name' name='name' placeholder='Juan Pérez' />
           {state.errors?.name && (
             <p className='text-sm text-destructive'>{state.errors.name}</p>
           )}
@@ -50,7 +54,6 @@ export function SignupForm({
             name='email'
             type='email'
             placeholder='m@example.com'
-            defaultValue={state.values?.email ?? ''}
           />
           {state.errors?.email && (
             <p className='text-sm text-destructive'>{state.errors.email}</p>

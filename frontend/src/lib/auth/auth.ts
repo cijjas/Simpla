@@ -47,11 +47,19 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         /* Fetch only what we need */
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          select: { id: true, email: true, name: true, hashedPassword: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            hashedPassword: true,
+            emailVerified: true,
+          },
         });
-        if (!user?.hashedPassword) return null;
+        if (!user?.emailVerified) return null;
+        if (!user.hashedPassword) return null;
 
         const ok = await bcrypt.compare(
           credentials.password,
@@ -72,17 +80,30 @@ export const authOptions: NextAuthOptions = {
 
   pages: {
     signIn: '/login',
-    error: '/login',
+    error: '/login', // <-- show errors on the same page
     verifyRequest: '/verify',
-    newUser: '/dashboard', // first login (OAuth or email)
+    newUser: '/dashboard',
   },
 
   callbacks: {
+    /* inject user.id you already had */
     async session({ session, token }) {
-      if (session.user && token?.sub) {
-        session.user.id = token.sub;
-      }
+      if (session.user && token?.sub) session.user.id = token.sub;
       return session;
+    },
+
+    /* Regular credentials sign-in should fail if e-mail not verified */
+    async signIn({ user, account, email }) {
+      if (account?.provider === 'credentials') {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        });
+        if (!dbUser?.emailVerified) {
+          // returning false stops login; NextAuth will put `?error=EmailNotVerified` on the URL
+          return false;
+        }
+      }
+      return true; // allow everything else (Google, magic link, …)
     },
   },
 

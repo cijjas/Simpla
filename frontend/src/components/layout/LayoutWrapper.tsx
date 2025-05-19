@@ -12,7 +12,14 @@ export default function LayoutWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideLayout = pathname === '/login' || pathname === '/signup'; // Extend with more paths if needed
+  const authRoutes = [
+    '/login',
+    '/signup',
+    '/forgot-password',
+    '/reset-password',
+    '/chat',
+  ];
+  const hideLayout = authRoutes.some(route => pathname.startsWith(route));
 
   return (
     <>
