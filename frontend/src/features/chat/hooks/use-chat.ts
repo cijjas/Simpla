@@ -9,7 +9,6 @@ export function useChat() {
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const toggleProvince = (province: string) => {
@@ -36,9 +35,11 @@ export function useChat() {
     setQuestion('');
     setIsLoading(true);
 
-    if (textareaRef.current) {
-      setTimeout(() => textareaRef.current?.focus(), 0);
-    }
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100); // small delay gives layout time to settle
+    });
 
     try {
       const res = await fetch('/api/chat', {
@@ -80,18 +81,6 @@ export function useChat() {
       setIsLoading(false);
     }
   };
-
-  // Handle scrolling to bottom when messages change
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector(
-        'div[style*="overflow: scroll hidden;"]',
-      );
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-  }, [messages]);
 
   // Handle typing animation for bot messages
   useEffect(() => {
@@ -156,7 +145,6 @@ export function useChat() {
     popoverOpen,
     setPopoverOpen,
     isLoading,
-    scrollAreaRef,
     textareaRef,
     toggleProvince,
     clearProvinces,

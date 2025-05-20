@@ -16,7 +16,7 @@ export function MessageItem({ message, formatTime }: MessageItemProps) {
       } px-3 sm:px-4`}
     >
       {isUser ? (
-        <div className='max-w-[85%] sm:max-w-[70%] md:max-w-[60%] bg-slate-700 text-white p-4 rounded-xl text-base leading-relaxed'>
+        <div className='max-w-[85%] sm:max-w-[70%] md:max-w-[60%] bg-slate-700 text-white px-4 py-2 rounded-3xl text-base leading-relaxed'>
           <div className='whitespace-pre-wrap'>
             {message.displayedText ?? message.text}
           </div>
@@ -26,9 +26,6 @@ export function MessageItem({ message, formatTime }: MessageItemProps) {
           <div className='flex items-center mb-2 gap-2 text-sm text-slate-500 dark:text-slate-400'>
             <SvgEstampa className='h-5 w-5' />
             <span className='font-semibold'>Simpla</span>
-            <span className='ml-auto text-xs'>
-              {formatTime(message.timestamp)}
-            </span>
           </div>
           <div className='whitespace-pre-wrap'>
             {message.displayedText ?? message.text}
