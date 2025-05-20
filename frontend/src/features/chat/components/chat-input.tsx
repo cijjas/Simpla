@@ -1,11 +1,23 @@
 'use client';
 
-import type { RefObject } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { useEffect, useRef, type RefObject } from 'react';
+import { Card, CardContent } from '@/components/ui/card'; // Assuming CardFooter is not directly used for this new layout
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { SendIcon, Loader2Icon } from 'lucide-react';
-import { ProvinceSelector } from './province-selector';
+import {
+  SendIcon,
+  Loader2Icon,
+  PlusCircle,
+  Search as SearchIconLucide,
+  Zap,
+  ImageIcon as ImageIconLucide,
+  MoreHorizontal,
+  Mic,
+  ArrowUp,
+  SearchIcon,
+  ImageIcon,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ChatInputProps {
   question: string;
@@ -13,12 +25,13 @@ interface ChatInputProps {
   send: () => void;
   isLoading: boolean;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
+  // Props for ProvinceSelector are kept in interface if ChatInput still manages their state
   selectedProvinces: string[];
   toggleProvince: (province: string) => void;
   clearProvinces: () => void;
   popoverOpen: boolean;
   setPopoverOpen: (open: boolean) => void;
-  hasMessages: boolean;
+  hasMessages: boolean; // Kept, assuming it might be used elsewhere or by parent
 }
 
 export function ChatInput({
@@ -27,72 +40,102 @@ export function ChatInput({
   send,
   isLoading,
   textareaRef,
-  selectedProvinces,
-  toggleProvince,
-  clearProvinces,
+  selectedProvinces, // These ProvinceSelector props are unused in this specific render
+  toggleProvince, // but kept in the interface for completeness if the component
+  clearProvinces, // still handles this logic.
   popoverOpen,
   setPopoverOpen,
   hasMessages,
 }: ChatInputProps) {
-  return (
-    <div
-      className={`absolute inset-x-0 ${
-        !hasMessages ? 'top-1/2 -translate-y-1/2' : 'bottom-0'
-      } transition-all duration-500 ease-in-out`}
-    >
-      <div className='max-w-3xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <Card className='mb-4'>
-          <CardContent className='py-0 px-4'>
-            <div className='relative flex items-end gap-2'>
-              <ProvinceSelector
-                selectedProvinces={selectedProvinces}
-                toggleProvince={toggleProvince}
-                clearProvinces={clearProvinces}
-                popoverOpen={popoverOpen}
-                setPopoverOpen={setPopoverOpen}
-              />
+  const containerRef = useRef<HTMLDivElement>(null);
 
-              <Textarea
-                ref={textareaRef}
-                value={question}
-                onChange={e => setQuestion(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
-                    e.preventDefault();
-                    send();
-                  }
-                }}
-                placeholder={
-                  !hasMessages
-                    ? 'Escribe tu consulta aquí...'
-                    : 'Escribe tu mensaje...'
-                }
-                className='flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[150px] sm:max-h-[200px] overflow-y-auto rounded-lg border-input bg-white dark:bg-slate-700/50 px-3 py-2.5 text-sm focus-visible:ring-slate-500'
-                rows={1}
-                disabled={isLoading}
-              />
-              <Button
-                onClick={send}
-                disabled={isLoading || !question.trim()}
-                size='icon'
-                className='flex-shrink-0 h-10 w-10 sm:h-11 sm:w-11 bg-slate-700 hover:bg-slate-800'
-                aria-label='Enviar mensaje'
-              >
-                {isLoading ? (
-                  <Loader2Icon className='h-4 w-4 sm:h-5 sm:w-5 animate-spin' />
-                ) : (
-                  <SendIcon className='h-4 w-4 sm:h-5 sm:w-5' />
-                )}
-              </Button>
+  // Auto-resize textarea height
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [question]);
+
+  return (
+    <motion.div
+      initial={false}
+      animate={{
+        position: 'absolute',
+        bottom: hasMessages ? '0rem' : 'auto',
+        top: hasMessages ? 'auto' : 'calc(50% - 80px)', // a bit below WelcomeScreen
+        left: 0,
+        right: 0,
+      }}
+      transition={{ duration: 0.4, ease: 'easeInOut' }}
+      className='z-20 w-full'
+    >
+      <div className='max-w-4xl mx-auto px-4 pointer-events-auto'>
+        <div className='max-w-4xl mx-auto pb-4 px-4'>
+          <div className='relative flex flex-col rounded-2xl border border-border bg-background shadow-sm dark:shadow-none'>
+            {/* Textarea */}
+            <div className='flex w-full items-end px-4 py-3'>
+              <div className='flex flex-col w-full'>
+                <textarea
+                  ref={textareaRef}
+                  value={question}
+                  onChange={e => setQuestion(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  placeholder='Pregunta algo...'
+                  rows={1}
+                  disabled={isLoading}
+                  className='
+                w-full resize-none overflow-hidden
+                bg-transparent border-none outline-none ring-0
+                text-foreground placeholder:text-muted-foreground
+                text-base leading-relaxed
+                max-h-[240px] min-h-[1.5rem]
+              '
+                />
+              </div>
             </div>
-          </CardContent>
-          <CardFooter className='px-4 py-2 text-center'>
-            <p className='text-xs text-muted-foreground w-full'>
-              Simpla puede cometer errores, revisa información importante.
-            </p>
-          </CardFooter>
-        </Card>
+
+            {/* Action Buttons */}
+            <div className='flex items-center justify-between px-4 pb-3 pt-1 gap-2 '>
+              <div className='flex items-center gap-2 overflow-x-auto'>
+                <Button variant='ghost' size='icon' className='w-8 h-8'>
+                  <PlusCircle size={18} />
+                </Button>
+              </div>
+
+              {/* Submit */}
+              <div className='ms-3 flex-shrink-0'>
+                <Button
+                  onClick={send}
+                  disabled={isLoading || !question.trim()}
+                  size='icon'
+                  className='h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90'
+                  aria-label='Enviar mensaje'
+                >
+                  {isLoading ? (
+                    <Loader2Icon className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <ArrowUp className='h-4 w-4' />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {hasMessages && (
+            <div className='text-center mt-3 px-4'>
+              <p className='text-xs text-muted-foreground'>
+                Simpla puede equivocarse, recomendamos verificar la información.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -14,29 +14,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import SvgEstampa from '../icons/Estampa';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
 import { ThemeToggle } from '../theme-toggle';
 
 export default function AppHeader() {
-  const { theme, setTheme } = useTheme();
   const { data: session } = useSession();
 
   return (
-    <header className='flex h-14 items-center gap-x-4 border-b bg-background px-4 md:px-6'>
-      {/* Logo / brand */}
-
+    <header className='flex h-14 items-center gap-x-4  bg-background px-4 md:px-6'>
       <Link
         href='/dashboard'
         className='flex items-center gap-3 hover:opacity-80 transition'
       >
         <SvgEstampa className='h-[1.8rem] w-auto' />
-
         <span className='font-serif text-xl font-bold'>SIMPLA</span>
       </Link>
 
