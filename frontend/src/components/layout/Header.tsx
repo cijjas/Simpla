@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import SvgEstampa from '../icons/Estampa';
 import { Button } from '../ui/button';
+import { ThemeToggle } from '../theme-toggle';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -70,47 +71,11 @@ export default function Header() {
           >
             Búsqueda
           </Link>
-          <Link
-            href='/chat'
-            className={cn(
-              'text-lg font-medium transition-colors',
-              pathname === '/chat' || pathname.startsWith('/chat')
-                ? 'font-bold '
-                : 'hover:opacity-70',
-            )}
-          >
-            SimpRAG
-          </Link>
         </nav>
 
         {/* Desktop controls */}
         <div className='hidden md:flex items-center space-x-4'>
-          {mounted ? (
-            <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger className='w-36'>
-                <SelectValue placeholder='Tema' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='light'>
-                  <div className='flex items-center gap-2'>
-                    <Sun className='h-4 w-4' /> Claro
-                  </div>
-                </SelectItem>
-                <SelectItem value='dark'>
-                  <div className='flex items-center gap-2'>
-                    <Moon className='h-4 w-4' /> Oscuro
-                  </div>
-                </SelectItem>
-                <SelectItem value='system'>
-                  <div className='flex items-center gap-2'>
-                    <Laptop className='h-4 w-4' /> Sistema
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className='w-36 h-10 rounded-md bg-muted opacity-50 animate-pulse' />
-          )}
+          <ThemeToggle />
 
           {status === 'loading' && <span>Cargando…</span>}
 
@@ -189,36 +154,7 @@ export default function Header() {
 
               {/* Sheet footer */}
               <div className='mt-auto flex flex-col gap-6 border-t px-6 py-6'>
-                {mounted ? (
-                  <Select
-                    value={mounted ? theme : 'system'}
-                    onValueChange={setTheme}
-                    disabled={!mounted}
-                  >
-                    <SelectTrigger className='w-36'>
-                      <SelectValue placeholder='Tema' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='light'>
-                        <div className='flex items-center gap-2'>
-                          <Sun className='h-4 w-4' /> Claro
-                        </div>
-                      </SelectItem>
-                      <SelectItem value='dark'>
-                        <div className='flex items-center gap-2'>
-                          <Moon className='h-4 w-4' /> Oscuro
-                        </div>
-                      </SelectItem>
-                      <SelectItem value='system'>
-                        <div className='flex items-center gap-2'>
-                          <Laptop className='h-4 w-4' /> Sistema
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className='w-full h-10 rounded-md bg-muted opacity-50 animate-pulse' />
-                )}
+                <ThemeToggle />
 
                 {/* Contact */}
                 <div className='flex items-center gap-6'>

@@ -1,25 +1,19 @@
+// app/layout.tsx
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import './globals.css';
+
 import AuthSessionProvider from '@/components/auth-session-provider';
 import { ThemeProvider } from 'next-themes';
 import { Analytics } from '@vercel/analytics/react';
-import LayoutWrapper from '@/components/layout/LayoutWrapper';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const loraSerif = Lora({
-  variable: '--font-lora',
-  subsets: ['latin'],
-});
-
+// ⟵ fonts
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
   subsets: ['latin'],
+  variable: '--font-geist-mono',
 });
+const loraSerif = Lora({ subsets: ['latin'], variable: '--font-lora' });
 
 export const metadata: Metadata = {
   title: 'Simpla',
@@ -60,11 +54,11 @@ export default function RootLayout({
   return (
     <html lang='es' suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} antialiased min-h-screen flex flex-col`}
+        className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} min-h-screen flex flex-col antialiased`}
       >
         <AuthSessionProvider>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-            <LayoutWrapper>{children}</LayoutWrapper>
+            {children}
           </ThemeProvider>
         </AuthSessionProvider>
         <Analytics />
