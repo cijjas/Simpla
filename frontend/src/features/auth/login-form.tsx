@@ -1,13 +1,31 @@
 'use client';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { SiGoogle } from 'react-icons/si';
 import { cn } from '@/lib/utils';
+
+const formSchema = z.object({
+  email: z.string().email({ message: 'Correo inválido' }),
+  password: z.string().min(1, { message: 'La contraseña es obligatoria' }),
+});
 
 export function LoginForm({
   className,
@@ -15,12 +33,19 @@ export function LoginForm({
 }: React.ComponentPropsWithoutRef<'form'>) {
   const router = useRouter();
   const search = useSearchParams();
-  const urlError = search.get('error'); // read error deposited by NextAuth
+  const urlError = search.get('error');
 
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  /* ------------ Display server‐side errors (e.g., EmailNotVerified) ------------- */
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
   useEffect(() => {
     if (urlError === 'CredentialsSignin')
       setFormError('Correo o contraseña incorrectos');
@@ -32,19 +57,13 @@ export function LoginForm({
       setFormError('Tenés que verificar tu correo antes de iniciar sesión.');
   }, [urlError]);
 
-  /* ---------------------- Credentials login handler ---------------------------- */
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setFormError(null);
     setLoading(true);
 
-    const email = (e.currentTarget.email as HTMLInputElement).value;
-    const password = (e.currentTarget.password as HTMLInputElement).value;
-
     const res = await signIn('credentials', {
-      email,
-      password,
-      redirect: false, // we handle navigation manually
+      ...values,
+      redirect: false,
     });
 
     setLoading(false);
@@ -52,72 +71,76 @@ export function LoginForm({
     if (res?.ok) {
       router.push('/dashboard');
     } else {
-      // signIn gives res.error = 'CredentialsSignin'
       setFormError('Correo o contraseña incorrectos');
     }
   }
 
-  /* ------------------------- Google login helper ------------------------------ */
   async function handleGoogle() {
     setFormError(null);
     setLoading(true);
-
-    const res = await signIn('google', {
-      callbackUrl: '/dashboard', // where to land after Google
-      redirect: false, // get result back instead of auto-redirect
-    });
-
-    setLoading(false);
-
-    if (res?.ok) {
-      router.push('/dashboard'); // cookie already set
-    } else {
-      // if user closed Google popup, res will be undefined
-      setFormError('No se pudo iniciar sesión con Google.');
-    }
+    await signIn('google', { callbackUrl: '/dashboard' });
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className={cn('flex flex-col gap-6', className)}
-      {...props}
-    >
-      {/* ——— Top copy ——— */}
-      <div className='flex flex-col items-center gap-2 text-center'>
+    <div className={cn('flex flex-col gap-6', className)}>
+      <div className='text-center'>
         <h1 className='text-2xl font-bold'>Iniciá sesión en tu cuenta</h1>
         <p className='text-sm text-muted-foreground'>
           Ingresá tu email para acceder
         </p>
       </div>
 
-      {/* ——— Form fields ——— */}
-      <div className='grid gap-6'>
-        <div className='grid gap-2'>
-          <Label htmlFor='email'>Correo electrónico</Label>
-          <Input id='email' type='email' placeholder='m@example.com' required />
-        </div>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className='space-y-6'
+          {...props}
+        >
+          <FormField
+            control={form.control}
+            name='email'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Correo electrónico</FormLabel>
+                <FormControl>
+                  <Input placeholder='m@example.com' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className='grid gap-2'>
-          <div className='flex items-center'>
-            <Label htmlFor='password'>Contraseña</Label>
-            <Link
-              href='/forgot-password'
-              className='ml-auto text-sm underline-offset-4 hover:underline'
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-          <Input id='password' type='password' required />
-        </div>
+          <FormField
+            control={form.control}
+            name='password'
+            render={({ field }) => (
+              <FormItem>
+                <div className='flex items-center justify-between'>
+                  <FormLabel>Contraseña</FormLabel>
+                  <Link
+                    href='/forgot-password'
+                    className='text-sm underline-offset-4 hover:underline'
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+                <FormControl>
+                  <Input type='password' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {formError && <p className='text-sm text-destructive'>{formError}</p>}
+          {formError && <p className='text-sm text-destructive'>{formError}</p>}
 
-        <Button type='submit' className='w-full' disabled={loading}>
-          {loading ? 'Ingresando…' : 'Iniciar sesión'}
-        </Button>
+          <Button type='submit' className='w-full' disabled={loading}>
+            {loading ? 'Ingresando…' : 'Iniciar sesión'}
+          </Button>
+        </form>
+      </Form>
 
-        {/* Divider */}
+      <div className='mt-6 flex flex-col gap-4'>
         <div className='relative text-center text-sm'>
           <span className='relative z-10 bg-background px-2 text-muted-foreground'>
             O continuá con
@@ -143,6 +166,6 @@ export function LoginForm({
           Registrate
         </Link>
       </div>
-    </form>
+    </div>
   );
 }
