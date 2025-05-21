@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { ListOrdered } from 'lucide-react';
-import { GraphCard } from './GraphCard';
+import { GraphCard } from './graph-card';
 
 // register needed chart.js elements once
 ChartJS.register(

@@ -7,37 +7,38 @@ import {
 
 export function Footer() {
   return (
-    <footer className='border-t py-6 text-sm text-muted-foreground'>
-      <div className='mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row'>
-        {/* Texto legal */}
-        <div className='text-center sm:text-left text-xs space-y-1'>
-          <div>
-            © {new Date().getFullYear()} Simpla. Todos los derechos reservados.
-          </div>
-          <div>
+    <footer className='border-t bg-background py-8 text-sm text-muted-foreground'>
+      <div className='mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 sm:flex-row sm:items-start'>
+        {/* Legal text */}
+        <div className='text-center sm:text-left space-y-1 text-xs'>
+          <p>
+            © {new Date().getFullYear()} <strong>Simpla</strong>. Todos los
+            derechos reservados.
+          </p>
+          <p>
             Parte del contenido proviene de{' '}
             <Link
               href='https://www.infoleg.gob.ar'
               target='_blank'
               rel='noopener noreferrer'
-              className='underline underline-offset-4'
+              className='underline underline-offset-4 hover:text-foreground transition-colors'
             >
               infoleg.gob.ar
             </Link>
-            , bajo{' '}
+            , bajo licencia{' '}
             <Link
               href='https://creativecommons.org/licenses/by/2.5/ar/'
               target='_blank'
               rel='noopener noreferrer'
-              className='underline underline-offset-4'
+              className='underline underline-offset-4 hover:text-foreground transition-colors'
             >
               CC BY 2.5 AR
             </Link>
             .
-          </div>
+          </p>
         </div>
 
-        {/* Contacto */}
+        {/* Contact icons */}
         <div className='flex items-center gap-4'>
           <Link
             href={`mailto:${CONTACT_EMAIL}`}
@@ -46,7 +47,6 @@ export function Footer() {
           >
             <Mail className='h-4 w-4' />
           </Link>
-
           <Link
             href={WHATSAPP_LINK}
             target='_blank'

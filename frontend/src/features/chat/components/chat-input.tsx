@@ -72,7 +72,7 @@ export function ChatInput({
     >
       <div className='max-w-4xl mx-auto px-4 pointer-events-auto'>
         <div className='max-w-4xl mx-auto pb-4 px-4'>
-          <div className='relative flex flex-col rounded-2xl border border-border bg-background shadow-sm dark:shadow-none'>
+          <div className='relative flex flex-col rounded-2xl border border-border bg-card shadow-sm dark:shadow-none'>
             {/* Textarea */}
             <div className='flex w-full items-end px-4 py-3'>
               <div className='flex flex-col w-full'>

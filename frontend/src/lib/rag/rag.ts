@@ -60,18 +60,18 @@ export async function ragAnswer(
   question: string,
   provinces: string[],
 ): Promise<string> {
-  // const contextChunks = await retrieve(question, provinces);
-  // const context = contextChunks.join('\n\n');
+  const contextChunks = await retrieve(question, provinces);
+  const context = contextChunks.join('\n\n');
 
-  // const prompt = PROMPT_TEMPLATE.replace('{question}', question.trim()).replace(
-  //   '{context}',
-  //   context || 'No hay información contextual disponible.',
-  // );
+  const prompt = PROMPT_TEMPLATE.replace('{question}', question.trim()).replace(
+    '{context}',
+    context || 'No hay información contextual disponible.',
+  );
 
-  // const result = await chatModel.generateContent(prompt);
-  // const text = result.response.text().trim();
+  const result = await chatModel.generateContent(prompt);
+  const text = result.response.text().trim();
 
-  const text = `No tengo información sobre esto .`;
+  // const text = `No tengo información sobre esto .`;
 
   return text;
 }

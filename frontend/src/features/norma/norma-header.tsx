@@ -10,7 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Progress } from '@/components/ui/progress';
-import { NormaActions } from './NormaActions';
+import { NormaActions } from './norma-actions';
 import { getNormaDetalladaResumen } from '@/lib/infoleg/api';
 import type {
   NormaDetallada,

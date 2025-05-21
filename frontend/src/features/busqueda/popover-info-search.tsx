@@ -7,7 +7,7 @@ import {
   PopoverContent,
 } from '@/components/ui/popover';
 
-export default function InfoSearch() {
+export default function PopoverInfoSearch() {
   return (
     <Popover>
       <PopoverTrigger asChild>

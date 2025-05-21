@@ -112,6 +112,15 @@ export const getNormas = async (
   return dtoToListadoNormas(dto);
 };
 
+export const getNormasPorFecha = async (
+  fecha: string,
+): Promise<ListadoNormas> => {
+  const res = await fetch(getApiUrl(`/api/infoleg/busqueda/fecha/${fecha}`));
+
+  const dto = await handle<ListadoNormasDto>(res);
+  return dtoToListadoNormas(dto);
+};
+
 export const getNormaDetallada = async (
   id: number,
 ): Promise<NormaDetallada> => {
@@ -126,4 +135,28 @@ export const getNormaDetalladaResumen = async (
   const res = await fetch(getApiUrl(`/api/infoleg/norma/${id}?resumen=true`));
   const dto = await handle<NormaDetalladaResumenDto>(res);
   return enrichResumen(dto);
+};
+
+export const getUltimasNNormas = async (n: number): Promise<NormaItem[]> => {
+  const results: NormaItem[] = [];
+  const maxLookbackDays = 7;
+
+  for (
+    let offset = 0;
+    offset < maxLookbackDays && results.length < n;
+    offset++
+  ) {
+    const date = new Date();
+    date.setDate(date.getDate() - offset);
+    const fecha = date.toISOString().split('T')[0];
+
+    try {
+      const list = await getNormasPorFecha(fecha);
+      results.push(...list.results);
+    } catch (err) {
+      console.warn(`Error fetching normas for ${fecha}:`, err);
+    }
+  }
+
+  return results.slice(0, n);
 };
