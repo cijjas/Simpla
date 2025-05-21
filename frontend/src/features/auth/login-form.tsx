@@ -69,7 +69,7 @@ export function LoginForm({
     setLoading(false);
 
     if (res?.ok) {
-      router.push('/dashboard');
+      router.push('/inicio');
     } else {
       setFormError('Correo o contraseña incorrectos');
     }
@@ -78,7 +78,7 @@ export function LoginForm({
   async function handleGoogle() {
     setFormError(null);
     setLoading(true);
-    await signIn('google', { callbackUrl: '/dashboard' });
+    await signIn('google', { callbackUrl: '/inicio' });
   }
 
   return (

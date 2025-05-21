@@ -7,9 +7,9 @@ export function WelcomeScreen() {
   return (
     <div className='flex items-center justify-center h-full'>
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 300 }}
         animate={{ opacity: 1, y: 250 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
         className='text-center flex flex-col items-center'
       >
         {/* <SvgEstampa className='h-24 w-24 mb-4 text-slate-600 dark:text-slate-400 flex-shrink-0' /> */}

@@ -47,7 +47,7 @@ import {
 } from '@/components/ui/command';
 import { Check, ChevronsUpDown, SearchIcon, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import InfoSearch from './InfoSearch';
+import PopoverInfoSearch from './popover-info-search';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 interface Props {
@@ -278,8 +278,8 @@ export default function SearchForm({
     <div className='sticky top-6'>
       <div className='bg-card rounded-2xl border p-6 shadow-sm'>
         <div className='mb-4 flex items-center justify-between'>
-          <h2 className='text-lg font-semibold'>Buscar Legislación</h2>
-          <InfoSearch />
+          <h2 className='text-lg font-semibold '>Buscar Legislación</h2>
+          <PopoverInfoSearch />
         </div>
 
         <Form {...form}>

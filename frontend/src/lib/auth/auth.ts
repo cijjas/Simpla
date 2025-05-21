@@ -82,7 +82,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
     error: '/login', // <-- show errors on the same page
     verifyRequest: '/verify',
-    newUser: '/dashboard',
+    newUser: '/inicio',
   },
 
   callbacks: {

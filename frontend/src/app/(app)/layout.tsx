@@ -1,9 +1,12 @@
-// app/(app)/layout.tsx
+import type React from 'react';
 import { redirect } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
-import AppSidebar from '@/components/layout/AppSidebar';
-import AppHeader from '@/components/layout/AppHeader';
 import { auth } from '@/lib/auth';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import AppSidebar from '@/components/layout/app-sidebar';
+import AppHeader from '@/components/layout/app-header';
+import { cookies } from 'next/headers';
+import { FeedbackContact } from '@/features/feedback/feedback-contact';
 
 export default async function AppLayout({
   children,
@@ -13,14 +16,22 @@ export default async function AppLayout({
   const session = await auth();
   if (!session) redirect('/login');
 
+  // Read the sidebar state from cookies
+  const cookieStore = cookies();
+  const sidebarState = (await cookieStore).get('sidebar_state');
+  const defaultOpen = sidebarState ? sidebarState.value === 'true' : true;
+
   return (
-    <div className='flex min-h-screen'>
+    <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />
-      <div className='flex flex-1 flex-col min-h-0'>
-        <AppHeader />
-        <main className='flex-1 p-0 min-h-0'>{children}</main>
+      <div className='flex-1 flex flex-col w-0 min-w-0 relative'>
+        <SidebarInset>
+          <AppHeader />
+          <main className='flex-1'>{children}</main>
+        </SidebarInset>
       </div>
       <Toaster />
-    </div>
+      <FeedbackContact />
+    </SidebarProvider>
   );
 }

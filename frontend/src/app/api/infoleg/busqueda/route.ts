@@ -18,5 +18,12 @@ export async function POST(req: Request) {
   const url = `${BASE}/${tipo}?${buildQuery(rest)}`;
   const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
 
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({
+      error: 'Respuesta no válida del servidor Infoleg',
+    }));
+    return NextResponse.json(err, { status: res.status });
+  }
+
   return NextResponse.json(await res.json());
 }

@@ -44,7 +44,7 @@ export async function signup(_: any, formData: FormData) {
       email,
       password,
     });
-    return { redirect: '/dashboard' };
+    return { redirect: '/inicio' };
   }
 
   const { raw, hash } = generateToken();

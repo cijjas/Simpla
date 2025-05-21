@@ -13,10 +13,10 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LayoutGrid, List, RotateCcw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import ResultCard from './ResultCard';
-import ResultListItem from './ResultListItem';
+import ResultCard from './norma-card';
+import ResultListItem from './norma-list-item';
 import { useTheme } from 'next-themes';
-import InitialSearchView from './InitialSearchView';
+import InitialSearchView from './initial-search-view';
 import SvgSearch from '@/components/icons/Search';
 import { NormaItem } from '@/lib/infoleg/types';
 
@@ -62,8 +62,6 @@ export default function Results({
   const isEmptyResults = !loading && meta !== null && results.length === 0;
   const currentPage = meta ? meta.offset : 1; // API is 1‑based
   const totalPages = meta ? Math.ceil(meta.count / meta.limit) : 0;
-  const { resolvedTheme } = useTheme();
-
   /* --------------------------------------------------------------------- *
    *  1. SKELETONS                                                          *
    * --------------------------------------------------------------------- */

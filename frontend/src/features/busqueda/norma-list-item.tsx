@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/tooltip';
 import { NormaItem } from '@/lib/infoleg/types';
 
-export default function ResultListItem({
+export default function NormaListItem({
   norma,
 }: {
   norma: NormaItem;
