@@ -41,15 +41,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import {
-  Check,
-  ChevronsUpDown,
-  SearchIcon,
-  Info,
-  X,
-  HelpCircle,
-  Plus,
-} from 'lucide-react';
+import { Check, ChevronsUpDown, SearchIcon, Info, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PopoverInfoSearch from './popover-info-search';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -349,11 +341,15 @@ function QueryBuilderDialog({
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant='ghost' size='sm' className='h-8 px-2 text-xs'>
-          Busqueda avanzada
+        <Button
+          variant='link'
+          className='p-0 h-auto text-xs leading-none  hover:underline no-underline'
+        >
+          Búsqueda avanzada
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[600px]'>
+
+      <DialogContent className='sm:max-w-[600px] max-w-[90vw] overflow-y-auto max-h-[90vh]'>
         <DialogHeader>
           <DialogTitle>Busqueda avanzada</DialogTitle>
         </DialogHeader>
@@ -362,7 +358,7 @@ function QueryBuilderDialog({
           {/* Query Builder UI */}
           <div className='space-y-2'>
             {queryTerms.map((term, index) => (
-              <div key={index} className='flex items-center gap-2'>
+              <div key={index} className='flex items-center gap-2 flex-wrap'>
                 {index > 0 && (
                   <Select
                     value={term.operator}
@@ -378,14 +374,14 @@ function QueryBuilderDialog({
                     </SelectContent>
                   </Select>
                 )}
-                <div className='flex-1 bg-muted px-3 py-1 rounded-md text-sm'>
+                <div className='flex-1 min-w-[150px] bg-muted px-3 py-1 rounded-md text-sm break-words'>
                   {term.term}
                 </div>
                 <Button
                   type='button'
                   variant='ghost'
                   size='icon'
-                  className='h-8 w-8'
+                  className='h-8 w-8 flex-shrink-0'
                   onClick={() => removeTerm(index)}
                 >
                   <X className='h-4 w-4' />
@@ -395,8 +391,8 @@ function QueryBuilderDialog({
           </div>
 
           {/* Add new term */}
-          <div className='flex items-center gap-2'>
-            <div className='flex-1'>
+          <div className='flex items-center gap-2 flex-wrap'>
+            <div className='flex-1 min-w-[200px]'>
               <Input
                 value={currentTerm}
                 onChange={e => setCurrentTerm(e.target.value)}
@@ -406,8 +402,8 @@ function QueryBuilderDialog({
             </div>
             <Button
               type='button'
-              variant='secondary'
-              size='sm'
+              variant='default'
+              className='flex-shrink-0'
               onClick={addQueryTerm}
               disabled={!currentTerm.trim()}
             >
@@ -745,10 +741,10 @@ export default function SearchForm({
   // UI
   // ------------------------------------------------------------------
   return (
-    <div className='sticky top-6 '>
-      <div className='bg-card rounded-2xl border p-6 shadow-sm'>
-        <div className='mb-4 flex items-center justify-between'>
-          <h2 className='text-lg font-semibold '>Buscar Legislación</h2>
+    <div className='w-full'>
+      <div className='bg-card rounded-2xl border p-4 sm:p-6 shadow-sm'>
+        <div className='mb-4 flex items-center justify-between flex-wrap gap-2'>
+          <h2 className='text-lg font-semibold'>Buscar Legislación</h2>
           <PopoverInfoSearch />
         </div>
 
@@ -820,9 +816,11 @@ export default function SearchForm({
               )}
             />
 
-            <div className='flex gap-4'>
+            <div className='flex flex-col sm:flex-row gap-4'>
               {/* Número (3/5) */}
-              <div className={watchTipo === 'leyes' ? 'w-full' : 'w-3/5'}>
+              <div
+                className={watchTipo === 'leyes' ? 'w-full' : 'sm:w-3/5 w-full'}
+              >
                 <FormField
                   control={form.control}
                   name='numero'
@@ -850,7 +848,7 @@ export default function SearchForm({
 
               {/* Sanción (2/5) – hide when tipo is "leyes" */}
               {watchTipo !== 'leyes' && (
-                <div className='w-2/5'>
+                <div className='sm:w-2/5 w-full'>
                   <FormField
                     control={form.control}
                     name='sancion'
@@ -891,7 +889,7 @@ export default function SearchForm({
               name='texto'
               render={({ field }) => (
                 <FormItem>
-                  <div className='flex items-center justify-between mb-1'>
+                  <div className='flex items-center justify-between mb-1 flex-wrap gap-2'>
                     <FormLabel className='flex items-center gap-1'>
                       Texto
                       <Popover>
@@ -899,9 +897,9 @@ export default function SearchForm({
                           <Info className='h-4 w-4 text-muted-foreground cursor-pointer' />
                         </PopoverTrigger>
                         <PopoverContent
-                          side='right'
+                          side='top'
                           align='start'
-                          className='bg-gray-900 text-white border border-card shadow-md rounded-md p-3 max-w-xs text-sm'
+                          className='bg-gray-900 text-white border border-card shadow-md rounded-md p-3 max-w-xs text-sm z-50'
                         >
                           <div>
                             <strong className='block mb-2'>
@@ -941,9 +939,11 @@ export default function SearchForm({
 
                   <FormControl>
                     <Textarea
+                      maxLength={500}
                       id='texto-area'
                       placeholder='Ej: servicios de radio'
-                      rows={2}
+                      rows={1}
+                      className='max-h-[20em] overflow-y-auto'
                       {...field}
                     />
                   </FormControl>
@@ -992,7 +992,7 @@ export default function SearchForm({
                       </PopoverTrigger>
 
                       <PopoverContent
-                        className='min-w-[var(--radix-popover-trigger-width)] p-0 overflow-y-auto'
+                        className='min-w-[var(--radix-popover-trigger-width)] p-0 overflow-y-auto max-w-[90vw]'
                         align='start'
                       >
                         <Command className='max-h-[300px]'>
@@ -1080,13 +1080,18 @@ export default function SearchForm({
             />
 
             {/* Botones */}
-            <div className='flex gap-2'>
-              <Button type='button' variant='outline' onClick={handleReset}>
+            <div className='flex gap-2 flex-wrap  pt-3 mt-3'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={handleReset}
+                className='flex-shrink-0 sm:w-auto w-full'
+              >
                 Limpiar
               </Button>
               <Button
                 type='submit'
-                className='flex-1 flex items-center justify-center'
+                className='flex-1 flex items-center justify-center min-w-[120px]'
                 disabled={loading}
               >
                 {loading ? (
