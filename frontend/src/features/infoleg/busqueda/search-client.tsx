@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import SearchForm from './search-form';
 import Results from './results';
-import { NormaItem } from '../utils/types';
+import type { NormaItem } from '../utils/types';
 import { getNormas } from '../utils/api';
-import { SearchParamsDto } from '../utils/dto';
+import type { SearchParamsDto } from '../utils/dto';
 
 /**
  * --------------------------------------------------------------------------
@@ -21,7 +20,7 @@ export default function SearchClient() {
   const searchParams = useSearchParams();
 
   /* ---------------------------------------------------------------------- */
-  /*  UI STATE                                                               */
+  /*  UI STATE                                                               */
   /* ---------------------------------------------------------------------- */
   const [results, setResults] = useState<NormaItem[]>([]);
   const [meta, setMeta] = useState<{
@@ -47,7 +46,7 @@ export default function SearchClient() {
   };
 
   /* ---------------------------------------------------------------------- */
-  /*  ONLY call the API when “real” params change                            */
+  /*  ONLY call the API when "real" params change                            */
   /* ---------------------------------------------------------------------- */
   const prevKey = useRef<string>('');
 
@@ -74,7 +73,7 @@ export default function SearchClient() {
       .join('&');
 
   /* ---------------------------------------------------------------------- */
-  /*  Data fetcher                                                           */
+  /*  Data fetcher                                                           */
   /* ---------------------------------------------------------------------- */
   const doSearch = async (params: Record<string, unknown>) => {
     setLoading(true);
@@ -91,10 +90,10 @@ export default function SearchClient() {
 
         parsedAnios = isTwoDigit
           ? [1800, 1900, 2000]
-              .map(base => base + parseInt(y, 10))
+              .map(base => base + Number.parseInt(y, 10))
               .filter(year => year <= currentYear)
           : isFourDigit
-          ? [parseInt(y, 10)].filter(year => year <= currentYear)
+          ? [Number.parseInt(y, 10)].filter(year => year <= currentYear)
           : [];
       }
 
@@ -168,7 +167,7 @@ export default function SearchClient() {
   if (typeof initialValues.sancion === 'string') {
     const years = initialValues.sancion
       .split(',')
-      .map(y => parseInt(y.trim(), 10))
+      .map(y => Number.parseInt(y.trim(), 10))
       .filter(y => !isNaN(y));
 
     if (years.length > 1) {
@@ -187,32 +186,31 @@ export default function SearchClient() {
   /*  RENDER                                                                 */
   /* ---------------------------------------------------------------------- */
   return (
-    <div
-      className={cn(
-        'container mx-auto',
-        'px-4 py-4',
-        'grid grid-cols-1 gap-6  md:grid-cols-3',
-      )}
-    >
-      <aside className='md:col-span-1'>
-        <SearchForm
-          onSearch={handleSearch}
-          loading={loading}
-          initialValues={initialValues}
-          onReset={handleReset}
-        />
-      </aside>
+    <div className='w-full max-w-[1500px] mx-auto px-4 py-4'>
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+        <aside className='lg:col-span-1 w-full'>
+          <div className='sticky top-6'>
+            <SearchForm
+              onSearch={handleSearch}
+              loading={loading}
+              initialValues={initialValues}
+              onReset={handleReset}
+            />
+          </div>
+        </aside>
 
-      <main className='md:col-span-2'>
-        <Results
-          results={results}
-          meta={meta}
-          view={view}
-          onViewChange={handleViewChange}
-          onPageChange={goToPage}
-          loading={loading}
-        />
-      </main>
+        <main className='lg:col-span-2 w-full'>
+          <Results
+            results={results}
+            meta={meta}
+            view={view}
+            onViewChange={handleViewChange}
+            onPageChange={goToPage}
+            loading={loading}
+            onReset={handleReset}
+          />
+        </main>
+      </div>
     </div>
   );
 }

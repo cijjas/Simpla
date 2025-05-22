@@ -15,10 +15,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ResultCard from './norma-card';
 import ResultListItem from './norma-list-item';
-import { useTheme } from 'next-themes';
 import InitialSearchView from './initial-search-view';
 import SvgSearch from '@/components/icons/Search';
-import { NormaItem } from '../utils/types';
+import type { NormaItem } from '../utils/types';
 
 interface Meta {
   count: number;
@@ -39,7 +38,7 @@ interface ResultsProps {
 /**
  * ------------------------------------------------------------------------
  *  RESULTS COMPONENT
- *  – Purely presentational (no URL / network work)
+ *  – Purely presentational (no URL / network work)
  * ------------------------------------------------------------------------
  */
 export default function Results({
@@ -69,7 +68,7 @@ export default function Results({
     if (view === 'grid') {
       return (
         <section
-          className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+          className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
           style={{
             WebkitMaskImage:
               'linear-gradient(to bottom, black 70%, transparent 100%)',
@@ -84,7 +83,7 @@ export default function Results({
               key={i}
               className='flex h-full flex-col bg-card rounded-xl animate-pulse'
             >
-              <CardContent className='flex grow flex-col gap-3'>
+              <CardContent className='flex grow flex-col gap-3 p-4'>
                 <div className='h-36 w-full bg-muted rounded-lg mt-auto' />
                 <div className='flex-1' />
                 <div className='h-7 w-3/4 mb-2 bg-muted rounded' />
@@ -137,16 +136,16 @@ export default function Results({
    *  2. EMPTY & FIRST‑TIME SCREENS                                         *
    * --------------------------------------------------------------------- */
   if (isInitial) {
-    return <InitialSearchView></InitialSearchView>;
+    return <InitialSearchView />;
   }
 
   if (isEmptyResults) {
     return (
       <section className='w-full flex flex-col items-center justify-center gap-6 px-4 py-12 text-center'>
         <div className='max-w-md mx-auto'>
-          <SvgSearch className='w-[300px] h-[300px] text-black dark:text-white' />
+          <SvgSearch className='w-[200px] h-[200px] sm:w-[300px] sm:h-[300px] text-slate-600 dark:text-slate-300' />
         </div>
-        <h2 className='text-2xl font-semibold tracking-tight'>
+        <h2 className='text-xl sm:text-2xl font-semibold tracking-tight'>
           No encontramos resultados
         </h2>
         <p className='text-sm text-muted-foreground max-w-md'>
@@ -164,18 +163,13 @@ export default function Results({
   }
 
   /* --------------------------------------------------------------------- *
-   *  3. CARD + LIST RENDERERS (unchanged)                                  *
-   * --------------------------------------------------------------------- */
-  /* in‑place, omitted for brevity – identical to your last version */
-
-  /* --------------------------------------------------------------------- *
    *  4. PAGINATION                                                         *
    * --------------------------------------------------------------------- */
   const renderPagination = () => {
     if (totalPages <= 1) return null;
     return (
       <Pagination className='mt-4'>
-        <PaginationContent>
+        <PaginationContent className='flex-wrap'>
           <PaginationItem>
             <PaginationPrevious
               href='#'
@@ -263,12 +257,12 @@ export default function Results({
   };
 
   /* --------------------------------------------------------------------- *
-   *  5. MAIN VIEW                                                          *
+   *  5. MAIN VIEW                                                         *
    * --------------------------------------------------------------------- */
   return (
     <section className='flex flex-col gap-4'>
-      {/* top bar */}
-      <header className='flex items-center justify-between'>
+      {/* top bar */}
+      <header className='flex items-center justify-between flex-wrap gap-2'>
         {meta && (
           <p className='text-sm text-muted-foreground'>
             Mostrando {results.length} de {meta.count} resultados
@@ -292,7 +286,7 @@ export default function Results({
       <div
         className={
           view === 'grid'
-            ? 'grid auto-rows-[1fr] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            ? 'grid auto-rows-[1fr] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
             : 'space-y-4'
         }
       >
