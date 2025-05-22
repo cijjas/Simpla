@@ -13,8 +13,10 @@ export default function ChatPage() {
     setQuestion,
     messages,
     selectedProvinces,
-    popoverOpen,
-    setPopoverOpen,
+    // popoverOpen, // Old
+    // setPopoverOpen, // Old
+    dialogOpen, // New
+    setDialogOpen, // New
     isLoading,
     textareaRef,
     toggleProvince,
@@ -25,7 +27,6 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -36,10 +37,9 @@ export default function ChatPage() {
 
   return (
     <div className='relative h-full w-full overflow-hidden'>
-      {/* Messages behind (scrollable) */}
       <div className='absolute inset-0 overflow-y-auto z-0'>
         {hasMessages && (
-          <div className='space-y-6 pt-6 pb-[300px] max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='space-y-6 pt-6 pb-[300px] max-w-4xl mx-auto sm:px-6 lg:px-8'>
             {messages.map((msg, index) => (
               <MessageItem key={index} message={msg} formatTime={formatTime} />
             ))}
@@ -51,14 +51,6 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* WelcomeScreen - stacked above input */}
-      {!hasMessages && (
-        <div className='absolute top-0 left-0 right-0 z-10 flex flex-col items-center px-4 pt-20'>
-          <WelcomeScreen />
-        </div>
-      )}
-
-      {/* ChatInput - centered at first, animates down */}
       <ChatInput
         question={question}
         setQuestion={setQuestion}
@@ -68,8 +60,10 @@ export default function ChatPage() {
         selectedProvinces={selectedProvinces}
         toggleProvince={toggleProvince}
         clearProvinces={clearProvinces}
-        popoverOpen={popoverOpen}
-        setPopoverOpen={setPopoverOpen}
+        // popoverOpen={popoverOpen} // Old
+        // setPopoverOpen={setPopoverOpen} // Old
+        dialogOpen={dialogOpen} // New
+        setDialogOpen={setDialogOpen} // New
         hasMessages={hasMessages}
       />
     </div>

@@ -1,4 +1,4 @@
-import { formatDatePretty } from '../utils';
+import { formatDatePretty } from '@/lib/utils';
 import { TIPOS_CON_NUMERO, TIPOS_CON_NUMERO_Y_ANIO } from './constants';
 import {
   IdNormaDto,

@@ -18,7 +18,7 @@ import ResultListItem from './norma-list-item';
 import { useTheme } from 'next-themes';
 import InitialSearchView from './initial-search-view';
 import SvgSearch from '@/components/icons/Search';
-import { NormaItem } from '@/lib/infoleg/types';
+import { NormaItem } from '../utils/types';
 
 interface Meta {
   count: number;

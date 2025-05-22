@@ -1,4 +1,3 @@
-// lib/definitions.ts
 import { z } from 'zod';
 
 export const SignupFormSchema = z.object({

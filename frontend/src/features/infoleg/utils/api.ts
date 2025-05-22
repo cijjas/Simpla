@@ -152,9 +152,14 @@ export const getUltimasNNormas = async (n: number): Promise<NormaItem[]> => {
 
     try {
       const list = await getNormasPorFecha(fecha);
-      results.push(...list.results);
+
+      if (list?.results && Array.isArray(list.results)) {
+        results.push(...list.results);
+      } else {
+        console.warn(`Normas inválidas para ${fecha}:`, list);
+      }
     } catch (err) {
-      console.warn(`Error fetching normas for ${fecha}:`, err);
+      console.warn(`Error fetching normas para ${fecha}:`, err);
     }
   }
 

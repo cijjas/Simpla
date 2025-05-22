@@ -1,5 +1,5 @@
-import { getNormaDetalladaResumen } from '@/lib/infoleg/api';
-import { NormaDetalladaResumen } from '@/lib/infoleg/types';
+import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
+import { NormaDetalladaResumen } from '@/features/infoleg/utils/types';
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';

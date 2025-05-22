@@ -19,18 +19,11 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { ThemeToggle } from '../theme-toggle';
+import { ThemeToggle } from '../ui/theme-toggle';
 import SvgEstampa from '../icons/Estampa';
 import React from 'react';
 import { Separator } from '../ui/separator';
-
-const segmentLabelMap: Record<string, string> = {
-  dashboard: 'Dashboard',
-  busqueda: 'Búsqueda',
-  norma: 'Norma',
-  chat: 'Chat',
-  settings: 'Configuración',
-};
+import { FeedbackButton } from '@/features/feedback/components/feedback-button';
 
 function renderBreadcrumb(pathname: string) {
   const segments = pathname.split('/').filter(Boolean);
@@ -58,6 +51,7 @@ function renderBreadcrumb(pathname: string) {
     busqueda: 'Búsqueda',
     norma: 'Norma',
     chat: 'Chat',
+    carpetas: 'Carpetas',
     settings: 'Configuración',
   };
 
@@ -117,8 +111,9 @@ export default function AppHeader() {
 
       {/* User actions */}
       <div className='ml-auto flex items-center gap-2'>
-        <ThemeToggle />
+        <FeedbackButton />
 
+        <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className='h-8 w-8 cursor-pointer'>

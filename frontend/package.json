@@ -11,6 +11,8 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
     "@google/generative-ai": "^0.24.1",
+    "@headless-tree/core": "^1.0.1",
+    "@headless-tree/react": "^1.0.1",
     "@hookform/resolvers": "^5.0.1",
     "@huggingface/inference": "^3.13.1",
     "@pinecone-database/pinecone": "^6.0.0",

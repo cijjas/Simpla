@@ -6,18 +6,18 @@ import { Search, FileText, CheckCircle } from 'lucide-react';
 const steps = [
   {
     icon: Search,
-    title: 'Busca',
-    description: 'Escribí el tema legal o norma que querés entender.',
+    title: 'Buscá',
+    description: 'Escribí el tema o la norma que querés consultar.',
   },
   {
     icon: FileText,
-    title: 'Explora',
-    description: 'Leé documentos simplificados y explicaciones claras.',
+    title: 'Explorá',
+    description: 'Leé versiones simplificadas con explicaciones claras.',
   },
   {
     icon: CheckCircle,
     title: 'Preguntá',
-    description: 'Usá AI para entender conceptos legales complejos.',
+    description: 'Usá la inteligencia artificial para entender mejor lo legal.',
   },
 ];
 
@@ -32,11 +32,11 @@ export default function HowItWorksSection() {
         className='text-center mb-16'
       >
         <h2 className='text-4xl font-bold mb-4 font-serif tracking-tight'>
-          Cómo Funciona
+          Cómo funciona
         </h2>
         <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-          Un proceso simple para acceder a información legal de forma clara y
-          eficiente.
+          Un proceso simple para acceder a información legal de manera clara y
+          sin vueltas.
         </p>
       </motion.div>
 

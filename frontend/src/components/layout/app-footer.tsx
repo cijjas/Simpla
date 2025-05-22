@@ -3,7 +3,7 @@ import { Mail, MessageCircle } from 'lucide-react';
 import {
   CONTACT_EMAIL,
   WHATSAPP_LINK,
-} from '@/features/feedback/contact.config';
+} from '@/features/feedback/utils/contact.config';
 
 export function AppFooter() {
   return (

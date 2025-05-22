@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
-import { generateToken, sendVerificationEmail } from '@/lib/auth/email';
+import {
+  generateToken,
+  sendVerificationEmail,
+} from '@/features/auth/utils/email';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {

@@ -4,10 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import SearchForm from './search-form';
-import { getNormas } from '@/lib/infoleg/api';
-import { SearchParamsDto } from '@/lib/infoleg/dto';
-import { ListadoNormas, NormaItem } from '@/lib/infoleg/types';
 import Results from './results';
+import { NormaItem } from '../utils/types';
+import { getNormas } from '../utils/api';
+import { SearchParamsDto } from '../utils/dto';
 
 /**
  * --------------------------------------------------------------------------
@@ -190,8 +190,8 @@ export default function SearchClient() {
     <div
       className={cn(
         'container mx-auto',
-        'px-8',
-        'grid grid-cols-1 gap-6 py-6 md:grid-cols-3',
+        'px-4 py-4',
+        'grid grid-cols-1 gap-6  md:grid-cols-3',
       )}
     >
       <aside className='md:col-span-1'>

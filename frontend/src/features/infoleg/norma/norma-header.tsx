@@ -11,12 +11,10 @@ import {
 } from '@/components/ui/accordion';
 import { Progress } from '@/components/ui/progress';
 import { NormaActions } from './norma-actions';
-import { getNormaDetalladaResumen } from '@/lib/infoleg/api';
-import type {
-  NormaDetallada,
-  NormaDetalladaResumen,
-} from '@/lib/infoleg/types';
+
 import { formatDatePretty, formatDateSlash } from '@/lib/utils';
+import { NormaDetallada, NormaDetalladaResumen } from '../utils/types';
+import { getNormaDetalladaResumen } from '../utils/api';
 
 type Props = { norma: NormaDetallada };
 

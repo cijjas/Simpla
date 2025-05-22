@@ -13,27 +13,27 @@ import {
 const features = [
   {
     icon: FileText,
-    title: 'Documentos Simplificados',
+    title: 'Documentos Claros',
     description:
-      'Traducimos documentos legales complejos a un lenguaje claro y accesible.',
+      'Traducimos normas y textos legales a un lenguaje simple y fácil de entender.',
   },
   {
     icon: Search,
     title: 'Búsqueda Inteligente',
     description:
-      'Encuentra rápidamente la información legal que necesitas con nuestra búsqueda avanzada.',
+      'Encontrá la información legal que necesitás en segundos con nuestro buscador avanzado.',
   },
   {
     icon: Shield,
     title: 'Información Confiable',
     description:
-      'Contenido verificado por expertos legales para garantizar precisión y confiabilidad.',
+      'Todo el contenido está verificado por especialistas para asegurar precisión y confianza.',
   },
   {
     icon: Clock,
-    title: 'Ahorra Tiempo',
+    title: 'Ahorro de Tiempo',
     description:
-      'Accede a resúmenes concisos de leyes y normativas sin tener que leer documentos extensos.',
+      'Accedé a resúmenes breves sin tener que leer documentos largos o complejos.',
   },
 ];
 
@@ -54,7 +54,7 @@ const item = {
 
 export default function FeaturesSection() {
   return (
-    <section className='py-20 relative'>
+    <section className='py-20 px-8 relative'>
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -63,11 +63,11 @@ export default function FeaturesSection() {
         className='text-center mb-16'
       >
         <h2 className='text-4xl font-bold mb-4 font-serif tracking-tight'>
-          Nuestros Servicios
+          Qué te ofrecemos
         </h2>
         <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-          Simplificamos el acceso a la información legal para que puedas tomar
-          decisiones informadas.
+          Hacemos que acceder a la información legal sea simple, rápido y útil
+          para que puedas tomar decisiones con confianza.
         </p>
       </motion.div>
 

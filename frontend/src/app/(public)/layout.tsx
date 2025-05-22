@@ -1,9 +1,9 @@
 // app/(public)/layout.tsx
 import Header from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { FeedbackContact } from '@/features/feedback/feedback-contact';
+import { FeedbackFloater } from '@/features/feedback/components/feedback-floater';
 import { Toaster } from '@/components/ui/sonner';
-import { auth } from '@/lib/auth';
+import { auth } from '@/features/auth/utils';
 import { redirect } from 'next/navigation';
 
 export default async function PublicLayout({
@@ -19,7 +19,7 @@ export default async function PublicLayout({
       <Header />
       <main className='flex-1'>{children}</main>
       <Footer />
-      <FeedbackContact />
+      <FeedbackFloater />
       <Toaster />
     </>
   );
