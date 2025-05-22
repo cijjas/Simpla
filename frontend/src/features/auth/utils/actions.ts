@@ -2,11 +2,10 @@
 
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { SignupFormSchema } from '@/lib/auth/definitions';
+import { SignupFormSchema } from '@/features/auth/utils/validation';
 import { generateToken, sendVerificationEmail } from './email';
 import { signIn } from 'next-auth/react';
 
-// lib/auth/actions.ts
 export async function signup(_: any, formData: FormData) {
   const parsed = SignupFormSchema.safeParse({
     name: formData.get('name'),

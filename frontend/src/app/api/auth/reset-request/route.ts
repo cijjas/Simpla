@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
-import { generateToken, sendResetPasswordEmail } from '@/lib/auth/email';
+import {
+  generateToken,
+  sendResetPasswordEmail,
+} from '@/features/auth/utils/email';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {

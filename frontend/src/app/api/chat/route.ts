@@ -1,5 +1,5 @@
+import { ragAnswer } from '@/features/chat/utils/rag';
 import { NextResponse } from 'next/server';
-import { ragAnswer } from '@/lib/rag/rag';
 import { z } from 'zod';
 
 const Body = z.object({

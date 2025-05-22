@@ -10,24 +10,24 @@ import {
 
 const faqs = [
   {
-    question: '¿Cómo puedo empezar a usar la plataforma?',
+    question: '¿Cómo empiezo a usar la plataforma?',
     answer:
-      'Simplemente regístrate con tu correo electrónico y contraseña. Puedes comenzar a usar nuestras funciones básicas de forma gratuita inmediatamente después de confirmar tu cuenta.',
+      'Registrate con tu correo y una contraseña. Una vez que confirmás tu cuenta, podés empezar a usar las funciones sin costo.',
   },
   {
     question: '¿La información legal está actualizada?',
     answer:
-      'Sí, nuestro equipo de expertos legales actualiza constantemente la información para asegurarse de que refleje las leyes y regulaciones más recientes.',
+      'Sí, mantenemos la información actualizada de forma constante para reflejar las normas y regulaciones más recientes.',
   },
   {
-    question: '¿Puedo usar esta plataforma para reemplazar a un abogado?',
+    question: '¿La plataforma reemplaza a un abogado?',
     answer:
-      'Nuestra plataforma proporciona información legal general y simplificada, pero no sustituye el asesoramiento legal personalizado. Para casos específicos, siempre recomendamos consultar con un profesional legal calificado.',
+      'No. Ofrecemos información legal general y simplificada, pero no reemplaza el asesoramiento legal profesional. Si tenés un caso específico, lo mejor es consultar con un abogado matriculado.',
   },
   {
-    question: '¿Qué tipos de documentos legales puedo encontrar?',
+    question: '¿Qué tipo de documentos puedo consultar?',
     answer:
-      'Ofrecemos una amplia gama de documentos legales, incluyendo contratos, acuerdos, formularios gubernamentales, leyes y regulaciones, organizados por categorías para facilitar su búsqueda.',
+      'Vas a encontrar leyes, resoluciones, decretos y otros textos normativos organizados por temas, para que puedas acceder a lo que necesitás más fácil.',
   },
 ];
 
@@ -44,10 +44,10 @@ export default function FAQSection() {
         className='text-center mb-16'
       >
         <h2 className='text-4xl font-bold mb-4 font-serif tracking-tight'>
-          Preguntas Frecuentes
+          Preguntas frecuentes
         </h2>
         <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-          Respuestas a las dudas más comunes sobre nuestra plataforma.
+          Respondemos las dudas más comunes sobre el uso de la plataforma.
         </p>
       </motion.div>
 

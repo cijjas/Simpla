@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Mail, MessageCircle, MailCheck } from 'lucide-react';
-import { CONTACT_EMAIL, WHATSAPP_LINK } from '../feedback/contact.config';
+import { CONTACT_EMAIL, WHATSAPP_LINK } from '../utils/contact.config';
 
 const schema = z.object({
   message: z
@@ -33,7 +33,7 @@ const schema = z.object({
 });
 type FeedbackValues = z.infer<typeof schema>;
 
-export function FeedbackContact() {
+export function FeedbackFloater() {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
 

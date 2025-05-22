@@ -1,9 +1,12 @@
 import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
-import { getNormaDetallada, getNormaDetalladaResumen } from '@/lib/infoleg/api';
-import NormaHeader from '@/features/norma/norma-header';
-import { NormaBody } from '@/features/norma/norma-body';
+import NormaHeader from '@/features/infoleg/norma/norma-header';
+import { NormaBody } from '@/features/infoleg/norma/norma-body';
 import dynamic from 'next/dynamic';
+import {
+  getNormaDetallada,
+  getNormaDetalladaResumen,
+} from '@/features/infoleg/utils/api';
 
 interface Props {
   params: Promise<{ id: string }>;

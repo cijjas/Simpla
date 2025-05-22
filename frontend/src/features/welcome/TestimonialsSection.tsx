@@ -8,23 +8,23 @@ import { Quote } from 'lucide-react';
 const testimonials = [
   {
     quote:
-      'Esta plataforma me ha ayudado a entender mis derechos como inquilino sin tener que consultar a un abogado.',
+      'La plataforma me ayudó a entender mis derechos como inquilino sin tener que recurrir a un abogado.',
     author: 'Martín Rodríguez',
-    role: 'Profesional Independiente',
+    role: 'Trabajador independiente',
     avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     quote:
-      'Como pequeña empresaria, necesitaba entender las regulaciones fiscales. Esta herramienta me ahorró tiempo y dinero.',
+      'Como emprendedora, necesitaba entender las regulaciones impositivas. Esta herramienta me ahorró tiempo y dolores de cabeza.',
     author: 'Laura Méndez',
-    role: 'Dueña de Negocio',
+    role: 'Dueña de un negocio',
     avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     quote:
-      'Los documentos simplificados me permitieron entender rápidamente el proceso de divorcio sin jerga legal complicada.',
+      'Los documentos claros me permitieron entender el proceso de divorcio sin tener que lidiar con términos complicados.',
     author: 'Carlos Vega',
-    role: 'Usuario Particular',
+    role: 'Usuario particular',
     avatar: '/placeholder.svg?height=40&width=40',
   },
 ];
@@ -40,11 +40,11 @@ export default function TestimonialsSection() {
         className='text-center mb-16'
       >
         <h2 className='text-4xl font-bold mb-4 font-serif tracking-tight'>
-          Lo Que Dicen Nuestros Usuarios
+          Lo que dicen quienes ya usan la plataforma
         </h2>
         <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-          Miles de personas confían en nuestra plataforma para entender
-          documentos legales.
+          Personas reales que encontraron una forma más simple de entender lo
+          legal.
         </p>
       </motion.div>
 

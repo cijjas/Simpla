@@ -15,7 +15,7 @@ export default function CTASection() {
         transition={{ duration: 0.6 }}
         className='max-w-4xl mx-auto text-center bg-gradient-to-r from-primary/5 to-primary/10 p-12 rounded-2xl border border-primary/20 relative overflow-hidden'
       >
-        {/* Background animation - must be absolutely positioned and behind */}
+        {/* Fondo animado */}
         <motion.div
           className='absolute inset-0 opacity-10 z-0'
           animate={{
@@ -33,28 +33,28 @@ export default function CTASection() {
           }}
         />
 
-        {/* Content container must be positioned with higher z-index */}
+        {/* Contenido */}
         <div className='relative z-10'>
           <h2 className='text-4xl font-bold mb-6 font-serif tracking-tight'>
-            Comenzá a Simplificar tus Documentos Legales Hoy
+            Empezá a simplificar tus trámites legales hoy
           </h2>
           <p className='text-xl text-gray-600 mb-8 max-w-2xl mx-auto'>
-            Unite a miles de usuarios que ya están entendiendo sus documentos
-            legales de manera sencilla y eficiente.
+            Sumate a miles de personas que ya están accediendo a sus normas y
+            documentos legales de forma clara y sin vueltas.
           </p>
 
           <div className='flex flex-col sm:flex-row gap-4 justify-center'>
             <Link href='/login'>
               <Button size='lg' className='group w-full sm:w-auto'>
-                Comenzar
+                Empezar ahora
                 <ArrowRight className='ml-2 h-4 w-4 transition-transform group-hover:translate-x-1' />
               </Button>
             </Link>
-            <Link href='/busqueda'>
+            {/* <Link href='/busqueda'>
               <Button size='lg' variant='outline' className='w-full sm:w-auto'>
-                Ver Demostración
+                Ver demostración
               </Button>
-            </Link>
+            </Link> */}
           </div>
         </div>
       </motion.div>

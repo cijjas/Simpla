@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth';
+import { auth } from '@/features/auth/utils';
 import AppLayout from '../(app)/layout';
 import PublicLayout from '../(public)/layout';
 

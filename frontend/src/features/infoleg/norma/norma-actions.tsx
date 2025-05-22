@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Copy, Download, Share2, Check, Link as LinkIcon } from 'lucide-react';
-import { NormaDetallada } from '@/lib/infoleg/types';
 import { SiX, SiWhatsapp } from 'react-icons/si';
 import {
   Tooltip,
@@ -18,6 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { NormaDetallada } from '../utils/types';
 
 export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   const [copied, setCopied] = useState(false);

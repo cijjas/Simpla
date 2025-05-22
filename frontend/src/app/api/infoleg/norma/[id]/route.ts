@@ -1,5 +1,5 @@
+import { NormaDetalladaDto } from '@/features/infoleg/utils/dto';
 import { NextRequest, NextResponse } from 'next/server';
-import { NormaDetalladaDto } from '@/lib/infoleg/dto';
 
 const upstreamBase = process.env.INFOLEG_BASE_URL!;
 

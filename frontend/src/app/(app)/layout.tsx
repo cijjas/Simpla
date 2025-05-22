@@ -1,12 +1,11 @@
 import type React from 'react';
 import { redirect } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
-import { auth } from '@/lib/auth';
+import { auth } from '@/features/auth/utils';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/layout/app-sidebar';
 import AppHeader from '@/components/layout/app-header';
 import { cookies } from 'next/headers';
-import { FeedbackContact } from '@/features/feedback/feedback-contact';
 
 export default async function AppLayout({
   children,
@@ -31,7 +30,6 @@ export default async function AppLayout({
         </SidebarInset>
       </div>
       <Toaster />
-      <FeedbackContact />
     </SidebarProvider>
   );
 }

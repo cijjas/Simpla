@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import SvgEstampa from '../icons/Estampa';
 import { Button } from '../ui/button';
-import { ThemeToggle } from '../theme-toggle';
+import { ThemeToggle } from '../ui/theme-toggle';
 
 export default function Header() {
   const { theme, setTheme } = useTheme();

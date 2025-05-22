@@ -53,7 +53,7 @@ export function ChatInput({
       animate={{
         position: 'absolute',
         bottom: hasMessages ? '0rem' : 'auto',
-        top: hasMessages ? 'auto' : 'calc(50% - 200px)',
+        top: hasMessages ? 'auto' : 'calc(50% - 80px)',
         // Center vertically when no messages
         left: 0,
         right: 0,

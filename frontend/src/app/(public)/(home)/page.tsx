@@ -1,10 +1,10 @@
-import Hero from '@/features/home/Hero';
-import FeaturesSection from '@/features/home/FeaturesSection';
-import HowItWorksSection from '@/features/home/HowItWorksSection';
-import TestimonialsSection from '@/features/home/TestimonialsSection';
-import FAQSection from '@/features/home/FAQSection';
-import CTASection from '@/features/home/CTASection';
-import PricingSection from '@/features/home/PricingSection';
+import Hero from '@/features/welcome/Hero';
+import FeaturesSection from '@/features/welcome/FeaturesSection';
+import HowItWorksSection from '@/features/welcome/HowItWorksSection';
+import TestimonialsSection from '@/features/welcome/TestimonialsSection';
+import FAQSection from '@/features/welcome/FAQSection';
+import CTASection from '@/features/welcome/CTASection';
+import PricingSection from '@/features/welcome/PricingSection';
 
 export default function Home() {
   return (

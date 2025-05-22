@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import type { Message } from '../types';
+import type { Message, RagScope } from '../types'; // Ensure RagScope is imported
 
 export function useChat() {
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  // const [popoverOpen, setPopoverOpen] = useState(false); // Old
+  const [dialogOpen, setDialogOpen] = useState(false); // New for Dialog
   const [isLoading, setIsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -26,10 +27,14 @@ export function useChat() {
   const send = async () => {
     if (!question.trim() || isLoading) return;
     const q = question;
+    // Capture the current scope for this message exchange
+    const currentScope: RagScope = { provinces: [...selectedProvinces] };
+
     const newUserMessage: Message = {
       role: 'user',
       text: q,
       timestamp: new Date(),
+      // User messages could also have scope if desired, but less critical
     };
     setMessages(m => [...m, newUserMessage]);
     setQuestion('');
@@ -38,7 +43,7 @@ export function useChat() {
     requestAnimationFrame(() => {
       setTimeout(() => {
         textareaRef.current?.focus();
-      }, 100); // small delay gives layout time to settle
+      }, 100);
     });
 
     try {
@@ -47,7 +52,7 @@ export function useChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: q,
-          provinces: selectedProvinces,
+          provinces: currentScope.provinces, // Send current scope to API
         }),
       });
 
@@ -63,6 +68,7 @@ export function useChat() {
           timestamp: new Date(),
           isTyping: true,
           displayedText: '',
+          scope: currentScope, // Attach the scope used for this bot's answer
         },
       ]);
     } catch (error) {
@@ -75,6 +81,7 @@ export function useChat() {
           timestamp: new Date(),
           isTyping: false,
           displayedText: 'Hubo un error generando la respuesta.',
+          scope: currentScope, // Also attach scope to error messages for context
         },
       ]);
     } finally {
@@ -82,7 +89,7 @@ export function useChat() {
     }
   };
 
-  // Handle typing animation for bot messages
+  // Handle typing animation (remains the same)
   useEffect(() => {
     const typingMessages = messages.filter(m => m.isTyping && m.role === 'bot');
     if (typingMessages.length === 0) return;
@@ -112,7 +119,7 @@ export function useChat() {
               : m,
           ),
         );
-      }, 20);
+      }, 20); // Adjust typing speed if needed
       return () => clearTimeout(timeoutId);
     } else if (currentMessage.isTyping) {
       setMessages(prevMessages =>
@@ -123,7 +130,6 @@ export function useChat() {
     }
   }, [messages]);
 
-  // Focus textarea when there are no messages
   useEffect(() => {
     if (messages.length === 0 && textareaRef.current) {
       textareaRef.current.focus();
@@ -142,8 +148,10 @@ export function useChat() {
     setQuestion,
     messages,
     selectedProvinces,
-    popoverOpen,
-    setPopoverOpen,
+    // popoverOpen, // Old
+    // setPopoverOpen, // Old
+    dialogOpen, // New
+    setDialogOpen, // New
     isLoading,
     textareaRef,
     toggleProvince,

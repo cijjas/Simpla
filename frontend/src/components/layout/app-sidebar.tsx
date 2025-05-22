@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Home, Search, MessageCircle, Compass } from 'lucide-react'; // Add Compass for variety
+import { Home, Search, MessageCircle, Compass, Folder } from 'lucide-react'; // Add Compass for variety
 
 import {
   Sidebar,
@@ -20,6 +20,7 @@ const links = [
   // { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/busqueda', label: 'Búsqueda', icon: Search },
   { href: '/chat', label: 'Chat', icon: MessageCircle },
+  { href: '/carpetas', label: 'Carpetas', icon: Folder },
 ];
 
 export default function AppSidebar() {
