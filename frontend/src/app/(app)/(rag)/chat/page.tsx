@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { useChat } from '@/features/chat/hooks/use-chat';
-import { WelcomeScreen } from '@/features/chat/components/welcome-screen';
 import { ChatInput } from '@/features/chat/components/chat-input';
 import { MessageItem } from '@/features/chat/components/message-item';
 import { LoadingMessage } from '@/features/chat/components/loading-message';

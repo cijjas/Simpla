@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type RefObject } from 'react';
-import { Textarea } from '@/components/ui/textarea';
+import { useEffect, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   ArrowUp,
@@ -45,7 +44,7 @@ export function ChatInput({
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }, [question]);
+  }, [question, textareaRef]);
 
   return (
     <motion.div

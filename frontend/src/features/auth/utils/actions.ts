@@ -6,7 +6,7 @@ import { SignupFormSchema } from '@/features/auth/utils/validation';
 import { generateToken, sendVerificationEmail } from './email';
 import { signIn } from 'next-auth/react';
 
-export async function signup(_: any, formData: FormData) {
+export async function signup(_: unknown, formData: FormData) {
   const parsed = SignupFormSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),

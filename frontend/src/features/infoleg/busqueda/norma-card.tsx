@@ -24,7 +24,7 @@ export default function NormaCard({
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    const { nombreNorma, esNumerada, ...cleanNorma } = norma;
+    const { nombreNorma: _nombreNorma, esNumerada: _esNumerada, ...cleanNorma } = norma;
     const rawJson = JSON.stringify(cleanNorma, null, 2);
     navigator.clipboard
       .writeText(rawJson)

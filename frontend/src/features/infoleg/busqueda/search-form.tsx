@@ -351,7 +351,7 @@ function QueryBuilderDialog({
 
       <DialogContent className='sm:max-w-[600px] max-w-[90vw] overflow-y-auto max-h-[90vh]'>
         <DialogHeader>
-          <DialogTitle>Busqueda avanzada</DialogTitle>
+          <DialogTitle>Búsqueda avanzada</DialogTitle>
         </DialogHeader>
 
         <div className='space-y-4 mt-4'>
@@ -455,7 +455,7 @@ function QueryBuilderDialog({
 
               <div className='grid grid-cols-[1fr_auto] gap-2'>
                 <div className='text-muted-foreground text-xs'>
-                  <code>"ley 27.275" AND "transparencia"</code>
+                  <code>&quot;ley 27.275&quot; AND &quot;transparencia&quot;</code>
                   <div className='text-xs text-gray-500 mt-0.5'>
                     Busca documentos que contengan ambos términos
                   </div>
@@ -475,7 +475,7 @@ function QueryBuilderDialog({
 
               <div className='grid grid-cols-[1fr_auto] gap-2'>
                 <div className='text-muted-foreground text-xs'>
-                  <code>"educación" OR "enseñanza" OR "formación"</code>
+                  <code>&quot;educación&quot; OR &quot;enseñanza&quot; OR &quot;formación&quot;</code>
                   <div className='text-xs text-gray-500 mt-0.5'>
                     Busca documentos con cualquiera de estos términos
                   </div>
@@ -495,7 +495,7 @@ function QueryBuilderDialog({
 
               <div className='grid grid-cols-[1fr_auto] gap-2'>
                 <div className='text-muted-foreground text-xs'>
-                  <code>"educación" NOT "privada"</code>
+                  <code>&quot;educación&quot; NOT &quot;privada&quot;</code>
                   <div className='text-xs text-gray-500 mt-0.5'>
                     Excluye documentos que contengan el segundo término
                   </div>
@@ -540,7 +540,7 @@ export default function SearchForm({
   // ------------------------------------------------------------------
   // URL and state management for persistence
   // ------------------------------------------------------------------
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
 
   // Function to update URL with current search params
@@ -908,7 +908,7 @@ export default function SearchForm({
                             <strong className='block mt-2'>
                               1. Búsqueda simple:
                             </strong>
-                            Escribe normalmente (ej: "servicios de radio") y se
+                            Escribe normalmente (ej: &quot;servicios de radio&quot;) y se
                             buscará la frase exacta.
                             <strong className='block mt-2'>
                               2. Búsqueda avanzada:
@@ -918,13 +918,13 @@ export default function SearchForm({
                             <strong className='block mt-2'>Ejemplos:</strong>
                             <ul className='list-disc list-inside mt-1 space-y-1'>
                               <li>
-                                <code>"ley 27.275" AND "transparencia"</code>
+                                <code>&quot;ley 27.275&quot; AND &quot;transparencia&quot;</code>
                               </li>
                               <li>
-                                <code>"educación" OR "enseñanza"</code>
+                                <code>&quot;educación&quot; OR &quot;enseñanza&quot;</code>
                               </li>
                               <li>
-                                <code>"salud" NOT "privada"</code>
+                                <code>&quot;salud&quot; NOT &quot;privada&quot;</code>
                               </li>
                             </ul>
                           </div>

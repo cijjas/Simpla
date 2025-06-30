@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, MessageCircle, MailCheck } from 'lucide-react';
+import { MessageCircle, MailCheck } from 'lucide-react';
 import { CONTACT_EMAIL, WHATSAPP_LINK } from '../utils/contact.config';
 
 const schema = z.object({

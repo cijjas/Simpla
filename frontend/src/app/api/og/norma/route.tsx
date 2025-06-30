@@ -33,7 +33,6 @@ export async function GET(req: Request) {
     ? new Date(norma.publicacion).getFullYear()
     : '';
   const title = `${norma.tipoNorma ?? 'Norma'} ${numero}/${anio}`;
-  const dependencia = norma.idNormas?.[0]?.dependencia ?? '';
   const normaTitle =
     norma.tituloSumarioFormateado ?? norma.tituloResumidoFormateado ?? '';
   const fechaPublicacion = norma.publicacion
@@ -62,6 +61,7 @@ export async function GET(req: Request) {
           position: 'relative',
         }}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={logoBase64}
           alt='Logo'
