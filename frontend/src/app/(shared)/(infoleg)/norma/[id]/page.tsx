@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import type { Metadata, ResolvingMetadata } from 'next';
 import NormaHeader from '@/features/infoleg/norma/norma-header';
 import { NormaBody } from '@/features/infoleg/norma/norma-body';
-import dynamic from 'next/dynamic';
 import {
   getNormaDetallada,
   getNormaDetalladaResumen,

@@ -3,10 +3,10 @@ import type { Message } from '../types';
 
 interface MessageItemProps {
   message: Message;
-  formatTime: (date: Date) => string;
+  formatTime?: (date: Date) => string;
 }
 
-export function MessageItem({ message, formatTime }: MessageItemProps) {
+export function MessageItem({ message, formatTime: _formatTime }: MessageItemProps) {
   const isUser = message.role === 'user';
 
   return (

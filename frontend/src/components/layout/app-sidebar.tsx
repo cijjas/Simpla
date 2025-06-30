@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Home, Search, MessageCircle, Compass, Folder } from 'lucide-react'; // Add Compass for variety
+import { Search, MessageCircle, Compass, Folder } from 'lucide-react'; // Add Compass for variety
 
 import {
   Sidebar,

@@ -1,49 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with
-[`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Simpla Frontend
 
-## Getting Started
+A Next.js application for legal document search and management, built with
+TypeScript, Prisma, and Tailwind CSS.
 
-First, run the development server:
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm (recommended package manager)
+- PostgreSQL database
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Clone the repository
+git clone https://github.com/cijjas/Simpla.git
+cd frontend
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your database URL and other required variables
+
+# Generate Prisma client
+pnpm prisma generate
+
+# Run database migrations (if needed)
+pnpm prisma migrate dev
+
+# Start development server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the
-result.
+## Development Workflow
 
-You can start editing the page by modifying `app/page.tsx`. The page
-auto-updates as you edit the file.
+### Before Pushing Code
 
-This project uses
-[`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts)
-to automatically optimize and load [Geist](https://vercel.com/font), a new font
-family for Vercel.
+**Always run the complete check pipeline before pushing:**
 
-## Learn More
+```bash
+pnpm check-all
+```
 
-To learn more about Next.js, take a look at the following resources:
+This command runs:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **ESLint** - Code quality and style checks
+2. **TypeScript** - Type checking
+3. **Build** - Production build verification
 
-You can check out
-[the Next.js GitHub repository](https://github.com/vercel/next.js) - your
-feedback and contributions are welcome!
+### Individual Commands
 
-## Deploy on Vercel
+```bash
+# Development
+pnpm dev                 # Start development server with Turbopack
 
-The easiest way to deploy your Next.js app is to use the
-[Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme)
-from the creators of Next.js.
+# Code Quality
+pnpm lint               # Run ESLint checks
+pnpm lint:fix           # Auto-fix ESLint issues
+pnpm type-check         # TypeScript type checking
 
-Check out our
-[Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying)
-for more details.
+# Building
+pnpm build              # Production build
+pnpm start              # Start production server
+
+# Database
+pnpm prisma generate    # Generate Prisma client
+pnpm prisma migrate dev # Run database migrations
+pnpm db:studio          # Open Prisma Studio with environment variables
+```
+
+## Technologies Used
+
+- **Framework**: Next.js 15.3.0 with App Router
+- **Language**: TypeScript 5.8.3
+- **Styling**: Tailwind CSS 4.1.11
+- **Database**: PostgreSQL with Prisma 6.7.0
+- **Authentication**: NextAuth.js 4.24.11
+- **UI Components**: Radix UI + shadcn/ui
+- **State Management**: React hooks + Context
+- **Package Manager**: pnpm
+
+## License
+
+This project is proprietary software. All rights reserved.

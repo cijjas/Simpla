@@ -1,4 +1,3 @@
-import { text } from 'stream/consumers';
 import { embed } from './embedding';
 import { index } from './pinecone';
 import { GoogleGenerativeAI } from '@google/generative-ai';

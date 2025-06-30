@@ -1,12 +1,6 @@
 import { formatDatePretty } from '@/lib/utils';
 import { TIPOS_CON_NUMERO, TIPOS_CON_NUMERO_Y_ANIO } from './constants';
-import {
-  IdNormaDto,
-  NormaDetalladaDto,
-  NormaDetalladaResumenDto,
-  NormaItemDto,
-} from './dto';
-import { NormaDetallada } from './types';
+import { IdNormaDto } from './dto';
 
 export function getApiUrl(path: string): string {
   if (typeof window === 'undefined') {
@@ -90,7 +84,7 @@ export function buildCopyTexto(norma: NormaCompatible): string {
 
 export function recaseUpperTitle(
   text?: string | null,
-  knownAcronyms: string[] = [],
+  _knownAcronyms: string[] = [],
 ): string | undefined {
   return text ?? undefined;
 }
@@ -117,7 +111,7 @@ export const STOP_WORDS = [
   'SIN',
 ] as const;
 
-const ROMAN = /^[IVXLCDM]{2,}$/;
+const _ROMAN = /^[IVXLCDM]{2,}$/;
 
 /**
  * Re‑cases text that is (mostly) SHOUT‑CASE.
@@ -126,7 +120,7 @@ const ROMAN = /^[IVXLCDM]{2,}$/;
  */
 export function recaseUpperText(
   text?: string | null,
-  knownAcronyms: string[] = [],
+  _knownAcronyms: string[] = [],
 ): string | undefined {
   return text ?? undefined;
 

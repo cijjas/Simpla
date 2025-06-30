@@ -4,7 +4,6 @@ import HowItWorksSection from '@/features/welcome/HowItWorksSection';
 import TestimonialsSection from '@/features/welcome/TestimonialsSection';
 import FAQSection from '@/features/welcome/FAQSection';
 import CTASection from '@/features/welcome/CTASection';
-import PricingSection from '@/features/welcome/PricingSection';
 
 export default function Home() {
   return (

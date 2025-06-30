@@ -266,7 +266,7 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   const nativeShare = async () => {
     try {
       await navigator.share({ title: 'Norma', text: shareText, url: shareUrl });
-    } catch (_) {
+    } catch {
       // user canceled
     }
   };

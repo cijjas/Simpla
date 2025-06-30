@@ -1,4 +1,4 @@
-import NextAuth, { type DefaultSession, type NextAuthOptions } from 'next-auth';
+import { type DefaultSession, type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import EmailProvider from 'next-auth/providers/email';
 import CredentialsProvider from 'next-auth/providers/credentials';
@@ -92,7 +92,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     /* Regular credentials sign-in should fail if e-mail not verified */
-    async signIn({ user, account, email }) {
+    async signIn({ user, account, email: _email }) {
       if (account?.provider === 'credentials') {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email! },

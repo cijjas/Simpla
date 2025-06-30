@@ -23,7 +23,7 @@ export function WelcomeScreen() {
       <p className='text-sm text-slate-500 dark:text-slate-400 max-w-md mt-2'>
         {' '}
         {/* Adjusted max-w for potentially narrower look */}
-        Pregunta sobre la Constitución Nacional o la de cualquier provincia de
+        Preguntá sobre la Constitución Nacional o la de cualquier provincia de
         Argentina. Estamos probando esta funcionalidad, no dudes en enviarnos
         tus comentarios.
       </p>

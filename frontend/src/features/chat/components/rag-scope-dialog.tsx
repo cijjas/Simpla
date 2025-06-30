@@ -20,9 +20,9 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
-import { FilterIcon, XIcon, CheckIcon, Frame } from 'lucide-react';
+import { XIcon, CheckIcon, Frame } from 'lucide-react';
 import { ALL_PROVINCES } from '../types';
-import { cn } from '@/lib/utils'; // Assuming you have a cn utility
+// Assuming you have a cn utility
 import {
   Tooltip,
   TooltipContent,

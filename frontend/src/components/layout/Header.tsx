@@ -1,20 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
 import { usePathname } from 'next/navigation';
-import { Menu, Sun, Moon, Laptop, Mail, MessageCircle } from 'lucide-react';
+import { Menu, Mail, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSession, signOut } from 'next-auth/react';
 
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
 import {
   Sheet,
   SheetTrigger,
@@ -28,12 +19,8 @@ import { Button } from '../ui/button';
 import { ThemeToggle } from '../ui/theme-toggle';
 
 export default function Header() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { data: session, status } = useSession();
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <header className='w-full border-b py-6'>

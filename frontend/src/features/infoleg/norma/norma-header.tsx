@@ -12,7 +12,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { NormaActions } from './norma-actions';
 
-import { formatDatePretty, formatDateSlash } from '@/lib/utils';
+import { formatDateSlash } from '@/lib/utils';
 import { NormaDetallada, NormaDetalladaResumen } from '../utils/types';
 import { getNormaDetalladaResumen } from '../utils/api';
 
