@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
 
   pages: {
     signIn: '/iniciar-sesion',
-    error: '/iniciar-sesion', // <-- show errors on the same page
+    error: '/iniciar-sesion',
     verifyRequest: '/verificar',
     newUser: '/inicio',
   },
