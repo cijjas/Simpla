@@ -1,6 +1,6 @@
 // app/(your-app-route)/page.tsx
 
-import Component from '@/components/ui/comp-571'; // assuming it's a named export
+import FileTreeComponent from '@/components/ui/file-tree'; // assuming it's a named export
 import { Card } from '@/components/ui/card';
 
 export default function HomePage() {
@@ -9,7 +9,7 @@ export default function HomePage() {
       {/* Static Left Sidebar with Card */}
       <div className='w-[300px] min-w-[240px] p-4 border-r border-border bg-background'>
         <Card className=' p-2'>
-          <Component />
+          <FileTreeComponent />
         </Card>
       </div>
 
