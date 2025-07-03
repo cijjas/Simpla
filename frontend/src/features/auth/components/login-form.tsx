@@ -117,7 +117,7 @@ export function LoginForm({
                 <div className='flex items-center justify-between'>
                   <FormLabel>Contraseña</FormLabel>
                   <Link
-                    href='/forgot-password'
+                    href='/recuperar-contrasena'
                     className='text-sm underline-offset-4 hover:underline'
                   >
                     ¿Olvidaste tu contraseña?
@@ -161,7 +161,7 @@ export function LoginForm({
 
       <div className='text-center text-sm'>
         ¿No tenés una cuenta?{' '}
-        <Link href='/signup' className='underline underline-offset-4'>
+        <Link href='/registrarse' className='underline underline-offset-4'>
           Registrate
         </Link>
       </div>

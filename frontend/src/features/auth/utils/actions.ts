@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { SignupFormSchema } from '@/features/auth/utils/validation';
 import { generateToken, sendVerificationEmail } from './email';
-import { signIn } from 'next-auth/react';
 
 export async function signup(_: unknown, formData: FormData) {
   const parsed = SignupFormSchema.safeParse({
@@ -38,12 +37,10 @@ export async function signup(_: unknown, formData: FormData) {
   });
 
   if (process.env.EMAIL_VERIFICATION_DISABLED === 'true') {
-    await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
-    return { redirect: '/inicio' };
+    return {
+      redirect:
+        '/iniciar-sesion?autoLogin=true&email=' + encodeURIComponent(email),
+    };
   }
 
   const { raw, hash } = generateToken();
@@ -56,5 +53,5 @@ export async function signup(_: unknown, formData: FormData) {
   });
   await sendVerificationEmail({ email, token: raw });
 
-  return { redirect: `/verify?email=${encodeURIComponent(email)}` };
+  return { redirect: `/verificar?email=${encodeURIComponent(email)}` };
 }

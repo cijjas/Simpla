@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FileText, Search, Shield, Clock, MessageSquare } from 'lucide-react';
+import { FileText, Search, Shield, MessageSquare } from 'lucide-react';
 import {
   Card,
   CardContent,
