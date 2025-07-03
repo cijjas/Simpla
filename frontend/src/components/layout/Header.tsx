@@ -78,7 +78,7 @@ export default function Header() {
           )}
 
           {status === 'unauthenticated' && (
-            <Link href='/login'>
+            <Link href='/iniciar-sesion'>
               <Button>Iniciar sesión</Button>
             </Link>
           )}

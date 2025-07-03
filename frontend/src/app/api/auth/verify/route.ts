@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     where: { identifier_token: { identifier: email, token: hash } },
   });
   if (!record || record.expires < new Date()) {
-    return NextResponse.redirect('/login?error=ExpiredToken');
+    return NextResponse.redirect('/iniciar-sesion?error=ExpiredToken');
   }
 
   await prisma.$transaction([
@@ -30,6 +30,6 @@ export async function GET(req: Request) {
   return NextResponse.redirect(
     `${
       process.env.NEXT_PUBLIC_SITE_URL
-    }/verify?success=true&email=${encodeURIComponent(email)}`,
+    }/verificar?success=true&email=${encodeURIComponent(email)}`,
   );
 }

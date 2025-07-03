@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || user.emailVerified) {
-    return NextResponse.redirect('/login');
+    return NextResponse.redirect('/iniciar-sesion');
   }
 
   /* wipe previous tokens */
@@ -31,6 +31,6 @@ export async function GET(req: Request) {
   return NextResponse.redirect(
     `${
       process.env.NEXT_PUBLIC_SITE_URL
-    }/verify?success=true&email=${encodeURIComponent(email)}`,
+    }/verificar?success=true&email=${encodeURIComponent(email)}`,
   );
 }

@@ -72,7 +72,7 @@ export async function sendResetPasswordEmail({
   email: string;
   token: string;
 }) {
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password?token=${token}&email=${email}`;
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/restablecer-contrasena?token=${token}&email=${email}`;
 
   await resend.emails.send({
     from: 'Simpla <no-reply@simplar.com.ar>',

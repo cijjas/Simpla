@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '../../../lib/prisma';
+import { ROUTES } from '@/lib/routes';
 
 /* ----------  Module Augmentation  ---------- */
 declare module 'next-auth' {
@@ -78,9 +79,9 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
-    signIn: '/login',
-    error: '/login', // <-- show errors on the same page
-    verifyRequest: '/verify',
+    signIn: '/iniciar-sesion',
+    error: '/iniciar-sesion', // <-- show errors on the same page
+    verifyRequest: '/verificar',
     newUser: '/inicio',
   },
 

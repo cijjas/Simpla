@@ -13,7 +13,7 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  if (!session) redirect('/login');
+  if (!session) redirect('/iniciar-sesion');
 
   // Read the sidebar state from cookies
   const cookieStore = cookies();

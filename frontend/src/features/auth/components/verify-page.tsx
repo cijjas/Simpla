@@ -30,7 +30,7 @@ export default function VerifyPage() {
           Ya podés iniciar sesión con tus credenciales.
         </p>
         <Button size='lg' className='mt-4 px-8' asChild>
-          <Link href='/login'>
+          <Link href='/iniciar-sesion'>
             Iniciar sesión <ArrowRight className='ml-2 h-4 w-4' />
           </Link>
         </Button>

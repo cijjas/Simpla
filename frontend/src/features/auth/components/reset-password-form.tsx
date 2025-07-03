@@ -25,12 +25,15 @@ export function ResetPasswordForm() {
 
     const res = await fetch('/api/auth/reset-password', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ email, token, password }),
     });
 
     if (res.ok) {
       setStatus('success');
-      setTimeout(() => router.push('/login'), 3000); // Redirect after 3s
+      setTimeout(() => router.push('/iniciar-sesion'), 3000); // Redirect after 3s
     } else {
       setStatus('error');
     }
@@ -73,8 +76,10 @@ export function ResetPasswordForm() {
               id='password'
               type='password'
               required
+              minLength={6}
               value={password}
               onChange={e => setPassword(e.target.value)}
+              placeholder='Mínimo 6 caracteres'
             />
           </div>
 
