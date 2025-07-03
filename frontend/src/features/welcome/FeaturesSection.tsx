@@ -1,14 +1,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { FileText, Search, Shield, Clock } from 'lucide-react';
+import { FileText, Search, Shield, Clock, MessageSquare } from 'lucide-react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const features = [
   {
@@ -22,18 +25,26 @@ const features = [
     title: 'Búsqueda Inteligente',
     description:
       'Encontrá la información legal que necesitás en segundos con nuestro buscador avanzado.',
+    action: {
+      label: 'Buscar Normas',
+      href: '/busqueda',
+    },
+  },
+  {
+    icon: MessageSquare,
+    title: 'Chat Legal Inteligente',
+    description:
+      'Consulta directamente sobre normativa y recibe respuestas precisas basadas en la legislación vigente.',
+    action: {
+      label: 'Iniciar Chat',
+      href: '/chat',
+    },
   },
   {
     icon: Shield,
     title: 'Información Confiable',
     description:
       'Todo el contenido está verificado por especialistas para asegurar precisión y confianza.',
-  },
-  {
-    icon: Clock,
-    title: 'Ahorro de Tiempo',
-    description:
-      'Accedé a resúmenes breves sin tener que leer documentos largos o complejos.',
   },
 ];
 
@@ -92,6 +103,19 @@ export default function FeaturesSection() {
                   {feature.description}
                 </CardDescription>
               </CardContent>
+              {feature.action && (
+                <CardFooter>
+                  <Button
+                    asChild
+                    variant='outline'
+                    className='w-full border-primary/50 text-primary hover:bg-primary/5 hover:text-primary dark:hover:bg-primary/10'
+                  >
+                    <Link href={feature.action.href}>
+                      {feature.action.label}
+                    </Link>
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           </motion.div>
         ))}
