@@ -6,7 +6,6 @@ import bcrypt from 'bcryptjs';
 
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '../../../lib/prisma';
-import { ROUTES } from '@/lib/routes';
 
 /* ----------  Module Augmentation  ---------- */
 declare module 'next-auth' {
