@@ -16,47 +16,14 @@ export async function POST(req: Request) {
   const { tipo, ...rest } = body;
 
   const url = `${BASE}/${tipo}?${buildQuery(rest)}`;
-  
-  try {
-    // Configure fetch options with proper error handling
-    const fetchOptions: RequestInit = {
-      headers: { 
-        'Accept-Encoding': 'gzip',
-        'User-Agent': 'Mozilla/5.0 (compatible; SIMPLA/1.0)',
-      },
-    };
-    
-    const res = await fetch(url, fetchOptions);
+  const res = await fetch(url, { headers: { 'Accept-Encoding': 'gzip' } });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({
-        error: 'Respuesta no válida del servidor Infoleg',
-      }));
-      return NextResponse.json(err, { status: res.status });
-    }
-
-    return NextResponse.json(await res.json());
-  } catch (error) {
-    console.error('Error fetching from Infoleg API:', error);
-    
-    // Handle SSL certificate errors specifically
-    if (error instanceof Error && error.message.includes('certificate')) {
-      return NextResponse.json(
-        { 
-          error: 'Error de certificado SSL al conectar con el servidor externo',
-          details: 'Problema de verificación de certificado'
-        }, 
-        { status: 503 }
-      );
-    }
-    
-    // Handle other fetch errors
-    return NextResponse.json(
-      { 
-        error: 'Error de conexión con el servidor externo',
-        details: error instanceof Error ? error.message : 'Error desconocido'
-      }, 
-      { status: 503 }
-    );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({
+      error: 'Respuesta no válida del servidor Infoleg',
+    }));
+    return NextResponse.json(err, { status: res.status });
   }
+
+  return NextResponse.json(await res.json());
 }
