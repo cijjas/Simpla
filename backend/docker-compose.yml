@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   db:
     image: postgres:15
@@ -7,18 +6,18 @@ services:
       POSTGRES_USER: simpla
       POSTGRES_PASSWORD: simpla
     ports:
-      - "5432:5432"
+      - '5433:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
-  backend:
-    build: .
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/simpla
-      SPRING_DATASOURCE_USERNAME: simpla
-      SPRING_DATASOURCE_PASSWORD: simpla
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
+  # backend:
+  #   build: .
+  #   environment:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/simpla
+  #     SPRING_DATASOURCE_USERNAME: simpla
+  #     SPRING_DATASOURCE_PASSWORD: simpla
+  #   ports:
+  #     - '8080:8080'
+  #   depends_on:
+  #     - db
 volumes:
-  db_data: 
+  db_data:
