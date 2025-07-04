@@ -13,6 +13,8 @@ const pool = new Pool({
 
 const INFOLEG_BASE_URL =
   'https://servicios.infoleg.gob.ar/infolegInternet/api/v2.0';
+const LEGISLACIONES_URL = `${INFOLEG_BASE_URL}/nacionales/normativos/legislaciones`;
+const NORMATIVOS_URL = `${INFOLEG_BASE_URL}/nacionales/normativos`;
 
 const createTable = async () => {
   const client = await pool.connect();
@@ -108,54 +110,108 @@ const insertNorma = async (norma: any) => {
   }
 };
 
-const fetchNormaDetails = async (id: number, agent: https.Agent) => {
-  try {
-    const response = await axios.get(
-      `${INFOLEG_BASE_URL}/nacionales/normativos`,
-      {
-        params: { id },
-        httpsAgent: agent,
-      },
-    );
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching details for norma ID ${id}:`, error);
-    return null;
+const fetchNormaDetails = async (id: number, agent: https.Agent, maxRetries: number = 5, baseDelay: number = 2000) => {
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    try {
+      const response = await axios.get(
+        NORMATIVOS_URL,
+        {
+          params: { id },
+          httpsAgent: agent,
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(`❌ Error fetching details for norma ID ${id} (attempt ${attempt + 1}/${maxRetries}):`, error.message);
+      
+      if (attempt === maxRetries - 1) {
+        console.error(`🚫 Failed to fetch norma ID ${id} after ${maxRetries} attempts. Skipping...`);
+        return null;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+      console.log(`⏳ Waiting ${delay}ms before retrying...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      attempt++;
+    }
   }
+  
+  return null;
 };
 
-const fetchNormasByDate = async (date: string, agent: https.Agent) => {
-  try {
-    console.log(`Fetching normas for date: ${date}...`);
-    const response = await axios.get(
-      `${INFOLEG_BASE_URL}/nacionales/normativos/publicaciones/${date}`,
-      { httpsAgent: agent },
-    );
-
-    const { results } = response.data;
-    if (!results || results.length === 0) {
-      console.log(`No results for ${date}`);
-      return;
-    }
-
-    for (const normaSummary of results) {
-      const normaDetails = await fetchNormaDetails(normaSummary.id, agent);
-      if (normaDetails) {
-        await insertNorma(normaDetails);
+const fetchLegislationIdsForYear = async (year: number, agent: https.Agent): Promise<number[]> => {
+  const limit = 50;
+  let offset = 1;
+  const ids: number[] = [];
+  
+  console.log(`Fetching IDs for year ${year}...`);
+  
+  while (true) {
+    const params = {
+      sancion: year.toString(),
+      limit: limit.toString(),
+      offset: offset.toString()
+    };
+    
+    try {
+      const response = await axios.get(LEGISLACIONES_URL, {
+        params,
+        httpsAgent: agent,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status === 409) {
+        console.log(`⚠️  Year ${year} returned 409. Skipping...`);
+        break;
       }
-      // Wait 500ms to avoid saturating the API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const data = response.data;
+      const results = data.results || [];
+      
+      if (offset === 1) {
+        const totalCount = data.metadata?.resultset?.count || 0;
+        if (totalCount === 0) {
+          console.log(`⚠️  Year ${year} has no results. Skipping...`);
+          break;
+        }
+        const totalPages = Math.ceil(totalCount / limit);
+        console.log(`  Total: ${totalCount} laws, ${totalPages} pages.`);
+      }
+      
+      if (!results || results.length === 0) {
+        console.log(`  🛑 Empty page at offset ${offset}. Finishing year...`);
+        break;
+      }
+      
+      const pageIds = results.map((item: any) => item.id);
+      ids.push(...pageIds);
+      
+      const totalCount = data.metadata?.resultset?.count || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+      console.log(`  Page ${offset}/${totalPages} OK. Total accumulated: ${ids.length}`);
+      
+      if (offset >= totalPages) {
+        break;
+      }
+      
+      offset += 1;
+      await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between pages
+      
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        console.error(`❌ Network error in year ${year}, page ${offset}:`, error.message);
+      } else {
+        console.error(`❌ Error parsing JSON in year ${year}, offset ${offset}:`, error);
+      }
+      break;
     }
-  } catch (error) {
-    // It's common to get 404s for dates with no publications, so we'll log it differently.
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      console.log(`No publications found for date: ${date}`);
-    } else {
-      console.error(`Error fetching data for date ${date}:`, error);
-    }
-    // Wait a bit before continuing to avoid overwhelming the server
-    await new Promise(resolve => setTimeout(resolve, 1000));
   }
+  
+  return ids;
 };
 
 const main = async () => {
@@ -165,13 +221,22 @@ const main = async () => {
     rejectUnauthorized: false,
   });
 
-  let currentDate = new Date('1854-01-01');
-  const endDate = new Date(); // Today
-
-  while (currentDate <= endDate) {
-    const dateString = currentDate.toISOString().split('T')[0];
-    await fetchNormasByDate(dateString, agent);
-    currentDate.setDate(currentDate.getDate() + 1); // Move to the next day
+  const currentYear = new Date().getFullYear();
+  
+  // For testing, let's start with a smaller range - you can modify this
+  // From 1940 to 1945 (like in your Python script) for testing
+  // Change to: for (let year = 1854; year <= currentYear; year++) for full range
+  for (let year = 1940; year <= 1945; year++) {
+    const ids = await fetchLegislationIdsForYear(year, agent);
+    console.log(`Total found for ${year}: ${ids.length}`);
+    
+    for (const legId of ids) {
+      const data = await fetchNormaDetails(legId, agent);
+      if (data) {
+        await insertNorma(data);
+      }
+      await new Promise(resolve => setTimeout(resolve, 500)); // 200ms delay between details requests
+    }
   }
 
   console.log('Finished fetching all data.');
