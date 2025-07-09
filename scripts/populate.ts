@@ -145,6 +145,8 @@ const fetchLegislationIdsForYear = async (year: number, agent: https.Agent): Pro
   const limit = 50;
   let offset = 1;
   const ids: number[] = [];
+  let totalPages = 0;
+  let totalCount = 0;
   
   console.log(`Fetching IDs for year ${year}...`);
   
@@ -155,60 +157,92 @@ const fetchLegislationIdsForYear = async (year: number, agent: https.Agent): Pro
       offset: offset.toString()
     };
     
-    try {
-      const response = await axios.get(LEGISLACIONES_URL, {
-        params,
-        httpsAgent: agent,
-        headers: {
-          'Accept': 'application/json'
+    // Add retry logic for page fetching
+    let pageSuccess = false;
+    let pageAttempts = 0;
+    const maxPageRetries = 3;
+    
+    while (!pageSuccess && pageAttempts < maxPageRetries) {
+      try {
+        pageAttempts++;
+        console.log(`  📄 Fetching page ${offset}${pageAttempts > 1 ? ` (attempt ${pageAttempts}/${maxPageRetries})` : ''}...`);
+        
+        const response = await axios.get(LEGISLACIONES_URL, {
+          params,
+          httpsAgent: agent,
+          headers: {
+            'Accept': 'application/json'
+          },
+          timeout: 30000 // 30 second timeout
+        });
+        
+        if (response.status === 409) {
+          console.log(`⚠️  Year ${year} returned 409. Skipping...`);
+          return ids;
         }
-      });
-      
-      if (response.status === 409) {
-        console.log(`⚠️  Year ${year} returned 409. Skipping...`);
-        break;
-      }
-      
-      const data = response.data;
-      const results = data.results || [];
-      
-      if (offset === 1) {
-        const totalCount = data.metadata?.resultset?.count || 0;
-        if (totalCount === 0) {
-          console.log(`⚠️  Year ${year} has no results. Skipping...`);
+        
+        const data = response.data;
+        const results = data.results || [];
+        
+        if (offset === 1) {
+          totalCount = data.metadata?.resultset?.count || 0;
+          if (totalCount === 0) {
+            console.log(`⚠️  Year ${year} has no results. Skipping...`);
+            return ids;
+          }
+          totalPages = Math.ceil(totalCount / limit);
+          console.log(`  📊 Total: ${totalCount} laws, ${totalPages} pages.`);
+        }
+        
+        if (!results || results.length === 0) {
+          console.log(`  🛑 Empty page at offset ${offset}. Finishing year...`);
+          pageSuccess = true;
           break;
         }
-        const totalPages = Math.ceil(totalCount / limit);
-        console.log(`  Total: ${totalCount} laws, ${totalPages} pages.`);
+        
+        const pageIds = results.map((item: any) => item.id);
+        ids.push(...pageIds);
+        
+        console.log(`  ✅ Page ${offset}/${totalPages} OK. Total accumulated: ${ids.length}/${totalCount}`);
+        pageSuccess = true;
+        
+        if (offset >= totalPages) {
+          break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between pages
+        
+      } catch (error: any) {
+        console.error(`❌ Error fetching page ${offset} for year ${year} (attempt ${pageAttempts}/${maxPageRetries}):`, error.message);
+        
+        if (pageAttempts < maxPageRetries) {
+          const retryDelay = 1000 * Math.pow(2, pageAttempts - 1); // Exponential backoff: 1s, 2s, 4s
+          console.log(`⏳ Retrying page ${offset} in ${retryDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } else {
+          console.error(`🚫 Failed to fetch page ${offset} for year ${year} after ${maxPageRetries} attempts. Aborting year.`);
+          return ids; // Return what we have so far, but don't continue
+        }
       }
-      
-      if (!results || results.length === 0) {
-        console.log(`  🛑 Empty page at offset ${offset}. Finishing year...`);
-        break;
-      }
-      
-      const pageIds = results.map((item: any) => item.id);
-      ids.push(...pageIds);
-      
-      const totalCount = data.metadata?.resultset?.count || 0;
-      const totalPages = Math.ceil(totalCount / limit);
-      console.log(`  Page ${offset}/${totalPages} OK. Total accumulated: ${ids.length}`);
-      
-      if (offset >= totalPages) {
-        break;
-      }
-      
-      offset += 1;
-      await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between pages
-      
-    } catch (error: any) {
-      if (axios.isAxiosError(error)) {
-        console.error(`❌ Network error in year ${year}, page ${offset}:`, error.message);
-      } else {
-        console.error(`❌ Error parsing JSON in year ${year}, offset ${offset}:`, error);
-      }
+    }
+    
+    if (!pageSuccess) {
+      console.error(`💥 Could not fetch page ${offset} for year ${year}. Stopping pagination for this year.`);
       break;
     }
+    
+    if (offset >= totalPages) {
+      break;
+    }
+    
+    offset += 1;
+  }
+  
+  // Validation: Check if we got all expected results
+  if (totalCount > 0 && ids.length < totalCount) {
+    console.warn(`⚠️  WARNING: Expected ${totalCount} laws for year ${year}, but only collected ${ids.length} IDs. Some pages may have failed.`);
+  } else if (totalCount > 0) {
+    console.log(`✅ Successfully collected all ${ids.length} laws for year ${year}`);
   }
   
   return ids;
