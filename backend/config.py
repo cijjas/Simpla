@@ -18,6 +18,18 @@ class Settings:
     GEMINI_API_KEY: Optional[str] = os.getenv('GEMINI_API_KEY')
     HF_API_KEY: Optional[str] = os.getenv('HF_API_KEY')
     
+    # Database
+    DATABASE_URL: Optional[str] = os.getenv('DATABASE_URL')
+    
+    # Email
+    RESEND_API_KEY: Optional[str] = os.getenv('RESEND_API_KEY')
+    FRONTEND_SITE_URL: str = os.getenv('FRONTEND_SITE_URL', 'http://localhost:3000')
+    BACKEND_URL: str = os.getenv('BACKEND_URL', 'http://localhost:8000')
+    
+    # Feedback
+    FEEDBACK_EMAILS: Optional[str] = os.getenv('FEEDBACK_EMAILS')
+    EMAIL_FROM: Optional[str] = os.getenv('EMAIL_FROM')
+    
     # RAG Configuration
     K_RETRIEVE: int = int(os.getenv('K_RETRIEVE', '5'))
     
@@ -63,6 +75,8 @@ Respuesta:
             missing_keys.append('GEMINI_API_KEY')
         if not cls.HF_API_KEY:
             missing_keys.append('HF_API_KEY')
+        if not cls.DATABASE_URL:
+            missing_keys.append('DATABASE_URL')
             
         return missing_keys
 
