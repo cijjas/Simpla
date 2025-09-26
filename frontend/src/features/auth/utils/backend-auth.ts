@@ -34,7 +34,7 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 /* ----------  Backend Integration Functions  ---------- */
 async function loginWithCredentials(email: string, password: string) {
   try {
-    const response = await fetch(`${BACKEND_URL}/auth/login`, {
+    const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ async function loginWithCredentials(email: string, password: string) {
 
 async function loginWithGoogle(idToken: string) {
   try {
-    const response = await fetch(`${BACKEND_URL}/auth/google`, {
+    const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ async function loginWithGoogle(idToken: string) {
 
 async function refreshAccessToken(token: any) {
   try {
-    const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+    const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
       method: 'POST',
       credentials: 'include', // Important for cookies
     });
@@ -218,7 +218,7 @@ export const backendAuthOptions: NextAuthOptions = {
     async signOut({ token }) {
       // Call backend logout endpoint to revoke refresh token
       try {
-        await fetch(`${BACKEND_URL}/auth/logout`, {
+        await fetch(`${BACKEND_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token.accessToken}`,

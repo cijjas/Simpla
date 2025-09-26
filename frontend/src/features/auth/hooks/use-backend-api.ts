@@ -40,7 +40,7 @@ export function useBackendApi() {
     if (response.status === 401 && requireAuth) {
       // Token might be expired, try to refresh
       try {
-        const refreshResponse = await fetch(`${BACKEND_URL}/auth/refresh`, {
+        const refreshResponse = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
         });

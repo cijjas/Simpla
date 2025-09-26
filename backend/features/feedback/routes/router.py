@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from features.auth.services.email_service import send_feedback_email
+from features.feedback.services.email_service import send_feedback_email
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 

@@ -52,7 +52,7 @@ export function FeedbackButton() {
   const onSubmit = async (values: FeedbackValues) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/feedback`, {
+      const res = await fetch(`${backendUrl}/api/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

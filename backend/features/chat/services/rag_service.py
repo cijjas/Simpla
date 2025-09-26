@@ -4,6 +4,7 @@ import logging
 from typing import List
 import google.generativeai as genai
 from core.config.config import settings
+from features.chat.config import LEGAL_PROMPT_TEMPLATE, NO_CONTEXT_RESPONSE, GEMINI_MODEL_NAME
 from features.chat.services.embedding_service import EmbeddingService
 from features.chat.services.pinecone_service import PineconeService
 
@@ -20,7 +21,7 @@ class RAGService:
         
         # Initialize Gemini
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.chat_model = genai.GenerativeModel(model_name='gemini-2.0-flash')
+        self.chat_model = genai.GenerativeModel(model_name=GEMINI_MODEL_NAME)
         
         # Initialize other services
         self.embedding_service = EmbeddingService()
@@ -42,11 +43,11 @@ class RAGService:
             context_chunks = await self._retrieve_context(question, provinces)
             
             if not context_chunks:
-                return "No tengo información sobre esto."
+                return NO_CONTEXT_RESPONSE
             
             # Generate answer using Gemini
             context = '\n\n'.join(context_chunks)
-            prompt = settings.PROMPT_TEMPLATE.format(
+            prompt = LEGAL_PROMPT_TEMPLATE.format(
                 question=question.strip(),
                 context=context
             )
@@ -56,7 +57,7 @@ class RAGService:
             
         except Exception as e:
             logger.error(f"Error generating RAG answer: {e}")
-            return "No tengo información sobre esto."
+            return NO_CONTEXT_RESPONSE
     
     async def _retrieve_context(self, question: str, provinces: List[str]) -> List[str]:
         """

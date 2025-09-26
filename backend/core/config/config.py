@@ -28,6 +28,11 @@ class Settings:
     
     # Feedback
     FEEDBACK_EMAILS: Optional[str] = os.getenv('FEEDBACK_EMAILS')
+    
+    # Logging
+    LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'INFO')
+    LOG_DATABASE_QUERIES: bool = os.getenv('LOG_DATABASE_QUERIES', 'true').lower() == 'true'
+    LOG_HTTP_REQUESTS: bool = os.getenv('LOG_HTTP_REQUESTS', 'true').lower() == 'true'
     EMAIL_FROM: Optional[str] = os.getenv('EMAIL_FROM')
     
     # RAG Configuration
@@ -43,32 +48,6 @@ class Settings:
     GOOGLE_CLIENT_ID: Optional[str] = os.getenv('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET: Optional[str] = os.getenv('GOOGLE_CLIENT_SECRET')
     
-    # Prompt Template
-    PROMPT_TEMPLATE: str = """
-Eres un/a **abogado/a constitucionalista argentino/a**.  
-Tu tarea es **contestar en UNA sola frase** y **exclusivamente** con la
-información que aparece dentro de las etiquetas <context></context>.
-
-Reglas de oro (cúmplelas al pie de la letra):
-
-1. Si la respuesta está en el contexto, da la solución **exactamente** como
-   figura allí, sin agregar ni quitar nada relevante.
-2. Al final de la frase, escribe entre paréntesis el/los número(s) de
-   artículo(s) que sustenten la respuesta -por ejemplo: **(art. 14)**.
-   - Si el fragmento de contexto trae algo como "Artículo 14 bis", ponlo igual: **(art. 14bis)**.
-3. Si la información **no** aparece en el contexto, contesta **exactamente**:
-   > No tengo información sobre esto.
-4. No inventes datos, no cites fuentes externas, no explicas tu razonamiento.
-5. Responde en español neutro y evita tecnicismos innecesarios.
-6. Si no sabes la respuesta, responde 'no tengo información sobre esto'.
-
-<context>
-{context}
-</context>
-
-Pregunta: {question}
-Respuesta:
-""".strip()
     
     @classmethod
     def validate_required_keys(cls) -> list[str]:

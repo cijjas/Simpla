@@ -54,3 +54,5 @@ python-jose[cryptography]==3.3.0
 python-multipart==0.0.9
 email-validator==2.2.0
 google-auth==2.40.3
+colorlog==6.8.2
+sqlalchemy-utils==0.41.1

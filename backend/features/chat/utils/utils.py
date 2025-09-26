@@ -15,7 +15,7 @@ from typing import List
 
 # Import from new services
 from services import RAGService
-from config import settings
+from config import LEGAL_PROMPT_TEMPLATE
 
 # Issue deprecation warning
 warnings.warn(
@@ -25,7 +25,7 @@ warnings.warn(
 )
 
 # Legacy variables for backward compatibility
-PROMPT_TEMPLATE = settings.PROMPT_TEMPLATE
+PROMPT_TEMPLATE = LEGAL_PROMPT_TEMPLATE
 
 # Legacy wrapper functions for backward compatibility
 async def embed_text(text: str) -> List[float]:

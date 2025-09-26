@@ -7,6 +7,9 @@ from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
+from core.utils.logging_config import get_logger
+from core.utils.db_logging import log_database_operation, log_database_error
+
 from core.database.base import get_db
 from features.auth.models.user import User, RefreshToken
 from features.auth.utils.auth import (
@@ -14,6 +17,7 @@ from features.auth.utils.auth import (
     verify_password, 
     verify_google_token,
     get_current_user,
+    get_current_user_optional,
     create_user_id,
     create_refresh_token_id
 )
@@ -21,6 +25,7 @@ from core.utils.jwt_utils import create_access_token, create_refresh_token, veri
 from core.config.config import settings
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+logger = get_logger(__name__)
 
 # Request/Response models
 class LoginRequest(BaseModel):
@@ -60,70 +65,77 @@ class ResetPasswordRequest(BaseModel):
     token: str
     password: str
 
+class RegisterResponse(BaseModel):
+    message: str
+    email: str
+    email_verified: bool
 
-@router.post("/register", response_model=TokenResponse)
+
+@router.post("/register", response_model=RegisterResponse)
 async def register(
     request: RegisterRequest,
     response: Response,
     db: Session = Depends(get_db)
 ):
     """Register a new user with email and password."""
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == request.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+    logger.info(f"Registration attempt for email: {request.email}")
+    
+    try:
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == request.email).first()
+        if existing_user:
+            logger.warning(f"Registration failed: email {request.email} already exists")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+    
+        # Generate verification token
+        import secrets
+        import hashlib
+        from features.auth.services.email_service import send_verification_email
+        
+        raw_token = secrets.token_hex(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        expires = datetime.now() + timedelta(hours=24)  # Token expires in 24 hours
+        
+        # Create new user (unverified)
+        user = User(
+            id=create_user_id(),
+            email=request.email,
+            name=request.name,
+            hashed_password=get_password_hash(request.password),
+            provider="email",
+            email_verified=False,  # User must verify email before login
+            verification_token=token_hash,
+            verification_token_expires=expires
         )
-    
-    # Create new user
-    user = User(
-        id=create_user_id(),
-        email=request.email,
-        name=request.name,
-        hashed_password=get_password_hash(request.password),
-        provider="email",
-        email_verified=True  # For now, auto-verify. You can add email verification later
-    )
-    
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    # Create tokens
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token_str = create_refresh_token(data={"sub": user.id})
-    
-    # Store refresh token in database
-    refresh_token_record = RefreshToken(
-        id=create_refresh_token_id(),
-        user_id=user.id,
-        token=refresh_token_str
-    )
-    db.add(refresh_token_record)
-    db.commit()
-    
-    # Set refresh token as httpOnly cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token_str,
-        httponly=True,
-        secure=True,  # Set to True in production with HTTPS
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-    )
-    
-    return TokenResponse(
-        access_token=access_token,
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        user={
-            "id": user.id,
+        
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        log_database_operation("INSERT", "users", user.id, {"email": user.email, "provider": user.provider})
+        logger.info(f"User registered successfully: {user.email} (ID: {user.id}) - Email verification required")
+        
+        # Send verification email
+        try:
+            send_verification_email(email=request.email, token=raw_token)
+            logger.info(f"Verification email sent to: {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+            # Don't fail registration if email sending fails, but log the error
+        
+        return {
+            "message": "Registration successful. Please check your email to verify your account before logging in.",
             "email": user.email,
-            "name": user.name,
-            "provider": user.provider,
-            "email_verified": user.email_verified
+            "email_verified": False
         }
-    )
+    
+    except Exception as e:
+        log_database_error("user_registration", e, "users")
+        logger.error(f"Registration failed for {request.email}: {str(e)}")
+        raise
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -133,6 +145,8 @@ async def login(
     db: Session = Depends(get_db)
 ):
     """Login with email and password."""
+    logger.info(f"Login attempt for email: {request.email}")
+    
     # Find user by email
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
@@ -371,13 +385,13 @@ async def logout(
     request: Request,
     response: Response,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Logout user and revoke refresh token."""
     # Get refresh token from cookie
     refresh_token_str = request.cookies.get("refresh_token")
     
-    if refresh_token_str:
+    if refresh_token_str and current_user:
         # Revoke refresh token in database
         refresh_token_record = db.query(RefreshToken).filter(
             RefreshToken.token == refresh_token_str,
@@ -387,6 +401,17 @@ async def logout(
         if refresh_token_record:
             refresh_token_record.revoked = True
             db.commit()
+            logger.info(f"Refresh token revoked for user: {current_user.email}")
+    elif refresh_token_str:
+        # If we have a refresh token but no current user, try to revoke it anyway
+        refresh_token_record = db.query(RefreshToken).filter(
+            RefreshToken.token == refresh_token_str
+        ).first()
+        
+        if refresh_token_record:
+            refresh_token_record.revoked = True
+            db.commit()
+            logger.info("Refresh token revoked (user not authenticated)")
     
     # Clear refresh token cookie
     response.delete_cookie(key="refresh_token")
@@ -497,6 +522,71 @@ async def reset_password(
         raise
     except Exception as e:
         print(f"Reset password error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+
+@router.get("/verify")
+async def verify_email(
+    token: str,
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """Verify user email with token."""
+    import hashlib
+    
+    try:
+        # Hash the provided token
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        
+        # Find user with matching verification token
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification link"
+            )
+        
+        if not user.verification_token or not user.verification_token_expires:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification link"
+            )
+        
+        # Check if token matches and hasn't expired
+        if user.verification_token != token_hash:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification link"
+            )
+        
+        if user.verification_token_expires < datetime.now():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification link has expired. Please register again."
+            )
+        
+        # Verify the user
+        user.email_verified = True
+        user.verification_token = None  # Clear the verification token
+        user.verification_token_expires = None  # Clear the verification token expiration
+        user.updated_at = datetime.utcnow()
+        db.commit()
+        
+        logger.info(f"Email verified successfully for user: {user.email}")
+        
+        return {
+            "message": "Email verified successfully! You can now log in.",
+            "email": user.email,
+            "email_verified": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Email verification error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error"

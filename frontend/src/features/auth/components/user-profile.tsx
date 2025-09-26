@@ -33,7 +33,7 @@ export function UserProfile() {
     setError(null);
     
     try {
-      const response = await get('/auth/me');
+      const response = await get('/api/auth/me');
       
       if (response.ok) {
         const userData = await response.json();

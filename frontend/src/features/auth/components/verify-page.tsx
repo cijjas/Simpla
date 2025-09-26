@@ -1,9 +1,10 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { CheckCircle, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Mail, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function VerifyPage() {
@@ -11,6 +12,38 @@ export default function VerifyPage() {
   const success = params.get('success') === 'true';
   const error = params.get('error');
   const email = params.get('email') ?? '';
+  const token = params.get('token');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Auto-verify if token and email are present
+  useEffect(() => {
+    if (token && email && !success && !error) {
+      setIsVerifying(true);
+      // Redirect to API route which will handle the verification
+      window.location.href = `/api/auth/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+    }
+  }, [token, email, success, error]);
+
+  if (isVerifying) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className='flex flex-col items-center justify-center min-h-[50vh] max-w-md mx-auto p-8 space-y-6 text-center'
+      >
+        <div className='rounded-full bg-blue-50 p-3 mb-2'>
+          <Loader2 className='h-12 w-12 text-blue-500 animate-spin' />
+        </div>
+        <h1 className='text-3xl font-bold tracking-tight'>
+          Verificando...
+        </h1>
+        <p className='text-muted-foreground text-lg'>
+          Estamos verificando tu cuenta, por favor espera un momento.
+        </p>
+      </motion.div>
+    );
+  }
 
   if (success) {
     return (
