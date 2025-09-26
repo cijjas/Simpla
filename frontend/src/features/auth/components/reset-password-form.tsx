@@ -23,18 +23,23 @@ export function ResetPasswordForm() {
     e.preventDefault();
     setStatus('submitting');
 
-    const res = await fetch('/api/auth/reset-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, token, password }),
-    });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, token, password }),
+      });
 
-    if (res.ok) {
-      setStatus('success');
-      setTimeout(() => router.push('/iniciar-sesion'), 3000); // Redirect after 3s
-    } else {
+      if (res.ok) {
+        setStatus('success');
+        setTimeout(() => router.push('/iniciar-sesion'), 3000); // Redirect after 3s
+      } else {
+        setStatus('error');
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
       setStatus('error');
     }
   }

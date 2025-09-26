@@ -3,10 +3,14 @@
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from routes.chat.router import router as chat_router
-from routes.auth.router import router as auth_router
-from routes.feedback.router import router as feedback_router
-from config import settings
+
+# Import feature routers
+from features.auth.routes.auth_router import router as auth_router
+from features.chat.routes.router import router as chat_router
+from features.feedback.routes.router import router as feedback_router
+
+# Import core configuration
+from core.config.config import settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,10 +34,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(chat_router)
-app.include_router(auth_router)
-app.include_router(feedback_router)
+# Include feature routers
+app.include_router(auth_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
+app.include_router(feedback_router, prefix="/api")
 
 
 @app.get("/")

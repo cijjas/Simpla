@@ -4,24 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "postinstall": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "check-all": "pnpm lint && pnpm type-check && pnpm build",
-    "db:studio": "dotenv -e .env.local -- prisma studio"
+    "check-all": "pnpm lint && pnpm type-check && pnpm build"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.9.1",
     "@google/generative-ai": "^0.24.1",
     "@headless-tree/core": "^1.0.1",
     "@headless-tree/react": "^1.0.1",
     "@hookform/resolvers": "^5.0.1",
     "@huggingface/inference": "^3.13.1",
     "@pinecone-database/pinecone": "^6.0.0",
-    "@prisma/client": "6.7.0",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-avatar": "^1.1.9",
     "@radix-ui/react-dialog": "^1.1.7",
@@ -61,7 +57,6 @@
     "next-auth": "^4.24.11",
     "next-themes": "^0.4.6",
     "nodemailer": "^6.10.1",
-    "prisma": "6.7.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.0",
     "react-day-picker": "^8.10.1",

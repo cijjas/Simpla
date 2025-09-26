@@ -11,6 +11,5 @@ export { default as AuthLayout } from './components/auth-layout';
 export { default as VerifyPage } from './components/verify-page';
 
 // Utils
-export { signup } from './utils/actions';
 export { authOptions } from './utils/auth';
 export { SignupFormSchema } from './utils/validation';

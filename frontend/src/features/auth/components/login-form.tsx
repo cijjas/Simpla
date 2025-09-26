@@ -60,8 +60,10 @@ export function LoginForm({
     setFormError(null);
     setLoading(true);
 
+    // Use NextAuth with backend integration
     const res = await signIn('credentials', {
-      ...values,
+      email: values.email,
+      password: values.password,
       redirect: false,
     });
 
@@ -77,6 +79,7 @@ export function LoginForm({
   async function handleGoogle() {
     setFormError(null);
     setLoading(true);
+    // Use NextAuth with backend integration
     await signIn('google', { callbackUrl: '/inicio' });
   }
 

@@ -17,15 +17,24 @@ export function ForgotPasswordForm() {
     e.preventDefault();
     setStatus('sending');
 
-    const res = await fetch('/api/auth/reset-request', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
 
-    setStatus(res.ok ? 'sent' : 'error');
+      if (res.ok) {
+        setStatus('sent');
+      } else {
+        setStatus('error');
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      setStatus('error');
+    }
   }
 
   return (
