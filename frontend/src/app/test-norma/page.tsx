@@ -80,7 +80,7 @@ export default function TestNormaPage() {
   }, []);
 
   // Render article with its children recursively
-  const renderArticle = (article: Article, depth: number = 0): JSX.Element => {
+  const renderArticle = (article: Article, depth: number = 0): React.JSX.Element => {
     const articleId = `article-${article.id}`;
     const isExpanded = expandedItems.has(articleId);
     const hasChildren = article.child_articles.length > 0;
@@ -118,7 +118,7 @@ export default function TestNormaPage() {
   };
 
   // Render division with its children and articles recursively
-  const renderDivision = (division: Division, depth: number = 0): JSX.Element => {
+  const renderDivision = (division: Division, depth: number = 0): React.JSX.Element => {
     const divisionId = `division-${division.id}`;
     const isExpanded = expandedItems.has(divisionId);
     const hasChildren = division.child_divisions.length > 0 || division.articles.length > 0;

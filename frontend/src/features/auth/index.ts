@@ -1,15 +1,6 @@
-// Auth feature exports
-export { auth } from './utils';
-export type { User, Session } from 'next-auth';
-
-// Components
-export { LoginForm } from './components/login-form';
-export { SignupForm } from './components/signup-form';
-export { ForgotPasswordForm } from './components/forgot-password-form';
-export { ResetPasswordForm } from './components/reset-password-form';
-export { default as AuthLayout } from './components/auth-layout';
-export { default as VerifyPage } from './components/verify-page';
-
-// Utils
-export { authOptions } from './utils/auth';
-export { SignupFormSchema } from './utils/validation';
+// Export all auth-related types and hooks
+export { useAuth } from './hooks/use-auth';
+export { useGoogleAuth } from './hooks/use-google-auth';
+export { useApi } from './hooks/use-api';
+export type { User, AuthState, AuthContextType } from './context/auth-context';
+export { AuthProvider } from './context/auth-context';

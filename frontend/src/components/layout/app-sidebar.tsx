@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/features/auth/hooks/use-auth"
 import {
   Search,
   MessageCircle,
@@ -85,14 +85,14 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   
-  // Update user data with session info
+  // Update user data with auth info
   const userData = {
     ...data.user,
-    name: session?.user?.name || data.user.name,
-    email: session?.user?.email || data.user.email,
-    avatar: session?.user?.image || data.user.avatar,
+    name: user?.name || data.user.name,
+    email: user?.email || data.user.email,
+    avatar: data.user.avatar, // We don't have avatar from backend yet
   }
 
   return (

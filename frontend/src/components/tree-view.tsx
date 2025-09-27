@@ -20,7 +20,7 @@ const dragOverVariants = cva(
 
 interface TreeDataItem {
     id: string
-    name: string
+    name: string | React.ReactNode
     icon?: any
     selectedIcon?: any
     openIcon?: any

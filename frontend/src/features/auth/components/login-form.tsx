@@ -1,7 +1,6 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,6 +19,8 @@ import {
 } from '@/components/ui/form';
 import { SiGoogle } from 'react-icons/si';
 import { cn } from '@/lib/utils';
+import { useAuth } from '../hooks/use-auth';
+import { useGoogleAuth } from '../hooks/use-google-auth';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Correo inválido' }),
@@ -36,6 +37,9 @@ export function LoginForm({
 
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const { login, isLoading: authLoading } = useAuth();
+  const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,27 +64,28 @@ export function LoginForm({
     setFormError(null);
     setLoading(true);
 
-    // Use NextAuth with backend integration
-    const res = await signIn('credentials', {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    });
-
+    const result = await login(values.email, values.password);
     setLoading(false);
 
-    if (res?.ok) {
+    if (result.success) {
       router.push('/inicio');
     } else {
-      setFormError('Correo o contraseña incorrectos');
+      setFormError(result.error || 'Correo o contraseña incorrectos');
     }
   }
 
   async function handleGoogle() {
     setFormError(null);
     setLoading(true);
-    // Use NextAuth with backend integration
-    await signIn('google', { callbackUrl: '/inicio' });
+    
+    const result = await googleSignIn();
+    setLoading(false);
+
+    if (result.success) {
+      router.push('/inicio');
+    } else {
+      setFormError(result.error || 'Error al iniciar sesión con Google');
+    }
   }
 
   return (
@@ -136,8 +141,8 @@ export function LoginForm({
 
           {formError && <p className='text-sm text-destructive'>{formError}</p>}
 
-          <Button type='submit' className='w-full' disabled={loading}>
-            {loading ? 'Ingresando…' : 'Iniciar sesión'}
+          <Button type='submit' className='w-full' disabled={loading || authLoading}>
+            {loading || authLoading ? 'Ingresando…' : 'Iniciar sesión'}
           </Button>
         </form>
       </Form>
@@ -155,10 +160,10 @@ export function LoginForm({
           className='w-full gap-2'
           type='button'
           onClick={handleGoogle}
-          disabled={loading}
+          disabled={loading || googleLoading}
         >
           <SiGoogle className='h-4 w-4' />
-          Iniciar sesión con Google
+          {loading || googleLoading ? 'Ingresando…' : 'Iniciar sesión con Google'}
         </Button>
       </div>
 

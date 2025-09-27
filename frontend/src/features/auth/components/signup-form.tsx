@@ -21,7 +21,7 @@ import {
 import { SiGoogle } from 'react-icons/si';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { signIn } from 'next-auth/react';
+import { useGoogleAuth } from '../hooks/use-google-auth';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es obligatorio' }),
@@ -37,6 +37,8 @@ export function SignupForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [userEmail, setUserEmail] = useState<string>('');
+
+  const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,8 +89,15 @@ export function SignupForm({
   async function handleGoogle() {
     setFormError(null);
     setStatus('submitting');
-    // Use NextAuth with backend integration
-    await signIn('google', { callbackUrl: '/inicio' });
+    
+    const result = await googleSignIn();
+    
+    if (result.success) {
+      router.push('/inicio');
+    } else {
+      setFormError(result.error || 'Error al registrarse con Google');
+      setStatus('error');
+    }
   }
 
   return (
@@ -211,10 +220,10 @@ export function SignupForm({
                 className='w-full gap-2'
                 type='button'
                 onClick={handleGoogle}
-                disabled={status === 'submitting'}
+                disabled={status === 'submitting' || googleLoading}
               >
                 <SiGoogle className='h-4 w-4' />
-                Registrarse con Google
+                {status === 'submitting' || googleLoading ? 'Registrando…' : 'Registrarse con Google'}
               </Button>
             </div>
 

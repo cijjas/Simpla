@@ -8,7 +8,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { useAuth } from "@/features/auth/hooks/use-auth"
 
 import {
   Avatar,
@@ -41,6 +41,12 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { logout } = useAuth()
+
+  const handleSignOut = async () => {
+    await logout()
+    window.location.href = '/'
+  }
 
   return (
     <SidebarMenu>
@@ -103,7 +109,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut />
               Cerrar sesión
             </DropdownMenuItem>

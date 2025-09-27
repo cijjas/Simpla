@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Mail, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 
 import {
   Sheet,
@@ -20,7 +20,12 @@ import { ThemeToggle } from '../ui/theme-toggle';
 
 export default function Header() {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  const handleSignOut = async () => {
+    await logout();
+    window.location.href = '/';
+  };
 
   return (
     <header className='w-full border-b py-6'>
@@ -64,20 +69,20 @@ export default function Header() {
         <div className='hidden md:flex items-center space-x-4'>
           <ThemeToggle />
 
-          {status === 'loading' && <span>Cargando…</span>}
+          {isLoading && <span>Cargando…</span>}
 
-          {status === 'authenticated' && (
+          {isAuthenticated && user && (
             <>
               <span className='text-sm text-muted-foreground'>
-                Sesión hasta: {new Date(session.expires).toLocaleString()}
+                Hola, {user.name || user.email}
               </span>
-              <Button onClick={() => signOut({ callbackUrl: '/' })}>
+              <Button onClick={handleSignOut}>
                 Cerrar sesión
               </Button>
             </>
           )}
 
-          {status === 'unauthenticated' && (
+          {!isAuthenticated && !isLoading && (
             <Link href='/iniciar-sesion'>
               <Button>Iniciar sesión</Button>
             </Link>

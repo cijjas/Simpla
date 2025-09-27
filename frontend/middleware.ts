@@ -1,41 +1,39 @@
-import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    // Additional middleware logic can go here
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow all auth routes (login, signup, etc.)
+  if (
+    pathname.startsWith('/iniciar-sesion') ||
+    pathname.startsWith('/registrarse') ||
+    pathname.startsWith('/recuperar-contrasena') ||
+    pathname.startsWith('/restablecer-contrasena') ||
+    pathname.startsWith('/verificar')
+  ) {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl;
+  }
 
-        // Allow all auth routes (login, signup, etc.)
-        if (
-          pathname.startsWith('/iniciar-sesion') ||
-          pathname.startsWith('/registrarse') ||
-          pathname.startsWith('/recuperar-contrasena') ||
-          pathname.startsWith('/restablecer-contrasena') ||
-          pathname.startsWith('/verificar')
-        ) {
-          return true;
-        }
+  // Allow public routes (landing page, etc.)
+  if (pathname === '/' || pathname.startsWith('/publico')) {
+    return NextResponse.next();
+  }
 
-        // Allow public routes (landing page, etc.)
-        if (pathname === '/' || pathname.startsWith('/publico')) {
-          return true;
-        }
+  // Check for access token in cookies or headers
+  const accessToken = request.cookies.get('access_token')?.value || 
+                     request.headers.get('authorization')?.replace('Bearer ', '');
 
-        // All other routes require authentication (this covers your entire (app) group)
-        return !!token;
-      },
-    },
-    pages: {
-      signIn: '/iniciar-sesion',
-    },
-  },
-);
+  // If no access token, redirect to login
+  if (!accessToken) {
+    const loginUrl = new URL('/iniciar-sesion', request.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Continue to the requested page
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

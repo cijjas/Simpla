@@ -3,11 +3,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { TreeView, TreeDataItem } from '@/components/tree-view';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Folder, Edit, Trash2, FileText, MoreHorizontal, Search, FolderPlus, Archive, BookOpen, Star, Tag, Users } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
 import { CreateFolderDialog } from './create-folder-dialog';
@@ -330,7 +330,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
             <AlertDialogTitle>¿Eliminar carpeta?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Se eliminará permanentemente la carpeta{' '}
-              <strong>"{folderToDelete?.name}"</strong> y todas sus subcarpetas.
+              <strong>&quot;{folderToDelete?.name}&quot;</strong> y todas sus subcarpetas.
               <br />
               <br />
               Para confirmar, escribe el nombre de la carpeta:

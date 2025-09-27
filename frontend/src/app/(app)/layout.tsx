@@ -1,29 +1,47 @@
+'use client';
+
 import type React from 'react';
-import { redirect } from 'next/navigation';
-import { auth } from '@/features/auth/utils';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import AppHeader from '@/components/layout/app-header';
 import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { cookies } from 'next/headers';
 
-export default async function AppLayout({
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session) redirect('/iniciar-sesion');
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
 
-  // Read the sidebar state from cookies
-  const cookieStore = cookies();
-  const sidebarState = (await cookieStore).get('sidebar_state');
-  const defaultOpen = sidebarState ? sidebarState.value === 'true' : true;
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/iniciar-sesion');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
+    <SidebarProvider defaultOpen={true}>
       <AppSidebar />
       <SidebarInset>
         <AppHeader />

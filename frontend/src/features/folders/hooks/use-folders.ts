@@ -3,14 +3,13 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
-import { apiClient } from '@/lib/fetch';
+import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useApi } from '@/features/auth/hooks/use-api';
 import { FolderTreeItem, FolderCreate, FolderUpdate, FolderMove, FolderResponse, FolderWithNormasResponse, FolderNormaCreate, FolderNormaUpdate } from '../types';
-// Import auth types to ensure module augmentation is applied
-import '@/features/auth/utils/auth';
 
 export function useFolders() {
-  const { data: session } = useSession();
+  const { isAuthenticated } = useAuth();
+  const api = useApi();
   const [folders, setFolders] = useState<FolderTreeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +19,7 @@ export function useFolders() {
       setLoading(true);
       setError(null);
 
-      const data = await apiClient.get<FolderTreeItem[]>('/api/folders');
+      const data = await api.get<FolderTreeItem[]>('/api/folders');
       setFolders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -28,37 +27,37 @@ export function useFolders() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [api]);
 
   const createFolder = useCallback(async (folderData: FolderCreate): Promise<FolderResponse> => {
-    const newFolder = await apiClient.post<FolderResponse>('/api/folders', folderData);
+    const newFolder = await api.post<FolderResponse>('/api/folders', folderData);
     await fetchFolders(); // Refresh the folder list
     return newFolder;
-  }, [fetchFolders]);
+  }, [api, fetchFolders]);
 
   const updateFolder = useCallback(async (folderId: string, folderData: FolderUpdate): Promise<FolderResponse> => {
-    const updatedFolder = await apiClient.put<FolderResponse>(`/api/folders/${folderId}`, folderData);
+    const updatedFolder = await api.put<FolderResponse>(`/api/folders/${folderId}`, folderData);
     await fetchFolders(); // Refresh the folder list
     return updatedFolder;
-  }, [fetchFolders]);
+  }, [api, fetchFolders]);
 
   const moveFolder = useCallback(async (folderId: string, moveData: FolderMove): Promise<FolderResponse> => {
-    const movedFolder = await apiClient.patch<FolderResponse>(`/api/folders/${folderId}/move`, moveData);
+    const movedFolder = await api.patch<FolderResponse>(`/api/folders/${folderId}/move`, moveData);
     await fetchFolders(); // Refresh the folder list
     return movedFolder;
-  }, [fetchFolders]);
+  }, [api, fetchFolders]);
 
   const deleteFolder = useCallback(async (folderId: string): Promise<void> => {
-    await apiClient.delete(`/api/folders/${folderId}`);
+    await api.delete(`/api/folders/${folderId}`);
     await fetchFolders(); // Refresh the folder list
-  }, [fetchFolders]);
+  }, [api, fetchFolders]);
 
   useEffect(() => {
-    if (session?.user && 'accessToken' in session.user && session.user.accessToken) {
+    if (isAuthenticated) {
       fetchFolders();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user]);
+  }, [isAuthenticated]);
 
   return {
     folders,
@@ -73,7 +72,8 @@ export function useFolders() {
 }
 
 export function useFolderNormas(folderId: string) {
-  const { data: session } = useSession();
+  const { isAuthenticated } = useAuth();
+  const api = useApi();
   const [folderWithNormas, setFolderWithNormas] = useState<FolderWithNormasResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export function useFolderNormas(folderId: string) {
       setLoading(true);
       setError(null);
 
-      const data = await apiClient.get<FolderWithNormasResponse>(`/api/folders/${folderId}/normas`);
+      const data = await api.get<FolderWithNormasResponse>(`/api/folders/${folderId}/normas`);
       setFolderWithNormas(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -97,31 +97,31 @@ export function useFolderNormas(folderId: string) {
     } finally {
       setLoading(false);
     }
-  }, [folderId]);
+  }, [folderId, api]);
 
   const addNormaToFolder = useCallback(async (normaData: FolderNormaCreate) => {
-    const result = await apiClient.post(`/api/folders/${folderId}/normas`, normaData);
+    const result = await api.post(`/api/folders/${folderId}/normas`, normaData);
     await fetchFolderNormas(); // Refresh the folder normas
     return result;
-  }, [folderId, fetchFolderNormas]);
+  }, [folderId, api, fetchFolderNormas]);
 
   const updateFolderNorma = useCallback(async (normaId: number, updateData: FolderNormaUpdate) => {
-    const result = await apiClient.put(`/api/folders/${folderId}/normas/${normaId}`, updateData);
+    const result = await api.put(`/api/folders/${folderId}/normas/${normaId}`, updateData);
     await fetchFolderNormas(); // Refresh the folder normas
     return result;
-  }, [folderId, fetchFolderNormas]);
+  }, [folderId, api, fetchFolderNormas]);
 
   const removeNormaFromFolder = useCallback(async (normaId: number) => {
-    await apiClient.delete(`/api/folders/${folderId}/normas/${normaId}`);
+    await api.delete(`/api/folders/${folderId}/normas/${normaId}`);
     await fetchFolderNormas(); // Refresh the folder normas
-  }, [folderId, fetchFolderNormas]);
+  }, [folderId, api, fetchFolderNormas]);
 
   useEffect(() => {
-    if (session?.user && 'accessToken' in session.user && session.user.accessToken && folderId) {
+    if (isAuthenticated && folderId) {
       fetchFolderNormas();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user, folderId]);
+  }, [isAuthenticated, folderId]);
 
   return {
     folderWithNormas,

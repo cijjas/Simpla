@@ -2,9 +2,9 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useBackendApi } from '../hooks/use-backend-api';
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '../hooks/use-auth';
+import { useApi } from '../hooks/use-api';
 
 interface BackendUser {
   id: string;
@@ -16,41 +16,34 @@ interface BackendUser {
 }
 
 export function UserProfile() {
-  const { data: session, status } = useSession();
-  const { get, isAuthenticated } = useBackendApi();
+  const { user: authUser, isAuthenticated, isLoading } = useAuth();
+  const api = useApi();
   const [user, setUser] = useState<BackendUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isAuthenticated && status === 'authenticated') {
-      fetchUserProfile();
-    }
-  }, [isAuthenticated, status]);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await get('/api/auth/me');
-      
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.detail || 'Failed to fetch user profile');
-      }
+      const userData = await api.get<BackendUser>('/api/auth/me');
+      setUser(userData);
     } catch (err) {
-      setError('Network error occurred');
+      setError(err instanceof Error ? err.message : 'Failed to fetch user profile');
       console.error('Error fetching user profile:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [api]);
 
-  if (status === 'loading' || loading) {
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserProfile();
+    }
+  }, [isAuthenticated, fetchUserProfile]);
+
+  if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center p-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -128,8 +121,8 @@ export function UserProfile() {
       <div className="px-6 py-4 bg-gray-50">
         <h3 className="text-sm font-medium text-gray-600 mb-2">Session Info</h3>
         <div className="text-xs text-gray-500">
-          <p>Session ID: {session?.user?.id}</p>
-          <p>Has Access Token: {session?.user?.accessToken ? 'Yes' : 'No'}</p>
+          <p>User ID: {authUser?.id}</p>
+          <p>Provider: {authUser?.provider}</p>
         </div>
       </div>
     </div>

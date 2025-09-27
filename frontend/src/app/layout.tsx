@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import './globals.css';
 
-import AuthSessionProvider from '@/components/auth-session-provider';
+import { AuthProvider } from '@/features/auth/context/auth-context';
 import { ThemeProvider } from 'next-themes';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -56,11 +56,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} min-h-screen flex flex-col antialiased`}
       >
-        <AuthSessionProvider>
+        <AuthProvider>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
             {children}
           </ThemeProvider>
-        </AuthSessionProvider>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>
