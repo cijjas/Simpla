@@ -2,16 +2,16 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useFolders } from '../hooks/use-folders';
-import { FolderTreeItem } from '../types';
+import { FolderTreeItem, FolderCreate, FolderUpdate, FolderMove, FolderResponse } from '../types';
 
 interface FoldersContextType {
   folders: FolderTreeItem[];
   loading: boolean;
   error: string | null;
   fetchFolders: () => Promise<void>;
-  createFolder: (folderData: any) => Promise<any>;
-  updateFolder: (folderId: string, folderData: any) => Promise<any>;
-  moveFolder: (folderId: string, moveData: any) => Promise<any>;
+  createFolder: (folderData: FolderCreate) => Promise<FolderResponse>;
+  updateFolder: (folderId: string, folderData: FolderUpdate) => Promise<FolderResponse>;
+  moveFolder: (folderId: string, moveData: FolderMove) => Promise<FolderResponse>;
   deleteFolder: (folderId: string) => Promise<void>;
 }
 

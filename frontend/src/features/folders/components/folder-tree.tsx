@@ -62,7 +62,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   // Icon mapping
   const getIcon = (iconName: string) => {
-    const iconMap: Record<string, any> = {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
       'folder': Folder,
       'folder-plus': FolderPlus,
       'archive': Archive,

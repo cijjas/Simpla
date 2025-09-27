@@ -1,8 +1,40 @@
 'use client';
 
+interface GoogleAuthConfig {
+  client_id: string;
+  callback: (response: GoogleAuthResponse) => void;
+  auto_select: boolean;
+  cancel_on_tap_outside: boolean;
+  use_fedcm_for_prompt: boolean;
+}
+
+interface GoogleButtonConfig {
+  theme: string;
+  size: string;
+  type: string;
+  shape: string;
+  text: string;
+  locale: string;
+}
+
+interface GooglePromptNotification {
+  isNotDisplayed(): boolean;
+  isSkippedMoment(): boolean;
+}
+
 declare global {
   interface Window {
-    google: any;
+    google: {
+      accounts: {
+        id: {
+          initialize: (config: GoogleAuthConfig) => void;
+          callback: (response: GoogleAuthResponse) => void;
+          renderButton: (element: HTMLElement, config: GoogleButtonConfig) => void;
+          prompt: (callback?: (notification: GooglePromptNotification) => void) => void;
+          disableAutoSelect: () => void;
+        };
+      };
+    };
   }
 }
 
@@ -30,7 +62,10 @@ class GoogleAuthService {
 
   async initialize(): Promise<boolean> {
     if (this.isInitialized) return true;
-    if (!this.clientId) return false;
+    if (!this.clientId || this.clientId === 'your_google_client_id_here') {
+      console.warn('Google Client ID not properly configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local file');
+      return false;
+    }
 
     return new Promise((resolve) => {
       if (window.google) {
@@ -59,14 +94,20 @@ class GoogleAuthService {
   private setupGoogleAuth() {
     if (!window.google) return;
 
-    window.google.accounts.id.initialize({
-      client_id: this.clientId,
-      callback: this.handleCredentialResponse.bind(this),
-      auto_select: false,
-      cancel_on_tap_outside: true,
-    });
+    try {
+      window.google.accounts.id.initialize({
+        client_id: this.clientId,
+        callback: this.handleCredentialResponse.bind(this),
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: false, // Disable FedCM to avoid the error
+      });
 
-    this.isInitialized = true;
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize Google Auth:', error);
+      this.isInitialized = false;
+    }
   }
 
   private handleCredentialResponse(response: GoogleAuthResponse) {
@@ -77,27 +118,66 @@ class GoogleAuthService {
   async signIn(): Promise<string | null> {
     if (!this.isInitialized) {
       const initialized = await this.initialize();
-      if (!initialized) return null;
+      if (!initialized) {
+        console.error('Google Auth initialization failed');
+        return null;
+      }
+    }
+
+    if (!window.google || !window.google.accounts) {
+      console.error('Google Identity Services not loaded');
+      return null;
     }
 
     return new Promise((resolve) => {
-      // Override the callback for this specific sign-in attempt
-      const originalCallback = window.google.accounts.id.callback;
-      
-      window.google.accounts.id.callback = (response: GoogleAuthResponse) => {
-        // Restore original callback
-        window.google.accounts.id.callback = originalCallback;
-        resolve(response.credential);
-      };
-
-      // Trigger the sign-in popup
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      try {
+        // Override the callback for this specific sign-in attempt
+        const originalCallback = window.google.accounts.id.callback;
+        
+        window.google.accounts.id.callback = (response: GoogleAuthResponse) => {
           // Restore original callback
           window.google.accounts.id.callback = originalCallback;
-          resolve(null);
+          resolve(response.credential);
+        };
+
+        // Use renderButton to trigger sign-in
+        const buttonDiv = document.createElement('div');
+        buttonDiv.style.display = 'none';
+        document.body.appendChild(buttonDiv);
+
+        window.google.accounts.id.renderButton(buttonDiv, {
+          theme: 'outline',
+          size: 'large',
+          type: 'standard',
+          shape: 'rectangular',
+          text: 'signin_with',
+          locale: 'es',
+        });
+
+        // Simulate button click
+        const button = buttonDiv.querySelector('div[role="button"]') as HTMLElement;
+        if (button) {
+          button.click();
+        } else {
+          // Fallback to prompt
+          window.google.accounts.id.prompt((notification: GooglePromptNotification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              window.google.accounts.id.callback = originalCallback;
+              resolve(null);
+            }
+          });
         }
-      });
+
+        // Clean up
+        setTimeout(() => {
+          if (document.body.contains(buttonDiv)) {
+            document.body.removeChild(buttonDiv);
+          }
+        }, 1000);
+      } catch (error) {
+        console.error('Google sign-in error:', error);
+        resolve(null);
+      }
     });
   }
 
@@ -131,7 +211,12 @@ class GoogleAuthService {
       );
 
       // Trigger popup
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.prompt((notification: GooglePromptNotification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          window.google.accounts.id.callback = originalCallback;
+          resolve(null);
+        }
+      });
     });
   }
 

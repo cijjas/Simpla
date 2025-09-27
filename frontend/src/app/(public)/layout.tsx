@@ -2,9 +2,11 @@
 
 // app/(public)/layout.tsx
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import { LandHeader } from '@/features/landing';
 import { Footer } from '@/components/layout/Footer';
+import { LandFooter } from '@/features/landing';
 import { FeedbackFloater } from '@/features/feedback/components/feedback-floater';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
@@ -15,6 +17,7 @@ export default function PublicLayout({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -37,11 +40,16 @@ export default function PublicLayout({
     return null;
   }
 
+  // Use LandHeader and LandFooter for home page, regular Header and Footer for other routes
+  const isHomePage = pathname === '/';
+  const HeaderComponent = isHomePage ? LandHeader : Header;
+  const FooterComponent = isHomePage ? LandFooter : Footer;
+
   return (
     <>
-      <Header />
+      <HeaderComponent />
       <main className='flex-1'>{children}</main>
-      <Footer />
+      <FooterComponent />
       <FeedbackFloater />
     </>
   );

@@ -20,7 +20,10 @@ export default function AppLayout({
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect if we're done loading AND not authenticated
+    // This prevents premature redirects during auth initialization
     if (!isLoading && !isAuthenticated) {
+      console.log('User not authenticated, redirecting to login');
       router.push('/iniciar-sesion');
     }
   }, [isAuthenticated, isLoading, router]);
