@@ -2,15 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const backendBaseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
 
-export async function GET(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const backendUrl = `${backendBaseUrl}/api/test-folders/`;
+    const body = await req.json();
+    const backendUrl = `${backendBaseUrl}/api/folders/${params.id}/move/`;
+    
+    // Get authorization header from request
+    const authHeader = req.headers.get('authorization');
     
     const backendRes = await fetch(backendUrl, { 
-      cache: 'no-store',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-      }
+        ...(authHeader && { 'Authorization': authHeader }),
+      },
+      body: JSON.stringify(body)
     });
 
     if (!backendRes.ok) {
@@ -31,7 +40,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching test folders from backend:', error);
+    console.error('Error moving folder:', error);
     
     return NextResponse.json(
       { 

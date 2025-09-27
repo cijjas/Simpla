@@ -25,6 +25,13 @@ class FolderUpdate(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
     icon: Optional[str] = Field(None, max_length=50)
+    parent_folder_id: Optional[str] = None
+
+
+class FolderMove(BaseModel):
+    """Schema for moving a folder to a different parent."""
+    parent_folder_id: Optional[str] = None
+    order_index: Optional[int] = None
 
 
 class FolderNormaBase(BaseModel):

@@ -9,8 +9,7 @@ from features.auth.routes.auth_router import router as auth_router
 from features.chat.routes.router import router as chat_router
 from features.feedback.routes.router import router as feedback_router
 from features.infoleg.routes.norma_router import router as norma_router
-# from features.folders.routes.folder_router import router as folder_router
-from features.folders.routes.test_folder_router import router as test_folder_router
+from features.folders.routes.folder_router import router as folder_router
 
 # Import core configuration and logging
 from core.config.config import settings
@@ -48,8 +47,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(feedback_router, prefix="/api")
 app.include_router(norma_router, prefix="/api")
-# app.include_router(folder_router, prefix="/api")
-app.include_router(test_folder_router, prefix="/api")
+app.include_router(folder_router, prefix="/api")
 
 
 @app.get("/api/")

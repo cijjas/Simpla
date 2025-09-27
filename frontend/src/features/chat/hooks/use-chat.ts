@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { apiClient } from '@/lib/fetch';
 import type { Message, RagScope } from '../types'; // Ensure RagScope is imported
 
 export function useChat() {
@@ -47,20 +48,10 @@ export function useChat() {
     });
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: q,
-          provinces: currentScope.provinces, // Send current scope to API
-        }),
+      const { answer } = await apiClient.post<{ answer: string }>('/api/chat', {
+        question: q,
+        provinces: currentScope.provinces, // Send current scope to API
       });
-
-      if (!res.ok) {
-        throw new Error(`API error: ${res.statusText}`);
-      }
-      const { answer } = await res.json();
       setMessages(m => [
         ...m,
         {

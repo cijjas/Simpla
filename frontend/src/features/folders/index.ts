@@ -1,0 +1,23 @@
+/**
+ * Folders feature exports
+ */
+
+export { FolderTree } from './components/folder-tree';
+export { FolderContent } from './components/folder-content';
+export { CreateFolderDialog } from './components/create-folder-dialog';
+export { EditFolderDialog } from './components/edit-folder-dialog';
+
+export { useFolders, useFolderNormas } from './hooks/use-folders';
+
+export type {
+  FolderTreeItem,
+  FolderResponse,
+  FolderCreate,
+  FolderUpdate,
+  FolderMove,
+  NormaInFolder,
+  FolderNormaWithNorma,
+  FolderWithNormasResponse,
+  FolderNormaCreate,
+  FolderNormaUpdate,
+} from './types';

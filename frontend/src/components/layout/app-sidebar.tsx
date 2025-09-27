@@ -8,9 +8,6 @@ import {
   Compass,
   Folder,
   BookOpen,
-  Settings2,
-  SquareTerminal,
-  Bot,
   Heart,
 } from "lucide-react"
 

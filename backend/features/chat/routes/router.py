@@ -4,6 +4,8 @@ import logging
 from fastapi import APIRouter, HTTPException, Depends
 from features.chat.models.models import ChatRequest, ChatResponse, RagRequest, RagResponse, ChatMessage
 from features.chat.services.rag_service import RAGService
+from features.auth.utils.auth import get_current_user
+from features.auth.models.user import User
 from core.config.config import settings
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,7 @@ def get_rag_service() -> RAGService:
 @router.post("/", response_model=RagResponse)
 async def rag_endpoint(
     request: RagRequest,
+    current_user: User = Depends(get_current_user),
     rag_service: RAGService = Depends(get_rag_service)
 ):
     """
@@ -25,6 +28,8 @@ async def rag_endpoint(
     
     Accepts question and provinces, returns AI-generated answer based on 
     retrieved context from the vector database.
+    
+    Requires authentication - user must be logged in to use chat functionality.
     """
     try:
         answer = await rag_service.generate_answer(
@@ -48,7 +53,10 @@ async def rag_endpoint(
 
 
 @router.post("/conversational", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     Conversational Chat endpoint - for future conversational features.
     

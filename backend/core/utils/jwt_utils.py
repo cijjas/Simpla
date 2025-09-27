@@ -45,7 +45,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[Dict[str, A
             
         # Check expiration
         exp = payload.get("exp")
-        if exp is None or datetime.fromtimestamp(exp) < datetime.utcnow():
+        if exp is None or datetime.utcfromtimestamp(exp) < datetime.utcnow():
             return None
             
         return payload

@@ -2,61 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const backendBaseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const backendUrl = `${backendBaseUrl}/api/folders/${params.id}/`;
-    
-    // Get authorization header from request
-    const authHeader = req.headers.get('authorization');
-    
-    const backendRes = await fetch(backendUrl, { 
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authHeader && { 'Authorization': authHeader }),
-      }
-    });
-
-    if (!backendRes.ok) {
-      const errorText = await backendRes.text();
-      console.error(`Backend error: ${backendRes.status} - ${errorText}`);
-      
-      return NextResponse.json(
-        { 
-          error: 'Error del servidor backend',
-          details: errorText,
-          status: backendRes.status 
-        }, 
-        { status: backendRes.status }
-      );
-    }
-
-    const data = await backendRes.json();
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error('Error fetching folder from backend:', error);
-    
-    return NextResponse.json(
-      { 
-        error: 'Error de conexión con el servidor backend',
-        details: error instanceof Error ? error.message : 'Error desconocido'
-      }, 
-      { status: 500 }
-    );
-  }
-}
-
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string; normaId: string }> }
 ) {
+  const { id, normaId } = await params;
+
   try {
     const body = await req.json();
-    const backendUrl = `${backendBaseUrl}/api/folders/${params.id}/`;
+    const backendUrl = `${backendBaseUrl}/api/folders/${id}/normas/${normaId}/`;
     
     // Get authorization header from request
     const authHeader = req.headers.get('authorization');
@@ -88,7 +42,7 @@ export async function PUT(
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error updating folder:', error);
+    console.error('Error updating folder norma:', error);
     
     return NextResponse.json(
       { 
@@ -102,10 +56,12 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string; normaId: string }> }
 ) {
+  const { id, normaId } = await params;
+
   try {
-    const backendUrl = `${backendBaseUrl}/api/folders/${params.id}/`;
+    const backendUrl = `${backendBaseUrl}/api/folders/${id}/normas/${normaId}/`;
     
     // Get authorization header from request
     const authHeader = req.headers.get('authorization');
@@ -135,7 +91,7 @@ export async function DELETE(
     return new NextResponse(null, { status: 204 });
 
   } catch (error) {
-    console.error('Error deleting folder:', error);
+    console.error('Error removing norma from folder:', error);
     
     return NextResponse.json(
       { 

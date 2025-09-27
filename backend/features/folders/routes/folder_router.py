@@ -3,17 +3,17 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from core.database.base import get_db
 from features.folders.models.folder import Folder, FolderNorma
 from features.folders.schemas.folder import (
-    FolderCreate, FolderUpdate, FolderResponse, FolderTreeResponse,
+    FolderCreate, FolderUpdate, FolderMove, FolderResponse, FolderTreeResponse,
     FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma,
     FolderWithNormasResponse, FolderCreateResponse
 )
 from features.infoleg.models.norma import NormaStructured
 from features.auth.models.user import User
-# from features.auth.utils.auth import get_current_user
+from features.auth.utils.auth import get_current_user
 from core.utils.logging_config import get_logger
 import uuid
 
@@ -54,95 +54,105 @@ def build_folder_tree(folders: List[Folder]) -> List[FolderTreeResponse]:
 
 @router.get("/folders/", response_model=List[FolderTreeResponse])
 async def get_user_folders(
-    db: Session = Depends(get_db)
-    # current_user: User = Depends(get_current_user)  # Temporarily disabled for testing
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get all folders for the current user in hierarchical tree structure."""
-    logger.info("Fetching folders (authentication temporarily disabled)")
+    logger.info(f"Fetching folders for user {current_user.id}")
     
-    # For testing, return empty list since no users are authenticated yet
-    # In production, this would be:
-    # folders = db.query(Folder).filter(Folder.user_id == current_user.id)...
+    folders = db.query(Folder).filter(
+        Folder.user_id == current_user.id
+    ).options(
+        joinedload(Folder.folder_normas)
+    ).order_by(Folder.order_index).all()
     
-    return []
+    return build_folder_tree(folders)
 
 
-# Temporarily disabled for testing
-# @router.post("/folders/", response_model=FolderCreateResponse, status_code=status.HTTP_201_CREATED)
-# async def create_folder(
-#     folder_data: FolderCreate,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """Create a new folder."""
-#     logger.info(f"Creating folder '{folder_data.name}' for user {current_user.id}")
-#     
-#     # Check if parent folder exists and belongs to user
-#     level = 0
-#     if folder_data.parent_folder_id:
-#         parent_folder = db.query(Folder).filter(
-#             and_(
-#                 Folder.id == folder_data.parent_folder_id,
-#                 Folder.user_id == current_user.id
-#             )
-#         ).first()
-#         
-#         if not parent_folder:
-#             raise HTTPException(
-#                 status_code=status.HTTP_404_NOT_FOUND,
-#                 detail="Parent folder not found"
-#             )
-#         
-#         level = parent_folder.level + 1
-#         if level > 2:
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail="Maximum folder depth is 2 levels"
-#             )
-#     
-#     # Check if folder name already exists at the same level
-#     existing_folder = db.query(Folder).filter(
-#         and_(
-#             Folder.user_id == current_user.id,
-#             Folder.name == folder_data.name,
-#             Folder.parent_folder_id == folder_data.parent_folder_id
-#         )
-#     ).first()
-#     
-#     if existing_folder:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Folder with this name already exists at this level"
-#         )
-#     
-#     # Create new folder
-#     folder = Folder(
-#         id=str(uuid.uuid4()),
-#         user_id=current_user.id,
-#         name=folder_data.name,
-#         description=folder_data.description,
-#         parent_folder_id=folder_data.parent_folder_id,
-#         level=level,
-#         color=folder_data.color,
-#         icon=folder_data.icon
-#     )
-#     
-#     db.add(folder)
-#     db.commit()
-#     db.refresh(folder)
-#     
-#     logger.info(f"Created folder {folder.id} for user {current_user.id}")
-#     return FolderCreateResponse(
-#         id=folder.id,
-#         name=folder.name,
-#         description=folder.description,
-#         parent_folder_id=folder.parent_folder_id,
-#         level=folder.level,
-#         color=folder.color,
-#         icon=folder.icon,
-#         order_index=folder.order_index,
-#         created_at=folder.created_at
-#     )
+@router.post("/folders/", response_model=FolderCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_folder(
+    folder_data: FolderCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new folder."""
+    logger.info(f"Creating folder '{folder_data.name}' for user {current_user.id}")
+    
+    # Check if parent folder exists and belongs to user
+    level = 0
+    if folder_data.parent_folder_id:
+        parent_folder = db.query(Folder).filter(
+            and_(
+                Folder.id == folder_data.parent_folder_id,
+                Folder.user_id == current_user.id
+            )
+        ).first()
+        
+        if not parent_folder:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Parent folder not found"
+            )
+        
+        level = parent_folder.level + 1
+        if level > 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Maximum folder depth is 2 levels"
+            )
+    
+    # Check if folder name already exists at the same level
+    existing_folder = db.query(Folder).filter(
+        and_(
+            Folder.user_id == current_user.id,
+            Folder.name == folder_data.name,
+            Folder.parent_folder_id == folder_data.parent_folder_id
+        )
+    ).first()
+    
+    if existing_folder:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Folder with this name already exists at this level"
+        )
+    
+    # Get next order index for this level
+    max_order = db.query(func.max(Folder.order_index)).filter(
+        and_(
+            Folder.user_id == current_user.id,
+            Folder.parent_folder_id == folder_data.parent_folder_id
+        )
+    ).scalar() or 0
+    
+    # Create new folder
+    folder = Folder(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        name=folder_data.name,
+        description=folder_data.description,
+        parent_folder_id=folder_data.parent_folder_id,
+        level=level,
+        color=folder_data.color,
+        icon=folder_data.icon,
+        order_index=max_order + 1
+    )
+    
+    db.add(folder)
+    db.commit()
+    db.refresh(folder)
+    
+    logger.info(f"Created folder {folder.id} for user {current_user.id}")
+    return FolderCreateResponse(
+        id=folder.id,
+        name=folder.name,
+        description=folder.description,
+        parent_folder_id=folder.parent_folder_id,
+        level=folder.level,
+        color=folder.color,
+        icon=folder.icon,
+        order_index=folder.order_index,
+        created_at=folder.created_at
+    )
 
 
 @router.get("/folders/{folder_id}/", response_model=FolderResponse)
@@ -224,6 +234,55 @@ async def update_folder(
                 detail="Folder with this name already exists at this level"
             )
     
+    # Handle parent folder change
+    if folder_data.parent_folder_id is not None and folder_data.parent_folder_id != folder.parent_folder_id:
+        # Validate new parent
+        if folder_data.parent_folder_id:
+            parent_folder = db.query(Folder).filter(
+                and_(
+                    Folder.id == folder_data.parent_folder_id,
+                    Folder.user_id == current_user.id
+                )
+            ).first()
+            
+            if not parent_folder:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Parent folder not found"
+                )
+            
+            new_level = parent_folder.level + 1
+            if new_level > 2:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Maximum folder depth is 2 levels"
+                )
+            
+            # Check for circular reference
+            if folder_data.parent_folder_id == folder_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot move folder to itself"
+                )
+            
+            # Check if moving to a descendant
+            def is_descendant(parent_id: str, target_id: str) -> bool:
+                descendants = db.query(Folder).filter(Folder.parent_folder_id == parent_id).all()
+                for desc in descendants:
+                    if desc.id == target_id or is_descendant(desc.id, target_id):
+                        return True
+                return False
+            
+            if is_descendant(folder_id, folder_data.parent_folder_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot move folder to its own descendant"
+                )
+            
+            folder.level = new_level
+        else:
+            folder.level = 0
+    
     # Update folder fields
     update_data = folder_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -233,6 +292,81 @@ async def update_folder(
     db.refresh(folder)
     
     logger.info(f"Updated folder {folder_id} for user {current_user.id}")
+    return FolderResponse(
+        id=folder.id,
+        name=folder.name,
+        description=folder.description,
+        parent_folder_id=folder.parent_folder_id,
+        level=folder.level,
+        color=folder.color,
+        icon=folder.icon,
+        order_index=folder.order_index,
+        created_at=folder.created_at,
+        updated_at=folder.updated_at,
+        norma_count=len(folder.folder_normas)
+    )
+
+
+@router.patch("/folders/{folder_id}/move/", response_model=FolderResponse)
+async def move_folder(
+    folder_id: str,
+    move_data: FolderMove,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Move a folder to a different parent or change its order."""
+    logger.info(f"Moving folder {folder_id} for user {current_user.id}")
+    
+    folder = db.query(Folder).filter(
+        and_(
+            Folder.id == folder_id,
+            Folder.user_id == current_user.id
+        )
+    ).first()
+    
+    if not folder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Folder not found"
+        )
+    
+    # Handle parent change
+    if move_data.parent_folder_id is not None and move_data.parent_folder_id != folder.parent_folder_id:
+        if move_data.parent_folder_id:
+            parent_folder = db.query(Folder).filter(
+                and_(
+                    Folder.id == move_data.parent_folder_id,
+                    Folder.user_id == current_user.id
+                )
+            ).first()
+            
+            if not parent_folder:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Parent folder not found"
+                )
+            
+            new_level = parent_folder.level + 1
+            if new_level > 2:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Maximum folder depth is 2 levels"
+                )
+            
+            folder.level = new_level
+        else:
+            folder.level = 0
+        
+        folder.parent_folder_id = move_data.parent_folder_id
+    
+    # Handle order change
+    if move_data.order_index is not None:
+        folder.order_index = move_data.order_index
+    
+    db.commit()
+    db.refresh(folder)
+    
+    logger.info(f"Moved folder {folder_id} for user {current_user.id}")
     return FolderResponse(
         id=folder.id,
         name=folder.name,
@@ -392,6 +526,11 @@ async def add_norma_to_folder(
             detail="Norma is already in this folder"
         )
     
+    # Get next order index
+    max_order = db.query(func.max(FolderNorma.order_index)).filter(
+        FolderNorma.folder_id == folder_id
+    ).scalar() or 0
+    
     # Create folder-norma relationship
     folder_norma = FolderNorma(
         id=str(uuid.uuid4()),
@@ -399,7 +538,7 @@ async def add_norma_to_folder(
         norma_id=norma_data.norma_id,
         added_by=current_user.id,
         notes=norma_data.notes,
-        order_index=norma_data.order_index
+        order_index=norma_data.order_index if norma_data.order_index is not None else max_order + 1
     )
     
     db.add(folder_norma)
@@ -418,6 +557,72 @@ async def add_norma_to_folder(
             "sancion": norma.sancion.isoformat() if norma.sancion else None,
             "publicacion": norma.publicacion.isoformat() if norma.publicacion else None,
             "estado": norma.estado
+        },
+        added_at=folder_norma.added_at,
+        order_index=folder_norma.order_index,
+        notes=folder_norma.notes
+    )
+
+
+@router.put("/folders/{folder_id}/normas/{norma_id}/", response_model=FolderNormaWithNorma)
+async def update_folder_norma(
+    folder_id: str,
+    norma_id: int,
+    update_data: FolderNormaUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update folder-norma relationship (notes, order)."""
+    logger.info(f"Updating norma {norma_id} in folder {folder_id} for user {current_user.id}")
+    
+    # Check if folder exists and belongs to user
+    folder = db.query(Folder).filter(
+        and_(
+            Folder.id == folder_id,
+            Folder.user_id == current_user.id
+        )
+    ).first()
+    
+    if not folder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Folder not found"
+        )
+    
+    # Find folder-norma relationship
+    folder_norma = db.query(FolderNorma).filter(
+        and_(
+            FolderNorma.folder_id == folder_id,
+            FolderNorma.norma_id == norma_id
+        )
+    ).options(joinedload(FolderNorma.norma)).first()
+    
+    if not folder_norma:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Norma not found in this folder"
+        )
+    
+    # Update fields
+    update_fields = update_data.model_dump(exclude_unset=True)
+    for field, value in update_fields.items():
+        setattr(folder_norma, field, value)
+    
+    db.commit()
+    db.refresh(folder_norma)
+    
+    logger.info(f"Updated norma {norma_id} in folder {folder_id}")
+    return FolderNormaWithNorma(
+        id=folder_norma.id,
+        norma={
+            "id": folder_norma.norma.id,
+            "infoleg_id": folder_norma.norma.infoleg_id,
+            "titulo_resumido": folder_norma.norma.titulo_resumido,
+            "jurisdiccion": folder_norma.norma.jurisdiccion,
+            "tipo_norma": folder_norma.norma.tipo_norma,
+            "sancion": folder_norma.norma.sancion.isoformat() if folder_norma.norma.sancion else None,
+            "publicacion": folder_norma.norma.publicacion.isoformat() if folder_norma.norma.publicacion else None,
+            "estado": folder_norma.norma.estado
         },
         added_at=folder_norma.added_at,
         order_index=folder_norma.order_index,

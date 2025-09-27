@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 
 import {
   Breadcrumb,
@@ -45,6 +44,7 @@ function renderBreadcrumb(pathname: string) {
     norma: 'Norma',
     chat: 'Chat',
     carpetas: 'Carpetas',
+    folders: 'Carpetas',
     settings: 'Configuración',
   };
 
@@ -76,7 +76,6 @@ function renderBreadcrumb(pathname: string) {
 }
 
 export default function AppHeader() {
-  const { data: session } = useSession();
   const pathname = usePathname();
 
   return (
