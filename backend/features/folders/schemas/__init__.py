@@ -1,0 +1,1 @@
+"""Folder schemas package."""

@@ -1,0 +1,1 @@
+"""InfoLeg models package."""

@@ -1,0 +1,1 @@
+"""InfoLeg feature package."""
