@@ -85,7 +85,7 @@ export function LoginForm({
 
   return (
     <div className={cn('flex flex-col gap-6', className)}>
-      <div className='text-center'>
+      <div className='text-center mb-8'>
         <h1 className='text-2xl font-bold'>Iniciá sesión en tu cuenta</h1>
         <p className='text-sm text-muted-foreground'>
           Ingresá tu email para acceder
@@ -105,7 +105,7 @@ export function LoginForm({
               <FormItem>
                 <FormLabel>Correo electrónico</FormLabel>
                 <FormControl>
-                  <Input placeholder='m@example.com' {...field} />
+                  <Input placeholder='email@example.com' {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,7 +127,7 @@ export function LoginForm({
                   </Link>
                 </div>
                 <FormControl>
-                  <Input type='password' {...field} />
+                  <Input type='password'  {...field}  placeholder='••••••••'/>
                 </FormControl>
                 <FormMessage />
               </FormItem>

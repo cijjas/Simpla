@@ -2,15 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -114,22 +107,7 @@ export default function AppHeader() {
         <FeedbackButton />
 
         <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Avatar className='h-8 w-8 cursor-pointer'>
-              <AvatarImage src={session?.user?.image ?? ''} />
-              <AvatarFallback>{session?.user?.name?.[0] ?? 'U'}</AvatarFallback>
-            </Avatar>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuItem asChild>
-              <Link href='/settings'>Configuración</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
-              Cerrar sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        
       </div>
     </header>
   );

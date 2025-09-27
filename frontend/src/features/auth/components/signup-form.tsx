@@ -159,7 +159,7 @@ export function SignupForm({
                     <FormItem>
                       <FormLabel>Correo electrónico</FormLabel>
                       <FormControl>
-                        <Input placeholder='m@example.com' {...field} />
+                        <Input placeholder='email@example.com' {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
