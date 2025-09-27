@@ -12,6 +12,10 @@ interface ApiClientOptions extends RequestInit {
 }
 
 class ApiClient {
+  private sessionCache: (Session & { user: { accessToken?: string } }) | null = null;
+  private sessionCacheTime: number = 0;
+  private readonly SESSION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
   private async getAuthHeaders(requireAuth: boolean = true): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -19,7 +23,7 @@ class ApiClient {
 
     if (requireAuth) {
       try {
-        const session = await getSession() as Session & { user: { accessToken?: string } };
+        const session = await this.getCachedSession();
         if (session?.user?.accessToken) {
           headers['Authorization'] = `Bearer ${session.user.accessToken}`;
         } else {
@@ -32,6 +36,34 @@ class ApiClient {
     }
 
     return headers;
+  }
+
+  private async getCachedSession(): Promise<(Session & { user: { accessToken?: string } }) | null> {
+    const now = Date.now();
+    
+    // Return cached session if it's still valid
+    if (this.sessionCache && (now - this.sessionCacheTime) < this.SESSION_CACHE_DURATION) {
+      return this.sessionCache;
+    }
+
+    // Fetch fresh session
+    try {
+      const session = await getSession() as Session & { user: { accessToken?: string } };
+      this.sessionCache = session;
+      this.sessionCacheTime = now;
+      return session;
+    } catch (error) {
+      console.error('Failed to fetch session:', error);
+      this.sessionCache = null;
+      this.sessionCacheTime = 0;
+      return null;
+    }
+  }
+
+  // Method to clear session cache (useful for logout)
+  public clearSessionCache(): void {
+    this.sessionCache = null;
+    this.sessionCacheTime = 0;
   }
 
   async request<T>(

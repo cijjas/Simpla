@@ -6,18 +6,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiClient } from '@/lib/fetch';
 import { FolderTreeItem, FolderCreate, FolderUpdate, FolderMove, FolderResponse, FolderWithNormasResponse, FolderNormaCreate, FolderNormaUpdate } from '../types';
-
-// Type assertion for session with accessToken
-type SessionWithToken = {
-  user: {
-    accessToken?: string;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-};
+// Import auth types to ensure module augmentation is applied
+import '@/features/auth/utils/auth';
 
 export function useFolders() {
-  const { data: session } = useSession() as { data: SessionWithToken | null };
+  const { data: session } = useSession();
   const [folders, setFolders] = useState<FolderTreeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,10 +54,11 @@ export function useFolders() {
   }, [fetchFolders]);
 
   useEffect(() => {
-    if (session?.user?.accessToken) {
+    if (session?.user && 'accessToken' in session.user && session.user.accessToken) {
       fetchFolders();
     }
-  }, [session?.user?.accessToken, fetchFolders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user]);
 
   return {
     folders,
@@ -79,7 +73,7 @@ export function useFolders() {
 }
 
 export function useFolderNormas(folderId: string) {
-  const { data: session } = useSession() as { data: SessionWithToken | null };
+  const { data: session } = useSession();
   const [folderWithNormas, setFolderWithNormas] = useState<FolderWithNormasResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,10 +117,11 @@ export function useFolderNormas(folderId: string) {
   }, [folderId, fetchFolderNormas]);
 
   useEffect(() => {
-    if (session?.user?.accessToken && folderId) {
+    if (session?.user && 'accessToken' in session.user && session.user.accessToken && folderId) {
       fetchFolderNormas();
     }
-  }, [session?.user?.accessToken, folderId, fetchFolderNormas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user, folderId]);
 
   return {
     folderWithNormas,

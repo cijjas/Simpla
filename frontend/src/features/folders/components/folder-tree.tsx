@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { TreeView, TreeDataItem } from '@/components/tree-view';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Folder, FolderOpen, Edit, Trash2, Move, FileText } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Folder, Edit, Trash2, FileText, MoreHorizontal, Search, FolderPlus, Archive, BookOpen, Star, Tag, Users } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useFolders } from '../hooks/use-folders';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
 import { CreateFolderDialog } from './create-folder-dialog';
 import { EditFolderDialog } from './edit-folder-dialog';
-import { toast } from 'sonner';
 
 interface FolderTreeProps {
   onFolderSelect?: (folder: FolderTreeItem | null) => void;
@@ -18,25 +19,87 @@ interface FolderTreeProps {
 }
 
 export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps) {
-  const { folders, loading, error, deleteFolder, moveFolder } = useFolders();
+  const { folders, loading, error, deleteFolder, moveFolder } = useFoldersContext();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<FolderTreeItem | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<FolderTreeItem | null>(null);
+  const [parentFolderForSubfolder, setParentFolderForSubfolder] = useState<FolderTreeItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [folderToDelete, setFolderToDelete] = useState<FolderTreeItem | null>(null);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+
+  // Cleanup effect to ensure dialogs are closed on unmount
+  useEffect(() => {
+    return () => {
+      setIsCreateDialogOpen(false);
+      setIsEditDialogOpen(false);
+      setEditingFolder(null);
+      setParentFolderForSubfolder(null);
+    };
+  }, []);
+
+  // Filter folders based on search query
+  const filteredFolders = useMemo(() => {
+    if (!searchQuery.trim()) return folders;
+    
+    const filterFolders = (folders: FolderTreeItem[]): FolderTreeItem[] => {
+      return folders.filter(folder => {
+        const matchesSearch = folder.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const filteredSubfolders = filterFolders(folder.subfolders);
+        
+        // Include folder if it matches search or has matching subfolders
+        return matchesSearch || filteredSubfolders.length > 0;
+      }).map(folder => ({
+        ...folder,
+        subfolders: filterFolders(folder.subfolders)
+      }));
+    };
+    
+    return filterFolders(folders);
+  }, [folders, searchQuery]);
+
+  // Icon mapping
+  const getIcon = (iconName: string) => {
+    const iconMap: Record<string, any> = {
+      'folder': Folder,
+      'folder-plus': FolderPlus,
+      'archive': Archive,
+      'book-open': BookOpen,
+      'file-text': FileText,
+      'star': Star,
+      'tag': Tag,
+      'users': Users,
+    };
+    return iconMap[iconName] || Folder;
+  };
 
   // Convert folder tree to TreeDataItem format
   const treeData = useMemo(() => {
     const convertToTreeData = (folders: FolderTreeItem[]): TreeDataItem[] => {
-      return folders.map((folder) => ({
-        id: folder.id,
-        name: folder.name,
-        icon: Folder,
-        selectedIcon: FolderOpen,
-        openIcon: FolderOpen,
-        children: folder.subfolders.length > 0 ? convertToTreeData(folder.subfolders) : undefined,
-        draggable: true,
-        droppable: true,
-        actions: (
+      return folders.map((folder) => {
+        const IconComponent = getIcon(folder.icon);
+        return {
+          id: folder.id,
+          name: (
+            <div className="flex items-center gap-2">
+              <span>{folder.name}</span>
+              {folder.color !== '#FFFFFF' && (
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: folder.color }}
+                />
+              )}
+            </div>
+          ),
+          icon: IconComponent,
+          selectedIcon: IconComponent,
+          openIcon: IconComponent,
+          children: folder.subfolders.length > 0 ? convertToTreeData(folder.subfolders) : undefined,
+          draggable: true,
+          droppable: true,
+          actions: (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div
@@ -44,9 +107,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="sr-only">Opciones</span>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
-                </svg>
+                <MoreHorizontal className="h-4 w-4" />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -60,16 +121,18 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsCreateDialogOpen(true);
-                  // Set this folder as parent for new folder
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva subcarpeta
-              </DropdownMenuItem>
+              {folder.level < 2 && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParentFolderForSubfolder(folder);
+                    setIsCreateDialogOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva subcarpeta
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
@@ -82,33 +145,45 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ),
-        onClick: () => {
-          setSelectedFolder(folder);
-          onFolderSelect?.(folder);
-        },
-      }));
+          ),
+          onClick: () => {
+            setSelectedFolder(folder);
+            onFolderSelect?.(folder);
+          },
+        };
+      });
     };
 
-    return convertToTreeData(folders);
-  }, [folders, onFolderSelect]);
+    return convertToTreeData(filteredFolders);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredFolders]);
 
-  const handleDeleteFolder = async (folder: FolderTreeItem) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar la carpeta "${folder.name}" y todas sus subcarpetas?`)) {
+  const handleDeleteFolder = (folder: FolderTreeItem) => {
+    setFolderToDelete(folder);
+    setDeleteConfirmationText('');
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!folderToDelete || deleteConfirmationText !== folderToDelete.name) {
       return;
     }
 
     try {
-      await deleteFolder(folder.id);
-      toast.success('Carpeta eliminada correctamente');
+      await deleteFolder(folderToDelete.id);
+      console.log('Carpeta eliminada correctamente');
       
       // Clear selection if deleted folder was selected
-      if (selectedFolder?.id === folder.id) {
+      if (selectedFolder?.id === folderToDelete.id) {
         setSelectedFolder(null);
         onFolderSelect?.(null);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al eliminar la carpeta');
+      console.error('Error deleting folder:', error);
+    } finally {
+      setDeleteDialogOpen(false);
+      setFolderToDelete(null);
+      setDeleteConfirmationText('');
     }
   };
 
@@ -123,9 +198,9 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
         parent_folder_id: targetItem.id === 'parent_div' ? undefined : targetItem.id,
       });
       
-      toast.success('Carpeta movida correctamente');
+      console.log('Carpeta movida correctamente');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al mover la carpeta');
+      console.error('Error moving folder:', error);
     }
   };
 
@@ -164,63 +239,123 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   return (
     <>
-      <Card>
+      <Card className="h-full flex flex-col gap-0">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">Mis Carpetas</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar carpetas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 text-base"
+              />
+            </div>
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
               onClick={() => setIsCreateDialogOpen(true)}
+              className="h-10 w-10"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Nueva
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex-1 flex flex-col">
+          
           {treeData.length === 0 ? (
             <div className="text-center text-muted-foreground py-8 px-6">
               <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm">No tienes carpetas aún</p>
+              <p className="text-sm">
+                {searchQuery.trim() ? 'No se encontraron carpetas' : 'No tienes carpetas aún'}
+              </p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                Crea tu primera carpeta para organizar tus normas
+                {searchQuery.trim() 
+                  ? 'Intenta con otro término de búsqueda' 
+                  : 'Crea tu primera carpeta para organizar tus normas'
+                }
               </p>
             </div>
           ) : (
-            <TreeView
-              data={treeData}
-              initialSelectedItemId={selectedFolderId}
-              onSelectChange={(item) => {
-                if (item) {
-                  const folder = findFolderById(folders, item.id);
-                  setSelectedFolder(folder);
-                  onFolderSelect?.(folder);
-                } else {
-                  setSelectedFolder(null);
-                  onFolderSelect?.(null);
-                }
-              }}
-              onDocumentDrag={handleDragAndDrop}
-              defaultNodeIcon={Folder}
-              defaultLeafIcon={Folder}
-              className="px-2 pb-2"
-            />
+            <div className="flex-1 overflow-auto">
+              <TreeView
+                data={treeData}
+                initialSelectedItemId={selectedFolderId}
+                expandAll={true}
+                onSelectChange={(item) => {
+                  if (item) {
+                    const folder = findFolderById(folders, item.id);
+                    setSelectedFolder(folder);
+                    onFolderSelect?.(folder);
+                  } else {
+                    setSelectedFolder(null);
+                    onFolderSelect?.(null);
+                  }
+                }}
+                onDocumentDrag={handleDragAndDrop}
+                defaultNodeIcon={Folder}
+                defaultLeafIcon={Folder}
+                className="px-2 pb-1"
+              />
+            </div>
           )}
         </CardContent>
       </Card>
 
       <CreateFolderDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        parentFolderId={selectedFolder?.id}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) {
+            setParentFolderForSubfolder(null);
+          }
+        }}
+        parentFolderId={parentFolderForSubfolder?.id}
       />
 
       <EditFolderDialog
         open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingFolder(null);
+          }
+        }}
         folder={editingFolder}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar carpeta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la carpeta{' '}
+              <strong>"{folderToDelete?.name}"</strong> y todas sus subcarpetas.
+              <br />
+              <br />
+              Para confirmar, escribe el nombre de la carpeta:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              value={deleteConfirmationText}
+              onChange={(e) => setDeleteConfirmationText(e.target.value)}
+              placeholder={folderToDelete?.name}
+              className="w-full"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteFolder}
+              disabled={deleteConfirmationText !== folderToDelete?.name}
+            >
+              Eliminar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

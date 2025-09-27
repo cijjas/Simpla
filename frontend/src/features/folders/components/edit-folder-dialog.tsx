@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFolders } from '../hooks/use-folders';
+import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem, FolderUpdate } from '../types';
-import { toast } from 'sonner';
 import { Folder, FolderPlus, Archive, BookOpen, FileText, Star, Tag, Users } from 'lucide-react';
 
 interface EditFolderDialogProps {
@@ -30,25 +29,22 @@ const FOLDER_ICONS = [
 ];
 
 const PRESET_COLORS = [
+  '#FFFFFF', // No color (white/transparent)
   '#3B82F6', // Blue
   '#10B981', // Green
   '#F59E0B', // Yellow
   '#EF4444', // Red
   '#8B5CF6', // Purple
-  '#06B6D4', // Cyan
-  '#F97316', // Orange
-  '#84CC16', // Lime
-  '#EC4899', // Pink
   '#6B7280', // Gray
 ];
 
 export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialogProps) {
-  const { updateFolder } = useFolders();
+  const { updateFolder } = useFoldersContext();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FolderUpdate>({
     name: '',
     description: '',
-    color: '#3B82F6',
+    color: '#FFFFFF',
     icon: 'folder',
   });
 
@@ -70,17 +66,17 @@ export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialo
     if (!folder) return;
     
     if (!formData.name?.trim()) {
-      toast.error('El nombre de la carpeta es requerido');
+      console.error('El nombre de la carpeta es requerido');
       return;
     }
 
     setLoading(true);
     try {
       await updateFolder(folder.id, formData);
-      toast.success('Carpeta actualizada correctamente');
+      console.log('Carpeta actualizada correctamente');
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al actualizar la carpeta');
+      console.error('Error updating folder:', error);
     } finally {
       setLoading(false);
     }
@@ -153,38 +149,25 @@ export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialo
 
           <div className="space-y-2">
             <Label>Color</Label>
-            <div className="flex items-center gap-2">
-              <div className="flex flex-wrap gap-2">
-                {PRESET_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`w-6 h-6 rounded-full border-2 ${
-                      formData.color === color ? 'border-gray-400' : 'border-gray-200'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => handleColorChange(color)}
-                  />
-                ))}
-              </div>
-              <input
-                type="color"
-                value={formData.color}
-                onChange={(e) => handleColorChange(e.target.value)}
-                className="w-8 h-8 rounded border cursor-pointer"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                value={formData.color}
-                onChange={(e) => handleColorChange(e.target.value)}
-                placeholder="#3B82F6"
-                className="flex-1 text-sm"
-              />
-              <div
-                className="w-6 h-6 rounded border"
-                style={{ backgroundColor: formData.color }}
-              />
+            <div className="flex flex-wrap gap-2">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`w-8 h-8 rounded-full border-2 transition-all relative ${
+                    formData.color === color ? 'border-black' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleColorChange(color)}
+                  title={color === '#FFFFFF' ? 'Sin color' : color}
+                >
+                  {color === '#FFFFFF' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-6 h-0.5 bg-gray-400 rotate-45"></div>
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 

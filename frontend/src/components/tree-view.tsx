@@ -11,7 +11,7 @@ const treeVariants = cva(
 )
 
 const selectedTreeVariants = cva(
-    'before:opacity-100 before:bg-accent/70 text-accent-foreground'
+    'before:opacity-100 before:bg-primary/20  bg-stone-100 dark:bg-slate-800 rounded-md'
 )
 
 const dragOverVariants = cva(
@@ -85,37 +85,52 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
         }, [draggedItem, onDocumentDrag])
 
         const expandedItemIds = React.useMemo(() => {
-            if (!initialSelectedItemId) {
-                return [] as string[]
-            }
-
             const ids: string[] = []
 
-            function walkTreeItems(
-                items: TreeDataItem[] | TreeDataItem,
-                targetId: string
-            ) {
+            function collectAllFolderIds(items: TreeDataItem[] | TreeDataItem) {
                 if (items instanceof Array) {
                     for (let i = 0; i < items.length; i++) {
-                        ids.push(items[i]!.id)
-                        if (walkTreeItems(items[i]!, targetId) && !expandAll) {
-                            return true
+                        if (items[i]!.children) {
+                            ids.push(items[i]!.id)
+                            collectAllFolderIds(items[i]!.children!)
                         }
-                        if (!expandAll) ids.pop()
                     }
-                } else if (!expandAll && items.id === targetId) {
-                    return true
                 } else if (items.children) {
-                    return walkTreeItems(items.children, targetId)
+                    ids.push(items.id)
+                    collectAllFolderIds(items.children)
                 }
             }
 
-            walkTreeItems(data, initialSelectedItemId)
+            if (expandAll) {
+                collectAllFolderIds(data)
+            } else if (initialSelectedItemId) {
+                // Original logic for expanding path to selected item
+                function walkTreeItems(
+                    items: TreeDataItem[] | TreeDataItem,
+                    targetId: string
+                ) {
+                    if (items instanceof Array) {
+                        for (let i = 0; i < items.length; i++) {
+                            ids.push(items[i]!.id)
+                            if (walkTreeItems(items[i]!, targetId)) {
+                                return true
+                            }
+                            ids.pop()
+                        }
+                    } else if (items.id === targetId) {
+                        return true
+                    } else if (items.children) {
+                        return walkTreeItems(items.children, targetId)
+                    }
+                }
+                walkTreeItems(data, initialSelectedItemId)
+            }
+
             return ids
         }, [data, expandAll, initialSelectedItemId])
 
         return (
-            <div className={cn('overflow-hidden relative p-2', className)}>
+            <div className={cn('overflow-hidden relative p-1', className)}>
                 <TreeItem
                     data={data}
                     ref={ref}

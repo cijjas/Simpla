@@ -19,6 +19,7 @@
     "@huggingface/inference": "^3.13.1",
     "@pinecone-database/pinecone": "^6.0.0",
     "@radix-ui/react-accordion": "^1.2.8",
+    "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.9",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.7",

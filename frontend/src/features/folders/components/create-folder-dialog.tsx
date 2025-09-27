@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFolders } from '../hooks/use-folders';
+import { useFoldersContext } from '../context/folders-context';
 import { FolderCreate } from '../types';
-import { toast } from 'sonner';
 import { Folder, FolderPlus, Archive, BookOpen, FileText, Star, Tag, Users } from 'lucide-react';
 
 interface CreateFolderDialogProps {
@@ -30,6 +29,7 @@ const FOLDER_ICONS = [
 ];
 
 const PRESET_COLORS = [
+  '#FFFFFF', // No color (white/transparent)
   '#3B82F6', // Blue
   '#10B981', // Green
   '#F59E0B', // Yellow
@@ -39,13 +39,13 @@ const PRESET_COLORS = [
 ];
 
 export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: CreateFolderDialogProps) {
-  const { createFolder } = useFolders();
+  const { createFolder } = useFoldersContext();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FolderCreate>({
     name: '',
     description: '',
     parent_folder_id: parentFolderId,
-    color: '#3B82F6',
+    color: '#FFFFFF',
     icon: 'folder',
   });
 
@@ -61,14 +61,14 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      toast.error('El nombre de la carpeta es requerido');
+      console.error('El nombre de la carpeta es requerido');
       return;
     }
 
     setLoading(true);
     try {
       await createFolder(formData);
-      toast.success('Carpeta creada correctamente');
+      console.log('Carpeta creada correctamente');
       onOpenChange(false);
       
       // Reset form
@@ -76,11 +76,11 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
         name: '',
         description: '',
         parent_folder_id: parentFolderId,
-        color: '#3B82F6',
+        color: '#FFFFFF',
         icon: 'folder',
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al crear la carpeta');
+      console.error('Error creating folder:', error);
     } finally {
       setLoading(false);
     }
@@ -158,12 +158,19 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
                 <button
                   key={color}
                   type="button"
-                  className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
-                    formData.color === color ? 'border-gray-400 ring-2 ring-gray-300' : 'border-gray-200 hover:border-gray-300'
+                  className={`w-8 h-8 rounded-full border-2 transition-all relative ${
+                    formData.color === color ? 'border-black' : 'border-gray-200 hover:border-gray-300'
                   }`}
                   style={{ backgroundColor: color }}
                   onClick={() => handleColorChange(color)}
-                />
+                  title={color === '#FFFFFF' ? 'Sin color' : color}
+                >
+                  {color === '#FFFFFF' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-6 h-0.5 bg-gray-400 rotate-45"></div>
+                    </div>
+                  )}
+                </button>
               ))}
             </div>
           </div>

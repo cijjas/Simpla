@@ -1,6 +1,5 @@
 import type React from 'react';
 import { redirect } from 'next/navigation';
-import { Toaster } from '@/components/ui/sonner';
 import { auth } from '@/features/auth/utils';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import AppHeader from '@/components/layout/app-header';
@@ -32,7 +31,6 @@ export default async function AppLayout({
           {children}
         </div>
       </SidebarInset>
-      <Toaster />
     </SidebarProvider>
   );
 }
