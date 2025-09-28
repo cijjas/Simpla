@@ -186,7 +186,7 @@ export default function SearchClient() {
   /*  RENDER                                                                 */
   /* ---------------------------------------------------------------------- */
   return (
-    <div className='w-full max-w-[1500px] mx-auto px-4 py-4'>
+    <div className='w-full mx-auto px-6 py-4'>
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         <aside className='lg:col-span-1 w-full'>
           <div className='sticky top-6'>

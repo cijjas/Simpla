@@ -25,7 +25,7 @@ export default function LandHeader() {
   // Track which section is currently in view
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['hero', 'features', 'how-it-works', 'testimonials', 'faq', 'contact'];
+      const sections = ['features', 'how-it-works', 'about-us', 'testimonials', 'faq', 'contact'];
       const scrollPosition = window.scrollY + 100; // Offset for header height
 
       for (const sectionId of sections) {
@@ -52,17 +52,17 @@ export default function LandHeader() {
   };
 
   const sections = [
-    { id: 'hero', label: 'Inicio', href: '/#hero' },
     { id: 'features', label: 'Características', href: '/#features' },
     { id: 'how-it-works', label: 'Cómo Funciona', href: '/#how-it-works' },
+    { id: 'about-us', label: 'Acerca de Nosotros', href: '/#about-us' },
     { id: 'testimonials', label: 'Testimonios', href: '/#testimonials' },
     { id: 'faq', label: 'FAQ', href: '/#faq' },
     { id: 'contact', label: 'Contacto', href: '/#contact' },
   ];
 
   return (
-    <header className='w-full pt-6 bg-background/95 backdrop-blur-lg sticky top-0 z-50'>
-      <div className='mx-auto flex max-w-7xl items-center justify-between px-4 border-b pb-6'>
+    <header className='w-full pt-6 bg-background backdrop-blur-lg sticky top-0 z-50'>
+      <div className='mx-auto flex max-w-7xl items-center justify-between px-4  pb-6'>
         {/* Logo */}
         <Link
           href='/'
@@ -81,7 +81,7 @@ export default function LandHeader() {
               className={cn(
                 'text-sm font-medium transition-colors duration-200',
                 activeSection === section.id
-                  ? 'text-foreground font-semibold'
+                  ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -151,7 +151,7 @@ export default function LandHeader() {
                       className={cn(
                         'text-sm font-medium transition-colors duration-200 py-2 px-3',
                         activeSection === section.id
-                          ? 'text-foreground font-semibold'
+                          ? 'text-foreground'
                           : 'text-muted-foreground hover:text-foreground',
                       )}
                     >

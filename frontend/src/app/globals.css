@@ -45,6 +45,9 @@
 }
 
 :root {
+  /* Prevent scroll bounce effect */
+  overscroll-behavior: none;
+  
   /* Neutral scale — custom grayscale foundation */
   --neutral-50: #f8f9fc;
   --neutral-100: #f1f3f9;
