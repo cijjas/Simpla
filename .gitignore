@@ -110,5 +110,6 @@ backend/data/
 /frontend-legacy/public/index.css
 
 
-db/simpla_dump.backup
+/db/simpla_dump.backup
+/db/simpla_dump.backup
 .cursor/
