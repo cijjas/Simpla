@@ -6,24 +6,46 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, FileText, MoreHorizontal, Edit, Trash2, ExternalLink, StickyNote } from 'lucide-react';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { FileText, Folder, FolderPlus, Archive, BookOpen, Star, Tag, Users } from 'lucide-react';
 import { useFolderNormas } from '../hooks/use-folders';
+import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
+import { buildFolderPath, findFolderById } from '../utils/folder-utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface FolderContentProps {
   folder: FolderTreeItem | null;
+  onFolderSelect?: (folder: FolderTreeItem | null) => void;
 }
 
-export function FolderContent({ folder }: FolderContentProps) {
+export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
   const { folderWithNormas, loading, error, removeNormaFromFolder, updateFolderNorma } = useFolderNormas(folder?.id || '');
+  const { folders } = useFoldersContext();
   const [editingNorma, setEditingNorma] = useState<{ id: string; normaId: number; notes: string } | null>(null);
   const [isEditNotesOpen, setIsEditNotesOpen] = useState(false);
 
-  if (!folder) {
+  // Get the updated folder from context to ensure we have the latest data
+  const currentFolder = folder ? findFolderById(folders, folder.id) : null;
+
+  // Icon mapping
+  const getIcon = (iconName: string) => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      'folder': Folder,
+      'folder-plus': FolderPlus,
+      'archive': Archive,
+      'book-open': BookOpen,
+      'file-text': FileText,
+      'star': Star,
+      'tag': Tag,
+      'users': Users,
+    };
+    return iconMap[iconName] || Folder;
+  };
+
+  if (!currentFolder) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -43,9 +65,9 @@ export function FolderContent({ folder }: FolderContentProps) {
           <CardTitle className="flex items-center gap-2">
             <div 
               className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: folder.color }}
+              style={{ backgroundColor: currentFolder?.color }}
             />
-            {folder.name}
+            {currentFolder?.name}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -65,9 +87,9 @@ export function FolderContent({ folder }: FolderContentProps) {
           <CardTitle className="flex items-center gap-2">
             <div 
               className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: folder.color }}
+              style={{ backgroundColor: currentFolder?.color }}
             />
-            {folder.name}
+            {currentFolder?.name}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -79,7 +101,7 @@ export function FolderContent({ folder }: FolderContentProps) {
     );
   }
 
-  const handleRemoveNorma = async (normaId: number, normaTitle: string) => {
+  const _handleRemoveNorma = async (normaId: number, normaTitle: string) => {
     if (!confirm(`¿Estás seguro de que quieres quitar "${normaTitle}" de esta carpeta?`)) {
       return;
     }
@@ -103,123 +125,160 @@ export function FolderContent({ folder }: FolderContentProps) {
     }
   };
 
+
   const normas = folderWithNormas?.normas || [];
+  
+  // Build breadcrumb path
+  const folderPath = currentFolder ? buildFolderPath(folders, currentFolder.id) : [];
 
   return (
     <>
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: folder.color }}
-              />
-              {folder.name}
-              <Badge variant="secondary" className="ml-2">
-                {normas.length} norma{normas.length !== 1 ? 's' : ''}
-              </Badge>
-            </CardTitle>
-            <Button size="sm" variant="outline">
-              <Plus className="h-4 w-4 mr-1" />
-              Agregar Norma
-            </Button>
-          </div>
-          {folder.description && (
-            <p className="text-sm text-muted-foreground mt-2">{folder.description}</p>
-          )}
-        </CardHeader>
-        <CardContent>
-          {normas.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm">Esta carpeta está vacía</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Agrega normas para organizarlas
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {normas.map((folderNorma) => (
-                <Card key={folderNorma.id} className="border-l-4" style={{ borderLeftColor: folder.color }}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm leading-tight mb-1">
-                          {folderNorma.norma.titulo_resumido}
-                        </h4>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-2">
-                          {folderNorma.norma.tipo_norma && (
-                            <Badge variant="outline" className="text-xs">
-                              {folderNorma.norma.tipo_norma}
-                            </Badge>
-                          )}
-                          {folderNorma.norma.jurisdiccion && (
-                            <span>{folderNorma.norma.jurisdiccion}</span>
-                          )}
-                          {folderNorma.norma.sancion && (
-                            <span>Sanción: {format(new Date(folderNorma.norma.sancion), 'dd/MM/yyyy', { locale: es })}</span>
-                          )}
-                        </div>
-                        {folderNorma.notes && (
-                          <div className="bg-muted/50 rounded p-2 mt-2">
-                            <div className="flex items-center gap-1 mb-1">
-                              <StickyNote className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs font-medium text-muted-foreground">Notas:</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{folderNorma.notes}</p>
-                          </div>
+        <CardHeader className="space-y-4">
+          {/* Breadcrumb Navigation */}
+          {folderPath.length > 1 && (
+            <Breadcrumb>
+              <BreadcrumbList>
+                {folderPath.map((pathFolder, index) => {
+                  const IconComponent = getIcon(pathFolder.icon);
+                  return (
+                    <React.Fragment key={pathFolder.id}>
+                      <BreadcrumbItem>
+                        {index === folderPath.length - 1 ? (
+                          <BreadcrumbPage className="text-xs text-muted-foreground flex items-center gap-1">
+                            <IconComponent className="h-3 w-3" />
+                            {pathFolder.name}
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink 
+                            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
+                            onClick={() => onFolderSelect?.(pathFolder)}
+                          >
+                            <IconComponent className="h-3 w-3" />
+                            {pathFolder.name}
+                          </BreadcrumbLink>
                         )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Agregada el {format(new Date(folderNorma.added_at), 'dd/MM/yyyy', { locale: es })}
-                        </p>
+                      </BreadcrumbItem>
+                      {index < folderPath.length - 1 && <BreadcrumbSeparator />}
+                    </React.Fragment>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+          
+          {/* Header with title and actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: currentFolder?.color }}
+              />
+              <div>
+                <CardTitle className="text-xl flex items-center">
+                  <span className="font-bold pe-2" >{currentFolder?.name}</span>
+                  <Badge variant="secondary" className="mt-1">
+                  {normas.length} norma{normas.length !== 1 ? 's' : ''}
+                </Badge>  
+                </CardTitle>
+                 {/* Description */}
+                  {currentFolder?.description && (
+                      <p className="text-sm text-muted-foreground">{currentFolder.description}</p>
+                  )}
+                
+              </div>
+            </div>
+          </div>
+          
+         
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Subfolders Section */}
+          {currentFolder?.subfolders && currentFolder.subfolders.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-sm font-medium text-muted-foreground">Subcarpetas</h3>
+                <div className="flex-1 h-px bg-border"></div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                {currentFolder.subfolders.map((subfolder) => {
+                  const IconComponent = getIcon(subfolder.icon);
+                  return (
+                    <Card 
+                      key={subfolder.id} 
+                      className=" py-0  g-0 cursor-pointer hover:bg-accent/50 transition-colors aspect-[4/3]"
+                      onClick={() => onFolderSelect?.(subfolder)}
+                    >
+                      <CardContent className="p-3 flex flex-col g-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <h4 className="font-medium text-sm truncate flex-1">{subfolder.name}</h4>
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: subfolder.color }}
+                          />
+                        </div>
+                        <div className="">
+                          <span className="text-xs text-muted-foreground">
+                            {subfolder.norma_count} documentos
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Normas Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="text-sm font-medium text-muted-foreground">Normas</h3>
+              <div className="flex-1 h-px bg-border"></div>
+            </div>
+            {normas.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p className="text-sm">No hay normas en esta carpeta</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Agrega normas para organizarlas
+                </p>
+              </div>
+            ) : (
+            <div className="space-y-2">
+              {normas.map((folderNorma) => (
+                <div 
+                  key={folderNorma.id} 
+                  className="flex items-center justify-between px-4 py-2 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Icon placeholder */}
+                    <div className="w-4 h-4 rounded border border-muted-foreground flex-shrink-0" />
+                    
+                    <div className="flex-1 min-w-0">
+                      {/* First line: Title */}
+                      <div className="font-medium text-sm truncate">
+                        {folderNorma.norma.titulo_resumido}
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <a
-                              href={`/norma/${folderNorma.norma.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center"
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Ver norma
-                            </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditingNorma({
-                                id: folderNorma.id,
-                                normaId: folderNorma.norma.id,
-                                notes: folderNorma.notes || '',
-                              });
-                              setIsEditNotesOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar notas
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleRemoveNorma(folderNorma.norma.id, folderNorma.norma.titulo_resumido)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Quitar de carpeta
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      
+                      {/* Second line: Document info */}
+                      <div className="text-xs text-muted-foreground">
+                        {folderNorma.norma.tipo_norma || 'Documento'} • {format(new Date(folderNorma.added_at), 'dd/MM/yyyy', { locale: es })}
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  
+                  {/* Right indicator/color dot */}
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: currentFolder?.color }}
+                  />
+                </div>
               ))}
             </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -261,6 +320,7 @@ export function FolderContent({ folder }: FolderContentProps) {
           )}
         </DialogContent>
       </Dialog>
+
     </>
   );
 }

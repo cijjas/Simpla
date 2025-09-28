@@ -194,8 +194,9 @@ async def login(
         key="refresh_token",
         value=refresh_token_str,
         httponly=True,
-        secure=True,  # Set to True in production with HTTPS
+        secure=False,  # Set to False for local development, True in production with HTTPS
         samesite="lax",
+        path="/",  # Ensure cookie is accessible from all paths
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     
@@ -271,8 +272,9 @@ async def google_login(
         key="refresh_token",
         value=refresh_token_str,
         httponly=True,
-        secure=True,  # Set to True in production with HTTPS
+        secure=False,  # Set to False for local development, True in production with HTTPS
         samesite="lax",
+        path="/",  # Ensure cookie is accessible from all paths
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
     
@@ -362,7 +364,7 @@ async def refresh_token(
         key="refresh_token",
         value=new_refresh_token_str,
         httponly=True,
-        secure=True,  # Set to True in production with HTTPS
+        secure=False,  # Set to False for local development, True in production with HTTPS
         samesite="lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
     )
@@ -414,7 +416,7 @@ async def logout(
             logger.info("Refresh token revoked (user not authenticated)")
     
     # Clear refresh token cookie
-    response.delete_cookie(key="refresh_token")
+    response.delete_cookie(key="refresh_token", path="/")
     
     return {"message": "Successfully logged out"}
 

@@ -1,11 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FolderTree, FolderContent } from '@/features/folders';
 import { FolderTreeItem } from '@/features/folders/types';
+import { useFoldersContext } from '@/features/folders/context/folders-context';
 
 export function FoldersPage() {
   const [selectedFolder, setSelectedFolder] = useState<FolderTreeItem | null>(null);
+  const { folders } = useFoldersContext();
+
+  // Helper function to get the first available folder
+  const getFirstFolder = (folders: FolderTreeItem[]): FolderTreeItem | null => {
+    if (folders.length === 0) return null;
+    
+    // Return the first root folder (level 0)
+    const rootFolders = folders.filter(folder => folder.level === 0);
+    return rootFolders.length > 0 ? rootFolders[0] : folders[0];
+  };
+
+  // Auto-select the first folder when folders are loaded
+  useEffect(() => {
+    if (folders.length > 0 && !selectedFolder) {
+      const firstFolder = getFirstFolder(folders);
+      if (firstFolder) {
+        setSelectedFolder(firstFolder);
+      }
+    }
+  }, [folders, selectedFolder]);
 
   return (
     <div className=" p-6 w-full h-full flex flex-col">
@@ -27,7 +48,7 @@ export function FoldersPage() {
         
         {/* Folder Content */}
         <div className="lg:col-span-3 overflow-auto">
-          <FolderContent folder={selectedFolder} />
+          <FolderContent folder={selectedFolder} onFolderSelect={setSelectedFolder} />
         </div>
       </div>
     </div>

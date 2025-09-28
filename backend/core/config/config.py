@@ -29,6 +29,9 @@ class Settings:
     # Feedback
     FEEDBACK_EMAILS: Optional[str] = os.getenv('FEEDBACK_EMAILS')
     
+    # Contact
+    CONTACT_EMAILS: Optional[str] = os.getenv('CONTACT_EMAILS')
+    
     # Logging
     LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'INFO')
     LOG_DATABASE_QUERIES: bool = os.getenv('LOG_DATABASE_QUERIES', 'true').lower() == 'true'

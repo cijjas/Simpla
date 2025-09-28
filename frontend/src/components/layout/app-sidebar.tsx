@@ -5,11 +5,19 @@ import { useAuth } from "@/features/auth/hooks/use-auth"
 import {
   Search,
   MessageCircle,
-  Compass,
   Folder,
   BookOpen,
   Heart,
+  Compass,
 } from "lucide-react"
+import SvgEstampa from "@/components/icons/Estampa"
+import { forwardRef } from "react"
+
+// Create a wrapper to make Estampa compatible with LucideIcon interface
+const EstampaIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>((props, ref) => (
+  <SvgEstampa {...props} ref={ref} />
+))
+EstampaIcon.displayName = "EstampaIcon"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -33,7 +41,7 @@ const data = {
   teams: [
     {
       name: "Simpla",
-      logo: Compass,
+      logo: EstampaIcon,
       plan: "Pro",
     },
   ],

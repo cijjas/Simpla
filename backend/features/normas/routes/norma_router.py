@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from core.database.base import get_db
-from features.infoleg.models.norma import NormaStructured, Division, Article
+from features.normas.models.norma import NormaStructured, Division, Article
 from core.utils.logging_config import get_logger
 
 logger = get_logger(__name__)

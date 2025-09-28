@@ -11,7 +11,7 @@ from features.folders.schemas.folder import (
     FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma,
     FolderWithNormasResponse, FolderCreateResponse
 )
-from features.infoleg.models.norma import NormaStructured
+from features.normas.models.norma import NormaStructured
 from features.auth.models.user import User
 from features.auth.utils.auth import get_current_user
 from core.utils.logging_config import get_logger

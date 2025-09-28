@@ -6,6 +6,7 @@ export { FolderTree } from './components/folder-tree';
 export { FolderContent } from './components/folder-content';
 export { CreateFolderDialog } from './components/create-folder-dialog';
 export { EditFolderDialog } from './components/edit-folder-dialog';
+export { DeleteFolderDialog } from './components/delete-folder-dialog';
 export { FoldersPage } from './components/folders-page';
 
 export { useFolders, useFolderNormas } from './hooks/use-folders';

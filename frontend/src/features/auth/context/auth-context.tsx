@@ -57,6 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   // Utility function to check if we have a valid refresh token cookie
   const hasValidRefreshToken = useCallback((): boolean => {
+    if (typeof document === 'undefined') return false; // SSR safety
     const refreshTokenMatch = document.cookie.match(/refresh_token=([^;]+)/);
     return !!(refreshTokenMatch && refreshTokenMatch[1] && refreshTokenMatch[1].trim() !== '');
   }, []);
@@ -129,13 +130,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
       
-      // Double-check that we have a valid refresh token cookie before making the request
-      if (!hasValidRefreshToken()) {
-        console.log('No valid refresh token cookie found, skipping refresh attempt');
-        clearAuth();
-        isRefreshingRef.current = false;
-        return false;
-      }
+      // Note: We don't check for refresh token cookie here because the backend
+      // will handle token validation and rotation. The cookie check can cause
+      // race conditions with token rotation.
 
       const response = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
         method: 'POST',
@@ -188,7 +185,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isRefreshingRef.current = false;
       return false;
     }
-  }, [clearAuth, hasValidRefreshToken, saveAuthState]);
+  }, [clearAuth, saveAuthState]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -286,7 +283,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       clearAuth();
       
       // Manually clear the refresh token cookie as a fallback
-      document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      if (typeof document !== 'undefined') {
+        document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      }
       
       // Reset logout flag after a short delay
       setTimeout(() => {
@@ -314,15 +313,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         
         // Check if we have any stored auth state first
-        if (!hasValidRefreshToken()) {
-          console.log('No valid refresh token cookie found, skipping refresh attempt');
-          setAuthState(prev => ({ ...prev, isLoading: false }));
-          return;
-        }
+        // Note: We'll attempt refresh even without a visible cookie, as the backend
+        // will handle validation and the cookie might be httpOnly
         
-        // Only attempt refresh if we have a refresh token cookie and we're not already logging out
+        // Only attempt refresh if we're not already logging out
         if (!isLoggingOutRef.current) {
-          console.log('Found refresh token, attempting to restore session...');
+          console.log('Attempting to restore session...');
           
           // Add timeout to prevent hanging
           const timeoutPromise = new Promise<boolean>((_, reject) => {

@@ -30,8 +30,8 @@ class Folder(Base):
     
     # Relationships
     user = relationship("User")
-    parent_folder = relationship("Folder", remote_side=[id])
-    subfolders = relationship("Folder", cascade="all, delete-orphan")
+    parent_folder = relationship("Folder", remote_side=[id], back_populates="subfolders")
+    subfolders = relationship("Folder", cascade="all, delete-orphan", back_populates="parent_folder", overlaps="parent_folder")
     folder_normas = relationship("FolderNorma", back_populates="folder", cascade="all, delete-orphan")
 
 

@@ -110,7 +110,7 @@ def setup_logging(log_level: Optional[str] = None) -> logging.Logger:
         log_colors={
             'DEBUG': 'cyan',
             'INFO': 'green',
-            'WARNING': 'orange',
+            'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'red,bg_white',
         },
@@ -172,7 +172,7 @@ def setup_database_logging():
         log_colors={
             'DEBUG': 'blue',
             'INFO': 'blue',
-            'WARNING': 'orange',
+            'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'red,bg_white',
         },
@@ -228,7 +228,7 @@ def setup_http_logging():
         log_colors={
             'DEBUG': 'blue',
             'INFO': 'blue',
-            'WARNING': 'orange',
+            'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'red,bg_white',
         },

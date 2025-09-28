@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { apiClient } from '@/lib/fetch';
 import { useAuth } from './use-auth';
 
@@ -27,11 +27,11 @@ export function useApi() {
     return apiClient.delete<T>(endpoint, accessToken, requireAuth);
   }, [accessToken]);
 
-  return {
+  return useMemo(() => ({
     get,
     post,
     put,
     patch,
     delete: del,
-  };
+  }), [get, post, put, patch, del]);
 }
