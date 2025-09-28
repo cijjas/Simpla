@@ -50,8 +50,8 @@ class ApiClient {
         // Handle 401 specifically - this might indicate token expiration
         if (response.status === 401) {
           // Don't throw immediately for 401s, let the calling code handle it
-          const error = new Error(errorData.detail || errorData.error || 'Unauthorized');
-          (error as any).status = 401;
+          const error = new Error(errorData.detail || errorData.error || 'Unauthorized') as Error & { status: number };
+          error.status = 401;
           throw error;
         }
         

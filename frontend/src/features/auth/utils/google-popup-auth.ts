@@ -18,11 +18,18 @@ export class GooglePopupAuth {
 
   constructor() {
     this.clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-    this.redirectUri = `${window.location.origin}/auth/google/callback`;
+    this.redirectUri = typeof window !== 'undefined' 
+      ? `${window.location.origin}/auth/google/callback`
+      : '/auth/google/callback';
   }
 
   async signIn(): Promise<GoogleUser | null> {
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    
+    if (typeof window === 'undefined') {
+      console.error(`${timestamp} | AUTH | ERROR | Window is not available (server-side rendering)`);
+      return null;
+    }
     
     if (!this.clientId) {
       console.error(`${timestamp} | AUTH | ERROR | Google Client ID not configured`);

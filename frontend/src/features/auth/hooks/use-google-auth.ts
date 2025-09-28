@@ -40,7 +40,9 @@ export function useGoogleAuth() {
         } else {
           console.warn(`${refreshTimestamp} | GOOGLE-AUTH | WARN | Token refresh failed, falling back to page reload`);
           // Fallback to page reload if refresh fails
-          window.location.reload();
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
           return { success: true };
         }
       } else {

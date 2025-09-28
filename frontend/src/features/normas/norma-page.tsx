@@ -43,7 +43,7 @@ interface NormaPageProps {
 
 export default function NormaPage({ normaId = 1 }: NormaPageProps) {
   const [normaData, setNormaData] = useState<BackendNormaData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch norma data from the backend API

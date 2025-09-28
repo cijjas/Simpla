@@ -108,3 +108,6 @@ backend/data/
 /frontend-legacy/public/index.js
 /frontend-legacy/public/index.html
 /frontend-legacy/public/index.css
+
+
+db/simpla_dump.backup
