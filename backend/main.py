@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from features.auth.routes.auth_router import router as auth_router
 from features.chat.routes.router import router as chat_router
 from features.feedback.routes.router import router as feedback_router
-from features.infoleg.routes.norma_router import router as norma_router
+from features.contact.routes.contact_router import router as contact_router
+from features.normas.routes.norma_router import router as norma_router
 from features.folders.routes.folder_router import router as folder_router
 
 # Import core configuration and logging
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(feedback_router, prefix="/api")
+app.include_router(contact_router, prefix="/api")
 app.include_router(norma_router, prefix="/api")
 app.include_router(folder_router, prefix="/api")
 
@@ -96,11 +98,12 @@ if __name__ == "__main__":
         app_logger.error(f"Missing required configuration: {missing_keys}")
         app_logger.error("Please check your .env file and ensure all required API keys are set.")
     else:
-        app_logger.info("Configuration validated successfully")
+        pass  # Configuration validated successfully (disabled logging)
     
-    app_logger.info(f"Logging level: {settings.LOG_LEVEL}")
-    app_logger.info(f"Database logging: {'enabled' if settings.LOG_DATABASE_QUERIES else 'disabled'}")
-    app_logger.info(f"HTTP logging: {'enabled' if settings.LOG_HTTP_REQUESTS else 'disabled'}")
+    # Disabled startup logging for minimal output
+    # app_logger.info(f"Logging level: {settings.LOG_LEVEL}")
+    # app_logger.info(f"Database logging: {'enabled' if settings.LOG_DATABASE_QUERIES else 'disabled'}")
+    # app_logger.info(f"HTTP logging: {'enabled' if settings.LOG_HTTP_REQUESTS else 'disabled'}")
     
     uvicorn.run(
         app, 

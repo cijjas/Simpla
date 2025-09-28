@@ -74,6 +74,11 @@ db_logger = DatabaseLogger()
 
 def setup_database_event_listeners(engine: Engine):
     """Set up SQLAlchemy event listeners for query logging."""
+    from core.config.config import settings
+    
+    # Only set up if database logging is enabled
+    if not settings.LOG_DATABASE_QUERIES:
+        return
     
     @event.listens_for(engine, "before_cursor_execute")
     def receive_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
@@ -94,20 +99,21 @@ def setup_database_event_listeners(engine: Engine):
                 connection=conn
             )
     
-    @event.listens_for(engine, "connect")
-    def receive_connect(dbapi_connection, connection_record):
-        """Log database connection."""
-        logger.info("Database connection established")
+    # Disabled connection logging for minimal output
+    # @event.listens_for(engine, "connect")
+    # def receive_connect(dbapi_connection, connection_record):
+    #     """Log database connection."""
+    #     logger.info("Database connection established")
     
-    @event.listens_for(engine, "checkout")
-    def receive_checkout(dbapi_connection, connection_record, connection_proxy):
-        """Log connection checkout from pool."""
-        logger.debug("Connection checked out from pool")
+    # @event.listens_for(engine, "checkout")
+    # def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+    #     """Log connection checkout from pool."""
+    #     logger.debug("Connection checked out from pool")
     
-    @event.listens_for(engine, "checkin")
-    def receive_checkin(dbapi_connection, connection_record):
-        """Log connection checkin to pool."""
-        logger.debug("Connection checked in to pool")
+    # @event.listens_for(engine, "checkin")
+    # def receive_checkin(dbapi_connection, connection_record):
+    #     """Log connection checkin to pool."""
+    #     logger.debug("Connection checked in to pool")
 
 
 class LoggingSession(Session):
