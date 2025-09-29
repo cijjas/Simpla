@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, Mail, MessageCircle } from 'lucide-react';
+import { Menu, Mail, MessageCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
@@ -20,7 +20,7 @@ import { ThemeToggle } from '../ui/theme-toggle';
 
 export default function Header() {
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, isLoggingOut, logout } = useAuth();
 
   const handleSignOut = async () => {
     await logout();
@@ -69,15 +69,27 @@ export default function Header() {
         <div className='hidden md:flex items-center space-x-4'>
           <ThemeToggle />
 
-          {isLoading && <span>Cargando…</span>}
+          {isLoading && (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Cargando…
+            </span>
+          )}
 
           {isAuthenticated && user && (
             <>
               <span className='text-sm text-muted-foreground'>
                 Hola, {user.name || user.email}
               </span>
-              <Button onClick={handleSignOut}>
-                Cerrar sesión
+              <Button onClick={handleSignOut} disabled={isLoggingOut}>
+                {isLoggingOut ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cerrando sesión...
+                  </>
+                ) : (
+                  'Cerrar sesión'
+                )}
               </Button>
             </>
           )}

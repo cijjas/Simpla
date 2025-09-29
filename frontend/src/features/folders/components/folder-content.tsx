@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { FileText, Folder, FolderPlus, Archive, BookOpen, Star, Tag, Users } from 'lucide-react';
+import { FileText, Folder, FolderPlus, Archive, BookOpen, Star, Tag, Users, Loader2 } from 'lucide-react';
 import { useFolderNormas } from '../hooks/use-folders';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
@@ -72,7 +72,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2 text-sm text-muted-foreground">Cargando normas...</span>
           </div>
         </CardContent>

@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { apiClient } from '@/lib/fetch';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import type { Message, RagScope } from '../types'; // Ensure RagScope is imported
 
 export function useChat() {
+  const { accessToken } = useAuth();
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedProvinces, setSelectedProvinces] = useState<string[]>([]);
@@ -51,7 +53,7 @@ export function useChat() {
       const { answer } = await apiClient.post<{ answer: string }>('/api/chat', {
         question: q,
         provinces: currentScope.provinces, // Send current scope to API
-      });
+      }, accessToken);
       setMessages(m => [
         ...m,
         {

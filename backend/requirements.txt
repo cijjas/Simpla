@@ -22,8 +22,8 @@ hf-xet==1.1.10
 httplib2==0.31.0
 huggingface-hub==0.35.0
 idna==3.10
-packaging==25.0
-pinecone==6.0.0
+packaging==24.2
+pinecone==7.3.0
 pinecone-plugin-interface==0.0.7
 proto-plus==1.26.1
 protobuf==5.29.5

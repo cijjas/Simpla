@@ -67,6 +67,10 @@ const data = {
           url: "/chat",
         },
         {
+          title: "Constituciones",
+          url: "/chat/constitucion",
+        },
+        {
           title: "Historial",
           url: "/chat/historial",
         },

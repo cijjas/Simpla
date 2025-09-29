@@ -5,7 +5,7 @@ import { TreeView, TreeDataItem } from '@/components/tree-view-old';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Folder, FileText, Search, FolderPlus, Archive, BookOpen, Star, Tag, Users, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Folder, FileText, Search, FolderPlus, Archive, BookOpen, Star, Tag, Users, Edit, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
 import { findFolderById } from '../utils/folder-utils';
@@ -195,7 +195,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2 text-sm text-muted-foreground">Cargando carpetas...</span>
           </div>
         </CardContent>

@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import {
   BadgeCheck,
   Bell,
@@ -7,6 +8,7 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  Loader2,
 } from "lucide-react"
 import { useAuth } from "@/features/auth/hooks/use-auth"
 
@@ -41,9 +43,12 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuth()
+  const { logout, isLoggingOut } = useAuth()
+  const [open, setOpen] = React.useState(false)
 
   const handleSignOut = async () => {
+    // Keep dropdown open during logout to show loading state
+    setOpen(true)
     await logout()
     window.location.href = '/'
   }
@@ -51,7 +56,13 @@ export function NavUser({
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu open={open} onOpenChange={(newOpen) => {
+          // Prevent closing dropdown when logout is in progress
+          if (isLoggingOut && !newOpen) {
+            return
+          }
+          setOpen(newOpen)
+        }}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
@@ -109,9 +120,18 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut />
-              Cerrar sesión
+            <DropdownMenuItem onClick={handleSignOut} disabled={isLoggingOut}>
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cerrando sesión...
+                </>
+              ) : (
+                <>
+                  <LogOut />
+                  Cerrar sesión
+                </>
+              )}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

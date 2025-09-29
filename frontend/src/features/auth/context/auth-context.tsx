@@ -17,6 +17,7 @@ export interface AuthState {
   accessToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isLoggingOut: boolean;
 }
 
 export interface AuthContextType extends AuthState {
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     accessToken: null,
     isLoading: true,
     isAuthenticated: false,
+    isLoggingOut: false,
   });
   
   // Flag to prevent refresh attempts during logout
@@ -97,6 +99,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       accessToken: null,
       isLoading: false,
       isAuthenticated: false,
+      isLoggingOut: false,
     });
     // Clear any stored tokens
     localStorage.removeItem('access_token');
@@ -152,6 +155,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           user: data.user,
           isAuthenticated: true,
           isLoading: false,
+          isLoggingOut: false,
         };
         setAuthState(prev => ({ ...prev, ...newAuthState }));
         // Save to localStorage for persistence
@@ -207,6 +211,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           accessToken: data.access_token,
           isLoading: false,
           isAuthenticated: true,
+          isLoggingOut: false,
         };
         setAuthState(newAuthState);
         // Save to localStorage for persistence
@@ -244,6 +249,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           accessToken: data.access_token,
           isLoading: false,
           isAuthenticated: true,
+          isLoggingOut: false,
         };
         setAuthState(newAuthState);
         // Save to localStorage for persistence
@@ -265,6 +271,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // Set logout flag to prevent refresh attempts
       isLoggingOutRef.current = true;
+      
+      // Set loading state for UI feedback
+      setAuthState(prev => ({ ...prev, isLoggingOut: true }));
       
       // Call backend logout to revoke refresh token
       if (authState.accessToken && BACKEND_URL) {
@@ -309,6 +318,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             accessToken,
             isLoading: true, // Still loading while we verify with backend
             isAuthenticated: true,
+            isLoggingOut: false,
           });
         }
         

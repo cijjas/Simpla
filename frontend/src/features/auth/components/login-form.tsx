@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { SiGoogle } from 'react-icons/si';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/use-auth';
 import { useGoogleAuth } from '../hooks/use-google-auth';
@@ -142,7 +143,14 @@ export function LoginForm({
           {formError && <p className='text-sm text-destructive'>{formError}</p>}
 
           <Button type='submit' className='w-full' disabled={loading || authLoading}>
-            {loading || authLoading ? 'Ingresando…' : 'Iniciar sesión'}
+            {loading || authLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Ingresando…
+              </>
+            ) : (
+              'Iniciar sesión'
+            )}
           </Button>
         </form>
       </Form>
@@ -162,8 +170,17 @@ export function LoginForm({
           onClick={handleGoogle}
           disabled={loading || googleLoading}
         >
-          <SiGoogle className='h-4 w-4' />
-          {loading || googleLoading ? 'Ingresando…' : 'Iniciar sesión con Google'}
+          {loading || googleLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Ingresando…
+            </>
+          ) : (
+            <>
+              <SiGoogle className='h-4 w-4' />
+              Iniciar sesión con Google
+            </>
+          )}
         </Button>
       </div>
 

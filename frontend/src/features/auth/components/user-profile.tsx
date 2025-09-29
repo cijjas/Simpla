@@ -3,6 +3,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../hooks/use-auth';
 import { useApi } from '../hooks/use-api';
 
@@ -46,7 +47,7 @@ export function UserProfile() {
   if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }

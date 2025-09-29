@@ -15,8 +15,9 @@ export type Message = {
 };
 
 export const ALL_PROVINCES = [
-  'Jujuy',
+  'Nacional',
   'La Nación Argentina',
+  'Jujuy',
   'La Rioja',
   'La Provincia Del Chubut',
   'Entre Rios',

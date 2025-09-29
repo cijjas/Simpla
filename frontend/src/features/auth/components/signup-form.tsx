@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { SiGoogle } from 'react-icons/si';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGoogleAuth } from '../hooks/use-google-auth';
 
@@ -202,7 +202,14 @@ export function SignupForm({
                 )}
 
                 <Button type='submit' className='w-full' disabled={status === 'submitting'}>
-                  {status === 'submitting' ? 'Registrando…' : 'Registrarse'}
+                  {status === 'submitting' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Registrando…
+                    </>
+                  ) : (
+                    'Registrarse'
+                  )}
                 </Button>
               </form>
             </Form>
@@ -222,8 +229,17 @@ export function SignupForm({
                 onClick={handleGoogle}
                 disabled={status === 'submitting' || googleLoading}
               >
-                <SiGoogle className='h-4 w-4' />
-                {status === 'submitting' || googleLoading ? 'Registrando…' : 'Registrarse con Google'}
+                {status === 'submitting' || googleLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Registrando…
+                  </>
+                ) : (
+                  <>
+                    <SiGoogle className='h-4 w-4' />
+                    Registrarse con Google
+                  </>
+                )}
               </Button>
             </div>
 

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -89,7 +89,14 @@ export function ResetPasswordForm() {
           </div>
 
           <Button type='submit' disabled={status === 'submitting'}>
-            Cambiar contraseña
+            {status === 'submitting' ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cambiando contraseña…
+              </>
+            ) : (
+              'Cambiar contraseña'
+            )}
           </Button>
 
           {status === 'error' && (

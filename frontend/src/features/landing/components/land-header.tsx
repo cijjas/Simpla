@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Menu, Mail, MessageCircle} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/features/auth/hooks/use-auth';
 
 import {
   Sheet,
@@ -19,7 +18,6 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export default function LandHeader() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('hero');
 
   // Track which section is currently in view
@@ -46,10 +44,6 @@ export default function LandHeader() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleSignOut = async () => {
-    await logout();
-    window.location.href = '/';
-  };
 
   const sections = [
     { id: 'features', label: 'Características', href: '/#features' },
@@ -93,25 +87,9 @@ export default function LandHeader() {
         {/* Desktop controls */}
         <div className='hidden md:flex items-center space-x-4'>
           <ThemeToggle />
-
-          {isLoading && <span>Cargando…</span>}
-
-          {isAuthenticated && user && (
-            <>
-              <span className='text-sm text-muted-foreground'>
-                Hola, {user.name || user.email}
-              </span>
-              <Button onClick={handleSignOut} variant="outline" size="sm">
-                Cerrar sesión
-              </Button>
-            </>
-          )}
-
-          {!isAuthenticated && !isLoading && (
-            <Link href='/iniciar-sesion'>
-              <Button size="sm">Iniciar sesión</Button>
-            </Link>
-          )}
+          <Link href='/iniciar-sesion'>
+            <Button size="sm">Iniciar sesión</Button>
+          </Link>
         </div>
 
         {/* Mobile menu */}

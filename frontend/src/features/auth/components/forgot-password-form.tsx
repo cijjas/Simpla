@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -84,9 +84,14 @@ export function ForgotPasswordForm() {
           </div>
 
           <Button type='submit' disabled={status === 'sending'}>
-            {status === 'sending'
-              ? 'Enviando…'
-              : 'Enviar enlace de recuperación'}
+            {status === 'sending' ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Enviando…
+              </>
+            ) : (
+              'Enviar enlace de recuperación'
+            )}
           </Button>
 
           {status === 'error' && (
