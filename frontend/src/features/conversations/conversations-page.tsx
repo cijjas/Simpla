@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, Bot, User, MessageSquare, Plus, Archive, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
+import { Send, Bot, User, MessageSquare, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   ConversationsAPI, 
@@ -40,6 +40,8 @@ export default function ConversacionesPage() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [tempTitle, setTempTitle] = useState<string>('');
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,24 @@ export default function ConversacionesPage() {
     }
   };
 
+  const handleArchiveClick = async (conv: Conversation) => {
+    try {
+      await ConversationsAPI.updateConversation(conv.id, { is_archived: true });
+      // Remove from conversations list
+      setConversations(prev => prev.filter(c => c.id !== conv.id));
+      // If this was the current conversation, clear it
+      if (currentSessionId === conv.id) {
+        setCurrentConversation(null);
+        setMessages([]);
+        setCurrentSessionId(null);
+      }
+      toast.success('Conversación archivada');
+    } catch (error) {
+      toast.error('Error archiving conversation');
+      console.error(error);
+    }
+  };
+
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
@@ -151,6 +171,51 @@ export default function ConversacionesPage() {
       setDeleteDialogOpen(false);
       setConversationToDelete(null);
     }
+  };
+
+  const handleRenameStart = (conv: Conversation) => {
+    setEditingConversationId(conv.id);
+    setTempTitle(conv.title);
+  };
+
+  const handleRenameSave = async (convId: string) => {
+    if (!tempTitle.trim()) {
+      // If empty, cancel rename
+      setEditingConversationId(null);
+      setTempTitle('');
+      return;
+    }
+
+    try {
+      await ConversationsAPI.updateConversation(convId, { title: tempTitle.trim() });
+      
+      // Update the conversation in the list
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === convId 
+            ? { ...conv, title: tempTitle.trim() }
+            : conv
+        )
+      );
+
+      // Update current conversation if it's the one being edited
+      if (currentConversation && currentConversation.id === convId) {
+        setCurrentConversation(prev => prev ? { ...prev, title: tempTitle.trim() } : null);
+      }
+
+      toast.success('Título actualizado');
+    } catch (error) {
+      toast.error('Error updating title');
+      console.error(error);
+    } finally {
+      setEditingConversationId(null);
+      setTempTitle('');
+    }
+  };
+
+  const handleRenameCancel = () => {
+    setEditingConversationId(null);
+    setTempTitle('');
   };
 
   const handleSendMessage = async () => {
@@ -268,9 +333,29 @@ export default function ConversacionesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-sm truncate text-foreground">
-                          {conv.title}
-                        </h3>
+                        {editingConversationId === conv.id ? (
+                          <input
+                            type="text"
+                            value={tempTitle}
+                            onChange={(e) => setTempTitle(e.target.value)}
+                            onBlur={() => handleRenameSave(conv.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameSave(conv.id);
+                              } else if (e.key === 'Escape') {
+                                handleRenameCancel();
+                              }
+                            }}
+                            className="w-full border-none bg-transparent p-0 text-sm font-medium text-foreground focus:ring-0 focus:outline-none"
+                            autoFocus
+                            onFocus={(e) => e.target.select()}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <h3 className="font-medium text-sm truncate text-foreground">
+                            {conv.title}
+                          </h3>
+                        )}
                         <Badge 
                           variant="outline" 
                           className="text-xs px-2 py-0.5 h-5 shrink-0"
@@ -282,7 +367,7 @@ export default function ConversacionesPage() {
                         {conv.snippet}
                       </p>
                       <span className="text-xs text-muted-foreground/70">
-                        {formatDate(conv.update_time)}
+                        {formatDate(conv.update_time || (conv as Conversation & { updated_at?: string }).updated_at || '')}
                       </span>
                     </div>
                     <DropdownMenu>
@@ -297,6 +382,24 @@ export default function ConversacionesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameStart(conv);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchiveClick(conv);
+                          }}
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archivar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
@@ -335,12 +438,6 @@ export default function ConversacionesPage() {
                       {currentConversation.total_tokens} tokens
                     </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
-                    <Archive className="h-4 w-4 mr-2" />
-                    Archivar
-                  </Button>
                 </div>
               </div>
             </div>
