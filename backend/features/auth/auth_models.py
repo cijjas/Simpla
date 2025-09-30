@@ -33,7 +33,8 @@ class User(Base):
     # Relationships
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     # folders = relationship("Folder", back_populates="user", cascade="all, delete-orphan")  # Will be set up after Folder is defined
-    # chat_sessions = relationship("ChatSession", cascade="all, delete-orphan")  # Will be set up after ChatSession is defined
+    # chat_sessions = relationship("ChatSession", cascade="all, delete-orphan")  # Deprecated
+    conversations = relationship("Conversation", cascade="all, delete-orphan")  # New conversations relationship
 
 
 class RefreshToken(Base):

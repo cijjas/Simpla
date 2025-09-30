@@ -18,6 +18,9 @@ class Settings:
     GEMINI_API_KEY: Optional[str] = os.getenv('GEMINI_API_KEY')
     HF_API_KEY: Optional[str] = os.getenv('HF_API_KEY')
     
+    # AI Provider Configuration
+    AI_PROVIDER: str = os.getenv('AI_PROVIDER', 'gemini')
+    
     # Database
     DATABASE_URL: Optional[str] = os.getenv('DATABASE_URL')
     
