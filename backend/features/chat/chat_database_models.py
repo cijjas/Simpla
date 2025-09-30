@@ -53,3 +53,4 @@ class Message(Base):
     
     # Relationships
     session = relationship("ChatSession", back_populates="messages")
+

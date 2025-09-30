@@ -9,6 +9,7 @@ import {
   Heart,
   Compass,
   Scale,
+  MessageSquare,
 } from "lucide-react"
 import SvgEstampa from "@/components/icons/Estampa"
 import { forwardRef } from "react"
@@ -62,6 +63,11 @@ const data = {
       title: "Carpetas",
       url: "/carpetas",
       icon: Folder,
+    },
+    {
+      title: "Conversaciones",
+      url: "/conversaciones",
+      icon: MessageSquare,
     },
   ],
   copiloto: [

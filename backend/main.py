@@ -7,14 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import all models to ensure they are registered with SQLAlchemy
 from features.auth.auth_models import User, RefreshToken
 from features.folders.folder_models import Folder, FolderNorma
-from features.chat.chat_database_models import ChatSession, Message
+# from features.chat.chat_database_models import ChatSession, Message  # Deprecated
+from features.conversations.models import Conversation, Message
 
 # Import feature routers
 from features.auth.auth_routes import router as auth_router
-from features.chat.chat_routes import router as chat_router
+# from features.chat.chat_routes import router as chat_router  # Deprecated
 from features.feedback.feedback_routes import router as feedback_router
 from features.contact.contact_routes import router as contact_router
 from features.folders.folder_routes import router as folder_router
+from features.conversations.router import router as conversations_router
 
 # Import core configuration and logging
 from core.config.config import settings
@@ -49,10 +51,11 @@ app.add_middleware(
 
 # Include feature routers
 app.include_router(auth_router, prefix="/api")
-app.include_router(chat_router, prefix="/api")
+# app.include_router(chat_router, prefix="/api")  # Deprecated
 app.include_router(feedback_router, prefix="/api")
 app.include_router(contact_router, prefix="/api")
 app.include_router(folder_router, prefix="/api")
+app.include_router(conversations_router, prefix="/api")
 
 
 @app.get("/api/")
