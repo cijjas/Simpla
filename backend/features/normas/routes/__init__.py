@@ -1,1 +1,0 @@
-"""InfoLeg routes package."""

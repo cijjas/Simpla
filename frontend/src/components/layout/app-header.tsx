@@ -44,6 +44,7 @@ function renderBreadcrumb(pathname: string) {
     norma: 'Norma',
     chat: 'Chat',
     constitucion: 'Constituciones',
+    constituciones: 'Constituciones',
     carpetas: 'Carpetas',
     folders: 'Carpetas',
     settings: 'Configuración',

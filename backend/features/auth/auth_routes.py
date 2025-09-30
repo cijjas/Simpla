@@ -11,8 +11,8 @@ from core.utils.logging_config import get_logger
 from core.utils.db_logging import log_database_operation, log_database_error
 
 from core.database.base import get_db
-from features.auth.models.user import User, RefreshToken
-from features.auth.utils.auth import (
+from features.auth.auth_models import User, RefreshToken
+from features.auth.auth_utils import (
     get_password_hash, 
     verify_password, 
     verify_google_token,
@@ -93,7 +93,7 @@ async def register(
         # Generate verification token
         import secrets
         import hashlib
-        from features.auth.services.email_service import send_verification_email
+        from features.auth.auth_email_service import send_verification_email
         
         raw_token = secrets.token_hex(32)
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
@@ -467,7 +467,7 @@ async def forgot_password(
     # Generate reset token
     import secrets
     import hashlib
-    from features.auth.services.email_service import send_reset_password_email
+    from features.auth.auth_email_service import send_reset_password_email
     
     raw_token = secrets.token_hex(32)
     token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
@@ -633,7 +633,7 @@ async def resend_verification_email(
         # Generate new verification token
         import secrets
         import hashlib
-        from features.auth.services.email_service import send_verification_email
+        from features.auth.auth_email_service import send_verification_email
         
         raw_token = secrets.token_hex(32)
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()

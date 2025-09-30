@@ -10,7 +10,7 @@ from google.oauth2 import id_token
 import bcrypt
 
 from core.database.base import get_db
-from features.auth.models.user import User, RefreshToken
+from features.auth.auth_models import User, RefreshToken
 from core.utils.jwt_utils import verify_token
 from core.config.config import settings
 

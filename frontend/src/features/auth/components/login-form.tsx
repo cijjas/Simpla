@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { SiGoogle } from 'react-icons/si';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/use-auth';
 import { useGoogleAuth } from '../hooks/use-google-auth';
@@ -42,6 +42,7 @@ export function LoginForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(isVerified);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { login, isLoading: authLoading } = useAuth();
   const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleAuth();
@@ -120,7 +121,7 @@ export function LoginForm({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className='rounded-lg bg-green-50 border border-green-200 p-4 mb-4'
+            className='rounded-lg border border-green-200 p-4 mb-4'
           >
             <div className='flex items-center gap-3'>
               <CheckCircle className='h-5 w-5 text-green-600 flex-shrink-0' />
@@ -180,7 +181,25 @@ export function LoginForm({
                   </Link>
                 </div>
                 <FormControl>
-                  <Input type='password'  {...field}  placeholder='••••••••'/>
+                  <div className='relative'>
+                    <Input 
+                      type={showPassword ? 'text' : 'password'} 
+                      {...field} 
+                      placeholder='••••••••'
+                      className='pr-10'
+                    />
+                    <button
+                      type='button'
+                      onClick={() => setShowPassword(!showPassword)}
+                      className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors'
+                    >
+                      {showPassword ? (
+                        <EyeOff className='h-4 w-4' />
+                      ) : (
+                        <Eye className='h-4 w-4' />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

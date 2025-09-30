@@ -1,8 +1,8 @@
 """Contact router for handling contact form submissions."""
 
 from fastapi import APIRouter, HTTPException
-from features.contact.models.contact import ContactRequest, ContactResponse
-from features.contact.services.email_service import send_contact_email
+from features.contact.contact_models import ContactRequest, ContactResponse
+from features.contact.contact_email_service import send_contact_email
 
 router = APIRouter(prefix="/contact", tags=["contact"])
 

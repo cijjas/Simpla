@@ -5,8 +5,8 @@ from typing import List
 import google.generativeai as genai
 from core.config.config import settings
 from features.chat.config import LEGAL_PROMPT_TEMPLATE, NO_CONTEXT_RESPONSE, GEMINI_MODEL_NAME
-from features.chat.services.embedding_service import EmbeddingService
-from features.chat.services.pinecone_service import PineconeService
+from features.chat.chat_embedding_service import EmbeddingService
+from features.chat.chat_pinecone_service import PineconeService
 
 logger = logging.getLogger(__name__)
 

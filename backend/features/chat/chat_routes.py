@@ -2,10 +2,10 @@
 
 import logging
 from fastapi import APIRouter, HTTPException, Depends
-from features.chat.models.models import ChatRequest, ChatResponse, RagRequest, RagResponse, ChatMessage
-from features.chat.services.rag_service import RAGService
-from features.auth.utils.auth import get_current_user
-from features.auth.models.user import User
+from features.chat.chat_models import ChatRequest, ChatResponse, RagRequest, RagResponse, ChatMessage
+from features.chat.chat_rag_service import RAGService
+from features.auth.auth_utils import get_current_user
+from features.auth.auth_models import User
 from core.config.config import settings
 
 logger = logging.getLogger(__name__)

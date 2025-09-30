@@ -5,15 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from core.database.base import get_db
-from features.folders.models.folder import Folder, FolderNorma
-from features.folders.schemas.folder import (
+from features.folders.folder_models import Folder, FolderNorma
+from features.folders.folder_schemas import (
     FolderCreate, FolderUpdate, FolderMove, FolderResponse, FolderTreeResponse,
     FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma,
     FolderWithNormasResponse, FolderCreateResponse
 )
-from features.normas.models.norma import NormaStructured
-from features.auth.models.user import User
-from features.auth.utils.auth import get_current_user
+from features.auth.auth_models import User
+from features.auth.auth_utils import get_current_user
 from core.utils.logging_config import get_logger
 import uuid
 

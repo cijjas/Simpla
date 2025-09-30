@@ -4,11 +4,11 @@ import * as React from "react"
 import { useAuth } from "@/features/auth/hooks/use-auth"
 import {
   Search,
-  MessageCircle,
   Folder,
   BookOpen,
   Heart,
   Compass,
+  Scale,
 } from "lucide-react"
 import SvgEstampa from "@/components/icons/Estampa"
 import { forwardRef } from "react"
@@ -21,6 +21,7 @@ EstampaIcon.displayName = "EstampaIcon"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
+import { NavCopiloto } from "@/components/nav-copiloto"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -58,28 +59,21 @@ const data = {
       icon: Search,
     },
     {
-      title: "Chat",
-      url: "/chat",
-      icon: MessageCircle,
-      items: [
-        {
-          title: "Nueva Conversación",
-          url: "/chat",
-        },
-        {
-          title: "Constituciones",
-          url: "/chat/constitucion",
-        },
-        {
-          title: "Historial",
-          url: "/chat/historial",
-        },
-      ],
-    },
-    {
       title: "Carpetas",
       url: "/carpetas",
       icon: Folder,
+    },
+  ],
+  copiloto: [
+    {
+      name: "Normativa Nacional",
+      url: "/chat",
+      icon: Scale,
+    },
+    {
+      name: "Constituciones",
+      url: "/chat/constituciones",
+      icon: BookOpen,
     },
   ],
   projects: [
@@ -114,6 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
+        <NavCopiloto copilotoItems={data.copiloto} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
