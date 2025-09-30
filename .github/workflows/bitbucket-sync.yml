@@ -24,4 +24,16 @@ jobs:
           git remote add bitbucket https://${{ secrets.BITBUCKET_USERNAME }}:${{ secrets.BITBUCKET_APP_PASSWORD }}@bitbucket.org/${{ secrets.BITBUCKET_REPO }}.git
 
           # Push all branches, tags, remotes — full sync
-          git push --mirror bitbucket
+          # First, push all branches and tags
+          git push --all bitbucket
+          git push --tags bitbucket
+          
+          # Handle the main branch separately to avoid deletion issues
+          # Check if main branch exists and push it
+          if git show-ref --verify --quiet refs/heads/main; then
+            git push --force bitbucket main:main
+          elif git show-ref --verify --quiet refs/remotes/origin/main; then
+            git push --force bitbucket origin/main:main
+          else
+            echo "No main branch found, skipping main branch push"
+          fi
