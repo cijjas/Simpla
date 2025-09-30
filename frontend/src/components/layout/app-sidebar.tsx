@@ -104,7 +104,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ...data.user,
     name: user?.name || data.user.name,
     email: user?.email || data.user.email,
-    avatar: data.user.avatar, // We don't have avatar from backend yet
+    avatar: user?.avatar_url || data.user.avatar, // Use user's avatar or fallback to default
   }
 
   return (

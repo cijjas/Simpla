@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     const tokens = await tokenResponse.json();
     console.log(`${tokenTimestamp} | API-CALLBACK | SUCCESS | Successfully received tokens from Google`);
     console.log(`${tokenTimestamp} | API-CALLBACK | DEBUG | Token type: ${tokens.token_type}, expires in: ${tokens.expires_in}s`);
+    console.log(`${tokenTimestamp} | API-CALLBACK | DEBUG | ID token present: ${!!tokens.id_token}`);
 
     // Get user info from Google
     console.log(`${tokenTimestamp} | API-CALLBACK | INFO | Fetching user info from Google`);
@@ -102,6 +103,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       user: authData.user,
       access_token: authData.access_token,
+      expires_in: authData.expires_in,
+      id_token: tokens.id_token, // Include the ID token for the frontend
     });
   } catch (error) {
     const errorTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);

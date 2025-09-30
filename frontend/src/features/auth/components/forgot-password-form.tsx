@@ -46,7 +46,7 @@ export function ForgotPasswordForm() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
-          className='flex flex-col items-center justify-center gap-4 max-w-md mx-auto text-center mt-8'
+          className='flex flex-col items-center justify-center gap-4 max-w-md mx-auto text-center'
         >
           <CheckCircle2 className='h-10 w-10 text-green-600' />
           <h2 className='text-lg font-semibold'>

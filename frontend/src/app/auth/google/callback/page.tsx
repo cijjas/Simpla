@@ -71,6 +71,9 @@ function GoogleCallbackContent() {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
             user: userData.user,
+            access_token: userData.access_token,
+            expires_in: userData.expires_in,
+            id_token: userData.id_token,
           }, window.location.origin);
           console.log(`${responseTimestamp} | CALLBACK | SUCCESS | Success message sent to parent window`);
         } else {

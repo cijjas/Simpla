@@ -4,7 +4,11 @@ import logging
 from sqlalchemy import create_engine
 from core.config.config import settings
 from core.database.base import Base
+
+# Import all models to ensure they are registered with SQLAlchemy
 from features.auth.models.user import User, RefreshToken
+from features.folders.models.folder import Folder, FolderNorma
+from features.chat.models.database_models import ChatSession, Message
 
 logger = logging.getLogger(__name__)
 

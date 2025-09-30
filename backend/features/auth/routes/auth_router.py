@@ -1,6 +1,6 @@
 """New authentication router with JWT-based authentication."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import HTTPBearer
@@ -97,7 +97,7 @@ async def register(
         
         raw_token = secrets.token_hex(32)
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-        expires = datetime.now() + timedelta(hours=24)  # Token expires in 24 hours
+        expires = datetime.now(timezone.utc) + timedelta(hours=24)  # Token expires in 24 hours
         
         # Create new user (unverified)
         user = User(
@@ -177,14 +177,16 @@ async def login(
         )
     
     # Create tokens
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token_str = create_refresh_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token_str = create_refresh_token(data={"sub": str(user.id)})
     
     # Store refresh token in database
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     refresh_token_record = RefreshToken(
         id=create_refresh_token_id(),
         user_id=user.id,
-        token=refresh_token_str
+        token=refresh_token_str,
+        expires_at=expires_at
     )
     db.add(refresh_token_record)
     db.commit()
@@ -207,6 +209,7 @@ async def login(
             "id": user.id,
             "email": user.email,
             "name": user.name,
+            "avatar_url": user.avatar_url,
             "provider": user.provider,
             "email_verified": user.email_verified
         }
@@ -237,6 +240,7 @@ async def google_login(
             id=create_user_id(),
             email=google_user["email"],
             name=google_user["name"],
+            avatar_url=google_user.get("picture"),
             provider="google",
             email_verified=google_user["email_verified"]
         )
@@ -251,18 +255,22 @@ async def google_login(
             user.email_verified = True
         if user.name != google_user["name"]:
             user.name = google_user["name"]
-        user.updated_at = datetime.utcnow()
+        if google_user.get("picture") and user.avatar_url != google_user["picture"]:
+            user.avatar_url = google_user["picture"]
+        user.updated_at = datetime.now(timezone.utc)
         db.commit()
     
     # Create tokens
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token_str = create_refresh_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token_str = create_refresh_token(data={"sub": str(user.id)})
     
     # Store refresh token in database
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     refresh_token_record = RefreshToken(
         id=create_refresh_token_id(),
         user_id=user.id,
-        token=refresh_token_str
+        token=refresh_token_str,
+        expires_at=expires_at
     )
     db.add(refresh_token_record)
     db.commit()
@@ -285,6 +293,7 @@ async def google_login(
             "id": user.id,
             "email": user.email,
             "name": user.name,
+            "avatar_url": user.avatar_url,
             "provider": user.provider,
             "email_verified": user.email_verified
         }
@@ -325,7 +334,8 @@ async def refresh_token(
     refresh_token_record = db.query(RefreshToken).filter(
         RefreshToken.token == refresh_token_str,
         RefreshToken.user_id == user_id,
-        RefreshToken.revoked == False
+        RefreshToken.revoked == False,
+        RefreshToken.expires_at > datetime.now(timezone.utc)
     ).first()
     
     if not refresh_token_record:
@@ -343,18 +353,21 @@ async def refresh_token(
         )
     
     # Create new access token
-    access_token = create_access_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": str(user.id)})
     
     # Optionally rotate refresh token (recommended for security)
     # Revoke old refresh token
     refresh_token_record.revoked = True
+    refresh_token_record.revoked_at = datetime.now(timezone.utc)
     
     # Create new refresh token
-    new_refresh_token_str = create_refresh_token(data={"sub": user.id})
+    new_refresh_token_str = create_refresh_token(data={"sub": str(user.id)})
+    new_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     new_refresh_token_record = RefreshToken(
         id=create_refresh_token_id(),
         user_id=user.id,
-        token=new_refresh_token_str
+        token=new_refresh_token_str,
+        expires_at=new_expires_at
     )
     db.add(new_refresh_token_record)
     db.commit()
@@ -376,6 +389,7 @@ async def refresh_token(
             "id": user.id,
             "email": user.email,
             "name": user.name,
+            "avatar_url": user.avatar_url,
             "provider": user.provider,
             "email_verified": user.email_verified
         }
@@ -402,6 +416,7 @@ async def logout(
         
         if refresh_token_record:
             refresh_token_record.revoked = True
+            refresh_token_record.revoked_at = datetime.now(timezone.utc)
             db.commit()
             logger.info(f"Refresh token revoked for user: {current_user.email}")
     elif refresh_token_str:
@@ -412,6 +427,7 @@ async def logout(
         
         if refresh_token_record:
             refresh_token_record.revoked = True
+            refresh_token_record.revoked_at = datetime.now(timezone.utc)
             db.commit()
             logger.info("Refresh token revoked (user not authenticated)")
     
@@ -455,7 +471,7 @@ async def forgot_password(
     
     raw_token = secrets.token_hex(32)
     token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-    expires = datetime.now() + timedelta(hours=1)
+    expires = datetime.now(timezone.utc) + timedelta(hours=1)
     
     # Store token in database
     user.reset_token = token_hash
@@ -505,7 +521,7 @@ async def reset_password(
                 detail="Invalid or expired reset token"
             )
         
-        if user.reset_token_expires < datetime.now():
+        if user.reset_token_expires < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or expired reset token"
@@ -515,7 +531,7 @@ async def reset_password(
         user.hashed_password = get_password_hash(request.password)
         user.reset_token = None  # Clear the reset token
         user.reset_token_expires = None  # Clear the reset token expiration
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.commit()
         
         return {"message": "Password reset successfully"}
@@ -564,7 +580,7 @@ async def verify_email(
                 detail="Invalid verification link"
             )
         
-        if user.verification_token_expires < datetime.now():
+        if user.verification_token_expires < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Verification link has expired. Please register again."
@@ -574,7 +590,7 @@ async def verify_email(
         user.email_verified = True
         user.verification_token = None  # Clear the verification token
         user.verification_token_expires = None  # Clear the verification token expiration
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.commit()
         
         logger.info(f"Email verified successfully for user: {user.email}")
@@ -593,6 +609,59 @@ async def verify_email(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error"
         )
+
+
+@router.get("/resend")
+async def resend_verification_email(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """Resend verification email for unverified users."""
+    logger.info(f"Resend verification request for email: {email}")
+    
+    try:
+        # Find user by email
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            # Don't reveal if email exists or not for security
+            return {"message": "If the email exists and is unverified, a new verification email has been sent."}
+        
+        # Check if user is already verified
+        if user.email_verified:
+            return {"message": "Email is already verified."}
+        
+        # Generate new verification token
+        import secrets
+        import hashlib
+        from features.auth.services.email_service import send_verification_email
+        
+        raw_token = secrets.token_hex(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        expires = datetime.now(timezone.utc) + timedelta(hours=24)  # Token expires in 24 hours
+        
+        # Update user with new verification token
+        user.verification_token = token_hash
+        user.verification_token_expires = expires
+        user.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        log_database_operation("UPDATE", "users", user.id, {"email": user.email, "action": "resend_verification"})
+        logger.info(f"New verification token generated for user: {user.email}")
+        
+        # Send verification email
+        try:
+            send_verification_email(email=email, token=raw_token)
+            logger.info(f"Verification email resent to: {user.email}")
+            return {"message": "If the email exists and is unverified, a new verification email has been sent."}
+        except Exception as e:
+            logger.error(f"Failed to resend verification email to {user.email}: {str(e)}")
+            # Don't fail the request if email sending fails, but log the error
+            return {"message": "If the email exists and is unverified, a new verification email has been sent."}
+    
+    except Exception as e:
+        log_database_error("resend_verification", e, "users")
+        logger.error(f"Resend verification failed for {email}: {str(e)}")
+        return {"message": "If the email exists and is unverified, a new verification email has been sent."}
 
 
 @router.get("/debug-reset-token/{email}")

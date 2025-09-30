@@ -26,24 +26,48 @@ export function useGoogleAuth() {
         console.log(`${resultTimestamp} | GOOGLE-AUTH | SUCCESS | Popup authentication completed successfully`);
         console.log(`${resultTimestamp} | GOOGLE-AUTH | INFO | User data received:`, user);
         
-        // The popup auth already handles the backend authentication
-        // We need to refresh the auth state to pick up the new tokens
-        console.log(`${resultTimestamp} | GOOGLE-AUTH | INFO | Refreshing authentication state`);
-        
-        // Try to refresh the auth state from the auth context
-        const refreshResult = await refreshToken();
-        const refreshTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-        
-        if (refreshResult) {
-          console.log(`${refreshTimestamp} | GOOGLE-AUTH | SUCCESS | Authentication state refreshed successfully`);
-          return { success: true };
-        } else {
-          console.warn(`${refreshTimestamp} | GOOGLE-AUTH | WARN | Token refresh failed, falling back to page reload`);
-          // Fallback to page reload if refresh fails
-          if (typeof window !== 'undefined') {
-            window.location.reload();
+        // If we have an id token from the popup, use it directly
+        if (user.id_token) {
+          console.log(`${resultTimestamp} | GOOGLE-AUTH | INFO | Using ID token from popup authentication`);
+          
+          // Update auth state directly with the ID token
+          const loginResult = await loginWithGoogle(user.id_token);
+          
+          if (loginResult.success) {
+            console.log(`${resultTimestamp} | GOOGLE-AUTH | SUCCESS | Authentication state updated successfully`);
+            return { success: true };
+          } else {
+            console.warn(`${resultTimestamp} | GOOGLE-AUTH | WARN | Failed to update auth state, falling back to refresh`);
+            // Fallback to refresh if direct update fails
+            const refreshResult = await refreshToken();
+            if (refreshResult) {
+              return { success: true };
+            } else {
+              // Final fallback to page reload
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
+              return { success: true };
+            }
           }
-          return { success: true };
+        } else {
+          console.log(`${resultTimestamp} | GOOGLE-AUTH | INFO | No ID token received, refreshing authentication state`);
+          
+          // Fallback to refresh if no ID token
+          const refreshResult = await refreshToken();
+          const refreshTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+          
+          if (refreshResult) {
+            console.log(`${refreshTimestamp} | GOOGLE-AUTH | SUCCESS | Authentication state refreshed successfully`);
+            return { success: true };
+          } else {
+            console.warn(`${refreshTimestamp} | GOOGLE-AUTH | WARN | Token refresh failed, falling back to page reload`);
+            // Fallback to page reload if refresh fails
+            if (typeof window !== 'undefined') {
+              window.location.reload();
+            }
+            return { success: true };
+          }
         }
       } else {
         console.warn(`${resultTimestamp} | GOOGLE-AUTH | WARN | Popup authentication was cancelled or failed`);

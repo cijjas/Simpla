@@ -46,7 +46,8 @@ def verify_google_token(token: str) -> Optional[dict]:
             'email': idinfo['email'],
             'name': idinfo.get('name'),
             'google_id': idinfo['sub'],
-            'email_verified': idinfo.get('email_verified', False)
+            'email_verified': idinfo.get('email_verified', False),
+            'picture': idinfo.get('picture')
         }
     except ValueError:
         return None
@@ -105,11 +106,11 @@ def get_current_user_optional(
         return None
 
 
-def create_user_id() -> str:
+def create_user_id() -> uuid.UUID:
     """Generate a unique user ID."""
-    return str(uuid.uuid4())
+    return uuid.uuid4()
 
 
-def create_refresh_token_id() -> str:
+def create_refresh_token_id() -> uuid.UUID:
     """Generate a unique refresh token ID."""
-    return str(uuid.uuid4())
+    return uuid.uuid4()

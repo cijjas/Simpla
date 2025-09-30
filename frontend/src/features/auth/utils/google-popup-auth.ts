@@ -10,6 +10,9 @@ export interface GoogleUser {
   email: string;
   name: string;
   picture: string;
+  access_token?: string;
+  expires_in?: number;
+  id_token?: string;
 }
 
 export class GooglePopupAuth {
@@ -94,7 +97,12 @@ export class GooglePopupAuth {
           clearInterval(checkClosed);
           window.removeEventListener('message', messageHandler);
           popup.close();
-          resolve(event.data.user);
+          resolve({
+            ...event.data.user,
+            access_token: event.data.access_token,
+            expires_in: event.data.expires_in,
+            id_token: event.data.id_token,
+          });
         } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
           console.error(`${msgTimestamp} | AUTH | ERROR | Google authentication failed`);
           console.error(`${msgTimestamp} | AUTH | ERROR | Error details: ${event.data.error}`);

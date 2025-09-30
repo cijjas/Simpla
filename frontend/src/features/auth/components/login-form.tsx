@@ -18,10 +18,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { SiGoogle } from 'react-icons/si';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/use-auth';
 import { useGoogleAuth } from '../hooks/use-google-auth';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Correo inválido' }),
@@ -35,9 +36,12 @@ export function LoginForm({
   const router = useRouter();
   const search = useSearchParams();
   const urlError = search.get('error');
+  const preFilledEmail = search.get('email');
+  const isVerified = search.get('verified') === 'true';
 
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(isVerified);
 
   const { login, isLoading: authLoading } = useAuth();
   const { signIn: googleSignIn, isLoading: googleLoading } = useGoogleAuth();
@@ -45,7 +49,7 @@ export function LoginForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      email: preFilledEmail || '',
       password: '',
     },
   });
@@ -60,6 +64,16 @@ export function LoginForm({
     if (urlError === 'EmailNotVerified')
       setFormError('Tenés que verificar tu correo antes de iniciar sesión.');
   }, [urlError]);
+
+  // Auto-hide success message after 5 seconds
+  useEffect(() => {
+    if (showSuccessMessage) {
+      const timer = setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessMessage]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setFormError(null);
@@ -97,6 +111,39 @@ export function LoginForm({
           Ingresá tu email para acceder
         </p>
       </div>
+
+      {/* Success message for verified email */}
+      <AnimatePresence>
+        {showSuccessMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className='rounded-lg bg-green-50 border border-green-200 p-4 mb-4'
+          >
+            <div className='flex items-center gap-3'>
+              <CheckCircle className='h-5 w-5 text-green-600 flex-shrink-0' />
+              <div className='flex-1'>
+                <p className='text-sm font-medium text-green-800'>
+                  ¡Cuenta verificada exitosamente!
+                </p>
+                <p className='text-xs text-green-600 mt-1'>
+                  Ya podés iniciar sesión con tus credenciales.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSuccessMessage(false)}
+                className='text-green-600 hover:text-green-800 transition-colors'
+              >
+                <svg className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                </svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Form {...form}>
         <form

@@ -24,7 +24,7 @@ router = APIRouter()
 def build_folder_tree(folders: List[Folder]) -> List[FolderTreeResponse]:
     """Build hierarchical folder tree structure."""
     folder_dict = {folder.id: {
-        "id": folder.id,
+        "id": str(folder.id),
         "name": folder.name,
         "description": folder.description,
         "level": folder.level,
@@ -126,7 +126,6 @@ async def create_folder(
     
     # Create new folder
     folder = Folder(
-        id=str(uuid.uuid4()),
         user_id=current_user.id,
         name=folder_data.name,
         description=folder_data.description,
@@ -143,10 +142,10 @@ async def create_folder(
     
     logger.info(f"Created folder {folder.id} for user {current_user.id}")
     return FolderCreateResponse(
-        id=folder.id,
+        id=str(folder.id),
         name=folder.name,
         description=folder.description,
-        parent_folder_id=folder.parent_folder_id,
+        parent_folder_id=str(folder.parent_folder_id) if folder.parent_folder_id else None,
         level=folder.level,
         color=folder.color,
         icon=folder.icon,
@@ -180,10 +179,10 @@ async def get_folder(
         )
     
     return FolderResponse(
-        id=folder.id,
+        id=str(folder.id),
         name=folder.name,
         description=folder.description,
-        parent_folder_id=folder.parent_folder_id,
+        parent_folder_id=str(folder.parent_folder_id) if folder.parent_folder_id else None,
         level=folder.level,
         color=folder.color,
         icon=folder.icon,
@@ -293,10 +292,10 @@ async def update_folder(
     
     logger.info(f"Updated folder {folder_id} for user {current_user.id}")
     return FolderResponse(
-        id=folder.id,
+        id=str(folder.id),
         name=folder.name,
         description=folder.description,
-        parent_folder_id=folder.parent_folder_id,
+        parent_folder_id=str(folder.parent_folder_id) if folder.parent_folder_id else None,
         level=folder.level,
         color=folder.color,
         icon=folder.icon,
@@ -368,10 +367,10 @@ async def move_folder(
     
     logger.info(f"Moved folder {folder_id} for user {current_user.id}")
     return FolderResponse(
-        id=folder.id,
+        id=str(folder.id),
         name=folder.name,
         description=folder.description,
-        parent_folder_id=folder.parent_folder_id,
+        parent_folder_id=str(folder.parent_folder_id) if folder.parent_folder_id else None,
         level=folder.level,
         color=folder.color,
         icon=folder.icon,
@@ -443,7 +442,7 @@ async def get_folder_normas(
     for fn in folder_normas:
         if fn.norma:  # Ensure norma exists
             normas_with_details.append(FolderNormaWithNorma(
-                id=fn.id,
+                id=str(fn.id),
                 norma={
                     "id": fn.norma.id,
                     "infoleg_id": fn.norma.infoleg_id,
@@ -461,10 +460,10 @@ async def get_folder_normas(
     
     return FolderWithNormasResponse(
         folder=FolderResponse(
-            id=folder.id,
+            id=str(folder.id),
             name=folder.name,
             description=folder.description,
-            parent_folder_id=folder.parent_folder_id,
+            parent_folder_id=str(folder.parent_folder_id) if folder.parent_folder_id else None,
             level=folder.level,
             color=folder.color,
             icon=folder.icon,
@@ -547,7 +546,7 @@ async def add_norma_to_folder(
     
     logger.info(f"Added norma {norma_data.norma_id} to folder {folder_id}")
     return FolderNormaWithNorma(
-        id=folder_norma.id,
+        id=str(folder_norma.id),
         norma={
             "id": norma.id,
             "infoleg_id": norma.infoleg_id,
@@ -613,7 +612,7 @@ async def update_folder_norma(
     
     logger.info(f"Updated norma {norma_id} in folder {folder_id}")
     return FolderNormaWithNorma(
-        id=folder_norma.id,
+        id=str(folder_norma.id),
         norma={
             "id": folder_norma.norma.id,
             "infoleg_id": folder_norma.norma.infoleg_id,
