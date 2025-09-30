@@ -17,6 +17,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Send, Bot, User, MessageSquare, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 import { 
   ConversationsAPI, 
   type Message, 
@@ -48,6 +49,7 @@ export default function ConversacionesPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasLoadedConversations = useRef(false);
   const isLoadingRef = useRef(false);
+  const streamingContentRef = useRef('');
 
   // Load conversations on mount
   useEffect(() => {
@@ -234,6 +236,7 @@ export default function ConversacionesPage() {
     setInputMessage('');
     setIsStreaming(true);
     setStreamingMessage('');
+    streamingContentRef.current = '';
 
     try {
       await ConversationsAPI.sendMessage(
@@ -244,16 +247,32 @@ export default function ConversacionesPage() {
         },
         (chunk) => {
           if (chunk.content) {
-            setStreamingMessage(prev => prev + chunk.content);
+            streamingContentRef.current += chunk.content;
+            setStreamingMessage(streamingContentRef.current);
           }
         },
         (sessionId) => {
+          // Add the completed streamed message to the messages array
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `assistant-${Date.now()}`,
+              role: 'assistant',
+              content: streamingContentRef.current,
+              tokens_used: 0,
+              created_at: new Date().toISOString(),
+            }
+          ]);
+          
           setCurrentSessionId(sessionId);
           setIsStreaming(false);
           setStreamingMessage('');
-          // Reload conversation to get the complete messages
-          if (sessionId) {
-            loadConversation(sessionId);
+          streamingContentRef.current = '';
+          
+          // Update the conversation in the list to reflect the latest update
+          if (!currentSessionId && sessionId) {
+            // New conversation was created, refresh the list
+            loadConversations();
           }
         },
         (error) => {
@@ -261,6 +280,7 @@ export default function ConversacionesPage() {
           console.error(error);
           setIsStreaming(false);
           setStreamingMessage('');
+          streamingContentRef.current = '';
         }
       );
     } catch (error) {
@@ -268,6 +288,7 @@ export default function ConversacionesPage() {
       console.error(error);
       setIsStreaming(false);
       setStreamingMessage('');
+      streamingContentRef.current = '';
     }
   };
 
@@ -480,7 +501,9 @@ export default function ConversacionesPage() {
                             : 'bg-muted'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <div className="prose-chat">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
                         <p className="text-xs opacity-70 mt-1">
                           {formatTime(message.created_at)}
                         </p>
@@ -499,10 +522,10 @@ export default function ConversacionesPage() {
                         </div>
                       </div>
                       <div className="rounded-lg p-3 bg-muted">
-                        <p className="text-sm whitespace-pre-wrap">
-                          {streamingMessage}
-                          <span className="animate-pulse">|</span>
-                        </p>
+                        <div className="prose-chat">
+                          <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                          <span className="animate-pulse inline-block ml-1">|</span>
+                        </div>
                       </div>
                     </div>
                   </div>
