@@ -229,3 +229,4 @@ def get_ai_service_instance() -> BaseAIService:
     if _ai_service is None:
         _ai_service = get_ai_service()
     return _ai_service
+

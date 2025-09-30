@@ -44,10 +44,15 @@ export default function ConversacionesPage() {
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasLoadedConversations = useRef(false);
+  const isLoadingRef = useRef(false);
 
   // Load conversations on mount
   useEffect(() => {
-    loadConversations();
+    if (!hasLoadedConversations.current) {
+      hasLoadedConversations.current = true;
+      loadConversations();
+    }
   }, []);
 
   // Auto-scroll to bottom when messages change
@@ -66,7 +71,13 @@ export default function ConversacionesPage() {
   }, [inputMessage]);
 
   const loadConversations = async () => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) {
+      return;
+    }
+    
     try {
+      isLoadingRef.current = true;
       setIsLoadingConversations(true);
       const data = await ConversationsAPI.getConversations();
       setConversations(data.items);
@@ -74,6 +85,7 @@ export default function ConversacionesPage() {
       toast.error('Error loading conversations');
       console.error(error);
     } finally {
+      isLoadingRef.current = false;
       setIsLoadingConversations(false);
     }
   };
@@ -104,7 +116,8 @@ export default function ConversacionesPage() {
       setCurrentConversation(conversation);
       setMessages([]);
       setCurrentSessionId(conversation.id);
-      await loadConversations();
+      // Add the new conversation to the conversations list
+      setConversations(prev => [conversation, ...prev]);
       toast.success('Nueva conversación creada');
     } catch (error) {
       toast.error('Error creating conversation');
@@ -177,7 +190,6 @@ export default function ConversacionesPage() {
           if (sessionId) {
             loadConversation(sessionId);
           }
-          loadConversations();
         },
         (error) => {
           toast.error('Error sending message');
