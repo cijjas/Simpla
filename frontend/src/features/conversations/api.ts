@@ -17,60 +17,29 @@ function getAuthHeaders(): Record<string, string> {
   };
 }
 
-// Types
-export interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  tokens_used: number;
-  metadata?: Record<string, unknown>;
-  created_at: string;
-}
+// Import types
+import type {
+  Message,
+  Conversation,
+  ConversationDetail,
+  ConversationListResponse,
+  CreateConversationRequest,
+  SendMessageRequest,
+  SendMessageResponse,
+  ChatType
+} from './types';
 
-export interface Conversation {
-  id: string;
-  title: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
-  snippet: string;
-  create_time: string;
-  update_time: string;
-  is_archived: boolean;
-  total_tokens: number;
-}
-
-export interface ConversationDetail extends Conversation {
-  messages: Message[];
-  system_prompt: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ConversationListResponse {
-  items: Conversation[];
-  total: number;
-  limit: number;
-  offset: number;
-  has_more: boolean;
-}
-
-export interface CreateConversationRequest {
-  title?: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
-  system_prompt?: string;
-}
-
-export interface SendMessageRequest {
-  content: string;
-  session_id?: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
-}
-
-export interface SendMessageResponse {
-  content: string;
-  session_id: string;
-  done?: boolean;
-  error?: boolean;
-}
+// Re-export types for convenience
+export type {
+  Message,
+  Conversation,
+  ConversationDetail,
+  ConversationListResponse,
+  CreateConversationRequest,
+  SendMessageRequest,
+  SendMessageResponse,
+  ChatType
+};
 
 // API Functions
 export class ConversationsAPI {
@@ -200,28 +169,3 @@ export class ConversationsAPI {
   }
 }
 
-// Utility functions
-export const formatTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleTimeString('es-AR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('es-AR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
-export const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleString('es-AR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
