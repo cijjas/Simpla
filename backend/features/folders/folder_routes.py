@@ -1,7 +1,7 @@
 """Router for folder-related endpoints."""
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func
 from core.database.base import get_db
@@ -11,13 +11,31 @@ from features.folders.folder_schemas import (
     FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma,
     FolderWithNormasResponse, FolderCreateResponse
 )
-from features.auth.auth_models import User
-from features.auth.auth_utils import get_current_user
+from features.auth.auth_utils import verify_token
 from core.utils.logging_config import get_logger
 import uuid
 
 logger = get_logger(__name__)
 router = APIRouter()
+
+
+# Authentication dependency
+def get_current_user_id(request: Request) -> str:
+    """Get current user ID from JWT token without database query."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token = auth_header.split(" ")[1]
+    payload = verify_token(token, "access")
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id: str = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
+    
+    return user_id
 
 
 def build_folder_tree(folders: List[Folder]) -> List[FolderTreeResponse]:
@@ -53,14 +71,15 @@ def build_folder_tree(folders: List[Folder]) -> List[FolderTreeResponse]:
 
 @router.get("/folders/", response_model=List[FolderTreeResponse])
 async def get_user_folders(
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Get all folders for the current user in hierarchical tree structure."""
-    logger.info(f"Fetching folders for user {current_user.id}")
+    logger.info(f"Fetching folders for user {user_id}")
     
     folders = db.query(Folder).filter(
-        Folder.user_id == current_user.id
+        Folder.user_id == user_id
     ).options(
         joinedload(Folder.folder_normas)
     ).order_by(Folder.order_index).all()
@@ -71,11 +90,12 @@ async def get_user_folders(
 @router.post("/folders/", response_model=FolderCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_folder(
     folder_data: FolderCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Create a new folder."""
-    logger.info(f"Creating folder '{folder_data.name}' for user {current_user.id}")
+    logger.info(f"Creating folder '{folder_data.name}' for user {user_id}")
     
     # Check if parent folder exists and belongs to user
     level = 0
@@ -83,7 +103,7 @@ async def create_folder(
         parent_folder = db.query(Folder).filter(
             and_(
                 Folder.id == folder_data.parent_folder_id,
-                Folder.user_id == current_user.id
+                Folder.user_id == user_id
             )
         ).first()
         
@@ -103,7 +123,7 @@ async def create_folder(
     # Check if folder name already exists at the same level
     existing_folder = db.query(Folder).filter(
         and_(
-            Folder.user_id == current_user.id,
+            Folder.user_id == user_id,
             Folder.name == folder_data.name,
             Folder.parent_folder_id == folder_data.parent_folder_id
         )
@@ -118,14 +138,14 @@ async def create_folder(
     # Get next order index for this level
     max_order = db.query(func.max(Folder.order_index)).filter(
         and_(
-            Folder.user_id == current_user.id,
+            Folder.user_id == user_id,
             Folder.parent_folder_id == folder_data.parent_folder_id
         )
     ).scalar() or 0
     
     # Create new folder
     folder = Folder(
-        user_id=current_user.id,
+        user_id=user_id,
         name=folder_data.name,
         description=folder_data.description,
         parent_folder_id=folder_data.parent_folder_id,
@@ -139,7 +159,7 @@ async def create_folder(
     db.commit()
     db.refresh(folder)
     
-    logger.info(f"Created folder {folder.id} for user {current_user.id}")
+    logger.info(f"Created folder {folder.id} for user {user_id}")
     return FolderCreateResponse(
         id=str(folder.id),
         name=folder.name,
@@ -156,16 +176,17 @@ async def create_folder(
 @router.get("/folders/{folder_id}/", response_model=FolderResponse)
 async def get_folder(
     folder_id: str,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Get a specific folder by ID."""
-    logger.info(f"Fetching folder {folder_id} for user {current_user.id}")
+    logger.info(f"Fetching folder {folder_id} for user {user_id}")
     
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).options(
         joinedload(Folder.folder_normas)
@@ -196,16 +217,17 @@ async def get_folder(
 async def update_folder(
     folder_id: str,
     folder_data: FolderUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Update a folder."""
-    logger.info(f"Updating folder {folder_id} for user {current_user.id}")
+    logger.info(f"Updating folder {folder_id} for user {user_id}")
     
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     
@@ -219,7 +241,7 @@ async def update_folder(
     if folder_data.name and folder_data.name != folder.name:
         existing_folder = db.query(Folder).filter(
             and_(
-                Folder.user_id == current_user.id,
+                Folder.user_id == user_id,
                 Folder.name == folder_data.name,
                 Folder.parent_folder_id == folder.parent_folder_id,
                 Folder.id != folder_id
@@ -239,7 +261,7 @@ async def update_folder(
             parent_folder = db.query(Folder).filter(
                 and_(
                     Folder.id == folder_data.parent_folder_id,
-                    Folder.user_id == current_user.id
+                    Folder.user_id == user_id
                 )
             ).first()
             
@@ -289,7 +311,7 @@ async def update_folder(
     db.commit()
     db.refresh(folder)
     
-    logger.info(f"Updated folder {folder_id} for user {current_user.id}")
+    logger.info(f"Updated folder {folder_id} for user {user_id}")
     return FolderResponse(
         id=str(folder.id),
         name=folder.name,
@@ -309,16 +331,17 @@ async def update_folder(
 async def move_folder(
     folder_id: str,
     move_data: FolderMove,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Move a folder to a different parent or change its order."""
-    logger.info(f"Moving folder {folder_id} for user {current_user.id}")
+    logger.info(f"Moving folder {folder_id} for user {user_id}")
     
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     
@@ -334,7 +357,7 @@ async def move_folder(
             parent_folder = db.query(Folder).filter(
                 and_(
                     Folder.id == move_data.parent_folder_id,
-                    Folder.user_id == current_user.id
+                    Folder.user_id == user_id
                 )
             ).first()
             
@@ -364,7 +387,7 @@ async def move_folder(
     db.commit()
     db.refresh(folder)
     
-    logger.info(f"Moved folder {folder_id} for user {current_user.id}")
+    logger.info(f"Moved folder {folder_id} for user {user_id}")
     return FolderResponse(
         id=str(folder.id),
         name=folder.name,
@@ -383,16 +406,17 @@ async def move_folder(
 @router.delete("/folders/{folder_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_folder(
     folder_id: str,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Delete a folder and all its subfolders."""
-    logger.info(f"Deleting folder {folder_id} for user {current_user.id}")
+    logger.info(f"Deleting folder {folder_id} for user {user_id}")
     
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     
@@ -405,22 +429,23 @@ async def delete_folder(
     db.delete(folder)  # Cascade will handle subfolders and folder_normas
     db.commit()
     
-    logger.info(f"Deleted folder {folder_id} and its subfolders for user {current_user.id}")
+    logger.info(f"Deleted folder {folder_id} and its subfolders for user {user_id}")
 
 
 @router.get("/folders/{folder_id}/normas/", response_model=FolderWithNormasResponse)
 async def get_folder_normas(
     folder_id: str,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Get all normas in a specific folder."""
-    logger.info(f"Fetching normas in folder {folder_id} for user {current_user.id}")
+    logger.info(f"Fetching normas in folder {folder_id} for user {user_id}")
     
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     
@@ -479,17 +504,18 @@ async def get_folder_normas(
 async def add_norma_to_folder(
     folder_id: str,
     norma_data: FolderNormaCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Add a norma to a folder."""
-    logger.info(f"Adding norma {norma_data.norma_id} to folder {folder_id} for user {current_user.id}")
+    logger.info(f"Adding norma {norma_data.norma_id} to folder {folder_id} for user {user_id}")
     
     # Check if folder exists and belongs to user
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     
@@ -534,7 +560,7 @@ async def add_norma_to_folder(
         id=str(uuid.uuid4()),
         folder_id=folder_id,
         norma_id=norma_data.norma_id,
-        added_by=current_user.id,
+        added_by=user_id,
         notes=norma_data.notes,
         order_index=norma_data.order_index if norma_data.order_index is not None else max_order + 1
     )
@@ -567,17 +593,18 @@ async def update_folder_norma(
     folder_id: str,
     norma_id: int,
     update_data: FolderNormaUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Update folder-norma relationship (notes, order)."""
-    logger.info(f"Updating norma {norma_id} in folder {folder_id} for user {current_user.id}")
+    logger.info(f"Updating norma {norma_id} in folder {folder_id} for user {user_id}")
     
     # Check if folder exists and belongs to user
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     
@@ -632,17 +659,18 @@ async def update_folder_norma(
 async def remove_norma_from_folder(
     folder_id: str,
     norma_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    user_id: str = Depends(get_current_user_id)
 ):
     """Remove a norma from a folder."""
-    logger.info(f"Removing norma {norma_id} from folder {folder_id} for user {current_user.id}")
+    logger.info(f"Removing norma {norma_id} from folder {folder_id} for user {user_id}")
     
     # Check if folder exists and belongs to user
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
-            Folder.user_id == current_user.id
+            Folder.user_id == user_id
         )
     ).first()
     

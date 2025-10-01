@@ -166,3 +166,4 @@ localStorage.setItem('debug', 'conversations:*');
 - **Debounced API calls** for better UX
 - **Memory cleanup** for streaming connections
 - **Optimistic updates** for better perceived performance
+

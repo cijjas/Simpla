@@ -3,7 +3,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
-from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
@@ -331,11 +330,12 @@ async def refresh_token(
         )
     
     # Check if refresh token exists in database and is not revoked
+    current_time = datetime.now(timezone.utc)
     refresh_token_record = db.query(RefreshToken).filter(
         RefreshToken.token == refresh_token_str,
         RefreshToken.user_id == user_id,
-        RefreshToken.revoked == False,
-        RefreshToken.expires_at > datetime.now(timezone.utc)
+        RefreshToken.revoked.is_(False),
+        RefreshToken.expires_at > current_time
     ).first()
     
     if not refresh_token_record:
@@ -344,8 +344,12 @@ async def refresh_token(
             detail="Refresh token revoked or not found"
         )
     
-    # Get user
-    user = db.query(User).filter(User.id == user_id).first()
+    # Get user data for response
+    # The frontend needs this to populate the auth state
+    user = db.query(
+        User.id, User.email, User.name, User.avatar_url, 
+        User.provider, User.email_verified
+    ).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -353,34 +357,39 @@ async def refresh_token(
         )
     
     # Create new access token
-    access_token = create_access_token(data={"sub": str(user.id)})
+    access_token = create_access_token(data={"sub": user_id})
     
-    # Optionally rotate refresh token (recommended for security)
-    # Revoke old refresh token
-    refresh_token_record.revoked = True
-    refresh_token_record.revoked_at = datetime.now(timezone.utc)
+    # Only rotate refresh token if it's close to expiring (less than 1 day remaining)
+    time_until_expiry = refresh_token_record.expires_at - datetime.now(timezone.utc)
+    should_rotate = time_until_expiry.total_seconds() < 24 * 60 * 60  # 1 day
     
-    # Create new refresh token
-    new_refresh_token_str = create_refresh_token(data={"sub": str(user.id)})
-    new_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    new_refresh_token_record = RefreshToken(
-        id=create_refresh_token_id(),
-        user_id=user.id,
-        token=new_refresh_token_str,
-        expires_at=new_expires_at
-    )
-    db.add(new_refresh_token_record)
-    db.commit()
-    
-    # Set new refresh token as httpOnly cookie
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token_str,
-        httponly=True,
-        secure=False,  # Set to False for local development, True in production with HTTPS
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-    )
+    if should_rotate:
+        # Revoke old refresh token
+        refresh_token_record.revoked = True
+        refresh_token_record.revoked_at = datetime.now(timezone.utc)
+        
+        # Create new refresh token
+        new_refresh_token_str = create_refresh_token(data={"sub": user_id})
+        new_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        new_refresh_token_record = RefreshToken(
+            id=create_refresh_token_id(),
+            user_id=user_id,
+            token=new_refresh_token_str,
+            expires_at=new_expires_at
+        )
+        db.add(new_refresh_token_record)
+        db.commit()
+        
+        # Set new refresh token as httpOnly cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token_str,
+            httponly=True,
+            secure=False,  # Set to False for local development, True in production with HTTPS
+            samesite="lax",
+            path="/",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+        )
     
     return TokenResponse(
         access_token=access_token,

@@ -83,3 +83,4 @@ class ConversationMessage(Base):
 
 # Alias for backward compatibility
 Message = ConversationMessage
+

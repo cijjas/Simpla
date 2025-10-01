@@ -15,8 +15,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, Bot, User, MessageSquare, Plus, Archive, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
+import { Send, Bot, User, MessageSquare, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 import { 
   ConversationsAPI, 
   type Message, 
@@ -40,14 +41,22 @@ export default function ConversacionesPage() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [tempTitle, setTempTitle] = useState<string>('');
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hasLoadedConversations = useRef(false);
+  const isLoadingRef = useRef(false);
+  const streamingContentRef = useRef('');
 
   // Load conversations on mount
   useEffect(() => {
-    loadConversations();
+    if (!hasLoadedConversations.current) {
+      hasLoadedConversations.current = true;
+      loadConversations();
+    }
   }, []);
 
   // Auto-scroll to bottom when messages change
@@ -66,7 +75,13 @@ export default function ConversacionesPage() {
   }, [inputMessage]);
 
   const loadConversations = async () => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) {
+      return;
+    }
+    
     try {
+      isLoadingRef.current = true;
       setIsLoadingConversations(true);
       const data = await ConversationsAPI.getConversations();
       setConversations(data.items);
@@ -74,6 +89,7 @@ export default function ConversacionesPage() {
       toast.error('Error loading conversations');
       console.error(error);
     } finally {
+      isLoadingRef.current = false;
       setIsLoadingConversations(false);
     }
   };
@@ -104,13 +120,32 @@ export default function ConversacionesPage() {
       setCurrentConversation(conversation);
       setMessages([]);
       setCurrentSessionId(conversation.id);
-      await loadConversations();
+      // Add the new conversation to the conversations list
+      setConversations(prev => [conversation, ...prev]);
       toast.success('Nueva conversación creada');
     } catch (error) {
       toast.error('Error creating conversation');
       console.error(error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleArchiveClick = async (conv: Conversation) => {
+    try {
+      await ConversationsAPI.updateConversation(conv.id, { is_archived: true });
+      // Remove from conversations list
+      setConversations(prev => prev.filter(c => c.id !== conv.id));
+      // If this was the current conversation, clear it
+      if (currentSessionId === conv.id) {
+        setCurrentConversation(null);
+        setMessages([]);
+        setCurrentSessionId(null);
+      }
+      toast.success('Conversación archivada');
+    } catch (error) {
+      toast.error('Error archiving conversation');
+      console.error(error);
     }
   };
 
@@ -140,6 +175,51 @@ export default function ConversacionesPage() {
     }
   };
 
+  const handleRenameStart = (conv: Conversation) => {
+    setEditingConversationId(conv.id);
+    setTempTitle(conv.title);
+  };
+
+  const handleRenameSave = async (convId: string) => {
+    if (!tempTitle.trim()) {
+      // If empty, cancel rename
+      setEditingConversationId(null);
+      setTempTitle('');
+      return;
+    }
+
+    try {
+      await ConversationsAPI.updateConversation(convId, { title: tempTitle.trim() });
+      
+      // Update the conversation in the list
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === convId 
+            ? { ...conv, title: tempTitle.trim() }
+            : conv
+        )
+      );
+
+      // Update current conversation if it's the one being edited
+      if (currentConversation && currentConversation.id === convId) {
+        setCurrentConversation(prev => prev ? { ...prev, title: tempTitle.trim() } : null);
+      }
+
+      toast.success('Título actualizado');
+    } catch (error) {
+      toast.error('Error updating title');
+      console.error(error);
+    } finally {
+      setEditingConversationId(null);
+      setTempTitle('');
+    }
+  };
+
+  const handleRenameCancel = () => {
+    setEditingConversationId(null);
+    setTempTitle('');
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isStreaming) return;
 
@@ -156,6 +236,7 @@ export default function ConversacionesPage() {
     setInputMessage('');
     setIsStreaming(true);
     setStreamingMessage('');
+    streamingContentRef.current = '';
 
     try {
       await ConversationsAPI.sendMessage(
@@ -166,24 +247,40 @@ export default function ConversacionesPage() {
         },
         (chunk) => {
           if (chunk.content) {
-            setStreamingMessage(prev => prev + chunk.content);
+            streamingContentRef.current += chunk.content;
+            setStreamingMessage(streamingContentRef.current);
           }
         },
         (sessionId) => {
+          // Add the completed streamed message to the messages array
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `assistant-${Date.now()}`,
+              role: 'assistant',
+              content: streamingContentRef.current,
+              tokens_used: 0,
+              created_at: new Date().toISOString(),
+            }
+          ]);
+          
           setCurrentSessionId(sessionId);
           setIsStreaming(false);
           setStreamingMessage('');
-          // Reload conversation to get the complete messages
-          if (sessionId) {
-            loadConversation(sessionId);
+          streamingContentRef.current = '';
+          
+          // Update the conversation in the list to reflect the latest update
+          if (!currentSessionId && sessionId) {
+            // New conversation was created, refresh the list
+            loadConversations();
           }
-          loadConversations();
         },
         (error) => {
           toast.error('Error sending message');
           console.error(error);
           setIsStreaming(false);
           setStreamingMessage('');
+          streamingContentRef.current = '';
         }
       );
     } catch (error) {
@@ -191,6 +288,7 @@ export default function ConversacionesPage() {
       console.error(error);
       setIsStreaming(false);
       setStreamingMessage('');
+      streamingContentRef.current = '';
     }
   };
 
@@ -256,9 +354,29 @@ export default function ConversacionesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-sm truncate text-foreground">
-                          {conv.title}
-                        </h3>
+                        {editingConversationId === conv.id ? (
+                          <input
+                            type="text"
+                            value={tempTitle}
+                            onChange={(e) => setTempTitle(e.target.value)}
+                            onBlur={() => handleRenameSave(conv.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleRenameSave(conv.id);
+                              } else if (e.key === 'Escape') {
+                                handleRenameCancel();
+                              }
+                            }}
+                            className="w-full border-none bg-transparent p-0 text-sm font-medium text-foreground focus:ring-0 focus:outline-none"
+                            autoFocus
+                            onFocus={(e) => e.target.select()}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <h3 className="font-medium text-sm truncate text-foreground">
+                            {conv.title}
+                          </h3>
+                        )}
                         <Badge 
                           variant="outline" 
                           className="text-xs px-2 py-0.5 h-5 shrink-0"
@@ -270,7 +388,7 @@ export default function ConversacionesPage() {
                         {conv.snippet}
                       </p>
                       <span className="text-xs text-muted-foreground/70">
-                        {formatDate(conv.update_time)}
+                        {formatDate(conv.update_time || (conv as Conversation & { updated_at?: string }).updated_at || '')}
                       </span>
                     </div>
                     <DropdownMenu>
@@ -285,6 +403,24 @@ export default function ConversacionesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRenameStart(conv);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchiveClick(conv);
+                          }}
+                        >
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archivar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
@@ -323,12 +459,6 @@ export default function ConversacionesPage() {
                       {currentConversation.total_tokens} tokens
                     </span>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
-                    <Archive className="h-4 w-4 mr-2" />
-                    Archivar
-                  </Button>
                 </div>
               </div>
             </div>
@@ -371,7 +501,9 @@ export default function ConversacionesPage() {
                             : 'bg-muted'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <div className="prose-chat">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
                         <p className="text-xs opacity-70 mt-1">
                           {formatTime(message.created_at)}
                         </p>
@@ -390,10 +522,10 @@ export default function ConversacionesPage() {
                         </div>
                       </div>
                       <div className="rounded-lg p-3 bg-muted">
-                        <p className="text-sm whitespace-pre-wrap">
-                          {streamingMessage}
-                          <span className="animate-pulse">|</span>
-                        </p>
+                        <div className="prose-chat">
+                          <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                          <span className="animate-pulse inline-block ml-1">|</span>
+                        </div>
                       </div>
                     </div>
                   </div>

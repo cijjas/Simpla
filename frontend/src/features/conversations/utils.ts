@@ -8,7 +8,15 @@ export const formatTime = (dateString: string): string => {
 };
 
 export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('es-AR', {
+  if (!dateString) return 'Fecha no disponible';
+  
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date string:', dateString);
+    return 'Fecha inválida';
+  }
+  
+  return date.toLocaleDateString('es-AR', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

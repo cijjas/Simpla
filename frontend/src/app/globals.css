@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -154,5 +155,87 @@
 
   .norma-html table th {
     @apply bg-slate-100 font-semibold;
+  }
+
+  /* Markdown styles for chat messages */
+  .prose-chat {
+    @apply prose prose-sm max-w-none dark:prose-invert;
+  }
+
+  .prose-chat p {
+    @apply my-2 leading-relaxed;
+  }
+
+  .prose-chat p:first-child {
+    @apply mt-0;
+  }
+
+  .prose-chat p:last-child {
+    @apply mb-0;
+  }
+
+  .prose-chat code {
+    @apply px-1.5 py-0.5 rounded text-xs font-mono;
+  }
+
+  .prose-chat pre {
+    @apply my-3 p-3 rounded-lg overflow-x-auto;
+  }
+
+  .prose-chat pre code {
+    @apply p-0 text-xs;
+  }
+
+  .prose-chat ul,
+  .prose-chat ol {
+    @apply my-2 pl-5;
+  }
+
+  .prose-chat li {
+    @apply my-1;
+  }
+
+  .prose-chat blockquote {
+    @apply my-2 pl-4 border-l-2 italic;
+  }
+
+  .prose-chat h1,
+  .prose-chat h2,
+  .prose-chat h3,
+  .prose-chat h4,
+  .prose-chat h5,
+  .prose-chat h6 {
+    @apply mt-3 mb-2 font-semibold;
+  }
+
+  .prose-chat h1:first-child,
+  .prose-chat h2:first-child,
+  .prose-chat h3:first-child {
+    @apply mt-0;
+  }
+
+  .prose-chat a {
+    @apply text-primary underline hover:no-underline;
+  }
+
+  .prose-chat strong {
+    @apply font-semibold;
+  }
+
+  .prose-chat hr {
+    @apply my-3 border-border;
+  }
+
+  .prose-chat table {
+    @apply my-3 w-full border-collapse;
+  }
+
+  .prose-chat th,
+  .prose-chat td {
+    @apply border border-border px-3 py-2 text-left;
+  }
+
+  .prose-chat th {
+    @apply bg-muted font-semibold;
   }
 }
