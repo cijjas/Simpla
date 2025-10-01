@@ -6,7 +6,7 @@ import {
   Search,
   Folder,
   BookOpen,
-  Heart,
+  Star,
   Compass,
   Scale,
   MessageSquare,
@@ -86,7 +86,7 @@ const data = {
     {
       name: "Favoritos",
       url: "/favoritos",
-      icon: Heart,
+      icon: Star,
     },
     {
       name: "Recent",

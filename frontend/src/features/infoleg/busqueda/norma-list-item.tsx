@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarIcon, FileTextIcon } from 'lucide-react';
+import { CalendarIcon, FileTextIcon, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
+import { useFavoriteToggle } from '@/features/favorites';
 import { NormaItem } from '../utils/types';
 
 export default function NormaListItem({
@@ -22,6 +23,9 @@ export default function NormaListItem({
   norma: NormaItem;
 }): JSX.Element {
   const [copied, setCopied] = useState(false);
+  
+  // Check if this norma is favorited
+  const { isFavorite } = useFavoriteToggle(norma.id);
 
   const handleCopy = () => {
     const { nombreNorma: _nombreNorma, esNumerada: _esNumerada, ...cleanNorma } = norma;
@@ -76,8 +80,13 @@ export default function NormaListItem({
       <Card className='border-none bg-transparent p-0'>
         <div className='flex flex-col gap-3 p-4'>
           {/* Title */}
-          <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-            {tituloVisible}
+          <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2 flex items-center gap-1'>
+            <span>
+              {tituloVisible}
+            </span>
+            {isFavorite && (
+              <Star className='h-3.5 w-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0' />
+            )}
           </h3>
 
           {/* Summary */}

@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Copy, Download, Share2, Check, Link as LinkIcon } from 'lucide-react';
+import { Copy, Download, Share2, Check, Link as LinkIcon, Star } from 'lucide-react';
 import { SiX, SiWhatsapp } from 'react-icons/si';
 import {
   Tooltip,
@@ -17,11 +17,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useFavoriteToggle } from '@/features/favorites';
 import { NormaDetallada } from '../utils/types';
 
 export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   const [copied, setCopied] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+
+  // Favorites functionality
+  const { isFavorite, loading: favoriteLoading, toggleFavorite } = useFavoriteToggle(norma?.id || 0);
 
   /* ───────── Copy ───────── */
   const handleCopy = async () => {
@@ -286,6 +290,29 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Copiar norma</TooltipContent>
+        </Tooltip>
+
+        {/* Favorite */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size='icon' 
+              variant='outline' 
+              onClick={toggleFavorite}
+              disabled={favoriteLoading || !norma?.id}
+            >
+              <Star 
+                className={`h-4 w-4 ${
+                  isFavorite 
+                    ? 'fill-yellow-400 text-yellow-400' 
+                    : 'text-gray-400'
+                }`} 
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          </TooltipContent>
         </Tooltip>
 
         {/* Download */}

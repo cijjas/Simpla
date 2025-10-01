@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarIcon, FileTextIcon } from 'lucide-react';
+import { CalendarIcon, FileTextIcon, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
+import { useFavoriteToggle } from '@/features/favorites';
 import { NormaItem } from '../utils/types';
 
 export default function NormaCard({
@@ -22,6 +23,9 @@ export default function NormaCard({
   norma: NormaItem;
 }): JSX.Element {
   const [copied, setCopied] = useState(false);
+  
+  // Check if this norma is favorited
+  const { isFavorite } = useFavoriteToggle(norma.id);
 
   const handleCopy = () => {
     const { nombreNorma: _nombreNorma, esNumerada: _esNumerada, ...cleanNorma } = norma;
@@ -72,10 +76,15 @@ export default function NormaCard({
         <CardContent className='flex grow flex-col gap-3 p-4'>
           {/* ---------- TOP SECTION : title & summary ---------- */}
           <div className='flex flex-col gap-2'>
-            <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2'>
-              {norma.tituloSumarioFormateado ||
-                norma.tituloResumidoFormateado ||
-                'Sin título'}
+            <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2 flex items-center gap-1'>
+              <span>
+                {norma.tituloSumarioFormateado ||
+                  norma.tituloResumidoFormateado ||
+                  'Sin título'}
+              </span>
+              {isFavorite && (
+                <Star className='h-3.5 w-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0' />
+              )}
             </h3>
 
             {norma.textoResumidoFormateado && (
