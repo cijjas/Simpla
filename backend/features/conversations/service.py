@@ -322,6 +322,9 @@ class ConversationService:
                 conversation = self.create_conversation(user_id, conversation_data)
                 session_id = str(conversation.id)
             
+            # Yield the session_id first so the router knows what it is
+            yield ("session_id", session_id)
+            
             # Create user message
             user_message_data = MessageCreate(
                 role="user",

@@ -173,6 +173,8 @@ async def send_message(
         async def generate_stream():
             """Generate streaming response."""
             try:
+                actual_session_id = str(data.session_id) if data.session_id else "new-session"
+                
                 # Stream the AI response
                 async for chunk in service.stream_message_response(
                     user_id=user_id,
@@ -180,21 +182,26 @@ async def send_message(
                     session_id=str(data.session_id) if data.session_id else None,
                     chat_type=data.chat_type
                 ):
+                    # Check if this is a session_id chunk
+                    if isinstance(chunk, tuple) and len(chunk) == 2 and chunk[0] == "session_id":
+                        actual_session_id = chunk[1]
+                        continue
+                    
                     # Format as Server-Sent Events
                     response_data = {
                         "content": chunk,
-                        "session_id": str(data.session_id) if data.session_id else "new-session"  # Convert UUID to string
+                        "session_id": actual_session_id
                     }
                     yield f"data: {json.dumps(response_data)}\n\n"
                 
                 # Send final chunk to indicate completion
-                yield f"data: {json.dumps({'content': '', 'session_id': str(data.session_id) if data.session_id else 'new-session', 'done': True})}\n\n"
+                yield f"data: {json.dumps({'content': '', 'session_id': actual_session_id, 'done': True})}\n\n"
                 
             except Exception as e:
                 logger.error(f"Error in message streaming: {str(e)}")
                 error_data = {
                     "content": f"Error: {str(e)}",
-                    "session_id": str(data.session_id) if data.session_id else "new-session",
+                    "session_id": actual_session_id,
                     "error": True
                 }
                 yield f"data: {json.dumps(error_data)}\n\n"
