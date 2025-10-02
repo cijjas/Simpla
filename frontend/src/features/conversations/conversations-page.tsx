@@ -497,14 +497,27 @@ export default function ConversacionesPage() {
                       <div
                         className={`rounded-lg p-3 ${
                           message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-primary'
                             : 'bg-muted'
                         }`}
                       >
-                        <div className="prose-chat">
-                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        <div className={`prose-chat ${message.role === 'user' ? 'text-primary-foreground' : ''}`}>
+                          <ReactMarkdown 
+                            components={{
+                              p: ({ children }) => <p className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</p>,
+                              strong: ({ children }) => <strong className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</strong>,
+                              em: ({ children }) => <em className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</em>,
+                              code: ({ children }) => <code className={message.role === 'user' ? 'text-primary-foreground bg-primary-foreground/20' : 'bg-muted-foreground/20'}>{children}</code>,
+                              pre: ({ children }) => <pre className={message.role === 'user' ? 'text-primary-foreground bg-primary-foreground/20' : 'bg-muted-foreground/20'}>{children}</pre>,
+                              ul: ({ children }) => <ul className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</ul>,
+                              ol: ({ children }) => <ol className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</ol>,
+                              li: ({ children }) => <li className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</li>,
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
                         </div>
-                        <p className="text-xs opacity-70 mt-1">
+                        <p className={`text-xs opacity-70 mt-1 ${message.role === 'user' ? 'text-primary-foreground' : ''}`}>
                           {formatTime(message.created_at)}
                         </p>
                       </div>

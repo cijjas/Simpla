@@ -38,7 +38,7 @@ export default function AppLayout({
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <div className="flex flex-1 flex-col gap-4 pt-4">
+        <div className="flex flex-1 flex-col gap-4 pt-0">
           {children}
         </div>
       </SidebarInset>

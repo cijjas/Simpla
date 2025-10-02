@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderCreate } from '../types';
-import { Folder, FolderPlus, Archive, BookOpen, FileText, Star, Tag, Users } from 'lucide-react';
+import { Folder, FolderPlus, Archive, BookOpen, FileText, Tag, Users } from 'lucide-react';
 
 interface CreateFolderDialogProps {
   open: boolean;
@@ -23,7 +23,6 @@ const FOLDER_ICONS = [
   { value: 'archive', label: 'Archivo', icon: Archive },
   { value: 'book-open', label: 'Libro', icon: BookOpen },
   { value: 'file-text', label: 'Documento', icon: FileText },
-  { value: 'star', label: 'Favoritos', icon: Star },
   { value: 'tag', label: 'Etiqueta', icon: Tag },
   { value: 'users', label: 'Equipo', icon: Users },
 ];

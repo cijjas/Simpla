@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { TreeView, TreeDataItem } from '@/components/tree-view-old';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -40,30 +40,30 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
   }, []);
 
   // Handler functions for folder operations
-  const handleEditFolder = (folder: FolderTreeItem) => {
+  const handleEditFolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteFolder = (folder: FolderTreeItem) => {
+  const handleDeleteFolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteDialogClose = (open: boolean) => {
+  const handleDeleteDialogClose = useCallback((open: boolean) => {
     setIsDeleteDialogOpen(open);
     if (!open) {
       // Reset selected folder when dialog closes
       setSelectedFolder(null);
     }
-  };
+  }, []);
 
-  const handleCreateSubfolder = (folder: FolderTreeItem) => {
+  const handleCreateSubfolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
     setIsCreateSubfolderDialogOpen(true);
-  };
+  }, []);
 
-  const confirmDeleteFolder = async (folderId: string) => {
+  const confirmDeleteFolder = useCallback(async (folderId: string) => {
     try {
       await deleteFolder(folderId);
       toast.success('Carpeta eliminada correctamente');
@@ -72,7 +72,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
       toast.error(error instanceof Error ? error.message : 'Error al eliminar la carpeta');
       throw error; // Re-throw so the dialog can handle it
     }
-  };
+  }, [deleteFolder, handleDeleteDialogClose]);
 
   // Filter folders based on search query
   const filteredFolders = useMemo(() => {
@@ -169,11 +169,10 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
     };
 
     return convertToTreeData(filteredFolders);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredFolders]);
+  }, [filteredFolders, onFolderSelect, handleEditFolder, handleCreateSubfolder, handleDeleteFolder]);
 
 
-  const handleDragAndDrop = async (sourceItem: TreeDataItem, targetItem: TreeDataItem) => {
+  const handleDragAndDrop = useCallback(async (sourceItem: TreeDataItem, targetItem: TreeDataItem) => {
     try {
       // Don't allow dropping on itself or if target is empty
       if (sourceItem.id === targetItem.id || !targetItem.id) {
@@ -188,7 +187,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
     } catch (error) {
       console.error('Error moving folder:', error);
     }
-  };
+  }, [moveFolder]);
 
   if (loading) {
     return (
