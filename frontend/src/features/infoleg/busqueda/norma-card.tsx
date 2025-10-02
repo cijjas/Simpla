@@ -4,16 +4,9 @@ import Link from 'next/link';
 import { CalendarIcon, FileTextIcon, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { formatDatePretty } from '@/lib/utils';
 
-import { Copy, CheckIcon } from 'lucide-react';
-import { JSX, useState } from 'react';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from '@/components/ui/tooltip';
+import { JSX } from 'react';
 import { useFavoriteToggle } from '@/features/favorites';
 import { NormaItem } from '../utils/types';
 
@@ -22,23 +15,12 @@ export default function NormaCard({
 }: {
   norma: NormaItem;
 }): JSX.Element {
-  const [copied, setCopied] = useState(false);
-  
   // Check if this norma is favorited
-  const { isFavorite } = useFavoriteToggle(norma.id);
+  const { isFavorite, toggleFavorite } = useFavoriteToggle(norma.id);
 
-  const handleCopy = () => {
-    const { nombreNorma: _nombreNorma, esNumerada: _esNumerada, ...cleanNorma } = norma;
-    const rawJson = JSON.stringify(cleanNorma, null, 2);
-    navigator.clipboard
-      .writeText(rawJson)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(err => {
-        console.error('Error copiando al portapapeles:', err);
-      });
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleFavorite();
   };
 
   return (
@@ -46,45 +28,25 @@ export default function NormaCard({
       href={`/norma/${norma.id}`}
       className='group block h-full rounded-xl border bg-card transition hover:bg-accent hover:shadow-md relative'
     >
-      {/* Copy button */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='outline'
-            size='icon'
-            onClick={e => {
-              e.preventDefault();
-              handleCopy();
-            }}
-            className='absolute top-3 right-3 z-10 h-8 w-8 border border-white/30 bg-white/10 backdrop-blur-xs shadow-sm'
-          >
-            {copied ? (
-              <CheckIcon className='h-4 w-4 text-green-600' />
-            ) : (
-              <Copy className='h-4 w-4' />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side='top' align='center'>
-          Copiar JSON
-        </TooltipContent>
-      </Tooltip>
+      {/* Favorite star (only show if favorited) */}
+      {isFavorite && (
+        <div className='absolute top-4.5 right-3 z-10'>
+          <Star 
+            className='h-5 w-5 text-yellow-400 fill-yellow-400 cursor-pointer drop-shadow-sm' 
+            onClick={handleFavoriteClick}
+          />
+        </div>
+      )}
 
       {/* rest of your card content below */}
       <Card className='flex h-full flex-col border-none bg-transparent p-0 shadow-none'>
         <CardContent className='flex grow flex-col gap-3 p-4'>
           {/* ---------- TOP SECTION : title & summary ---------- */}
           <div className='flex flex-col gap-2'>
-            <h3 className='text-base font-extrabold font-serif leading-snug line-clamp-2 flex items-center gap-1'>
-              <span>
-                {norma.tituloSumarioFormateado ||
-                  norma.tituloResumidoFormateado ||
-                  'Sin título'}
-              </span>
-              {isFavorite && (
-                <Star className='h-3.5 w-3.5 text-yellow-400 fill-yellow-400 flex-shrink-0' />
-              )}
+            <h3 className={`text-base font-extrabold font-serif leading-snug line-clamp-2 ${isFavorite ? 'pr-8' : ''}`}>
+              {norma.tituloSumarioFormateado ||
+                norma.tituloResumidoFormateado ||
+                'Sin título'}
             </h3>
 
             {norma.textoResumidoFormateado && (

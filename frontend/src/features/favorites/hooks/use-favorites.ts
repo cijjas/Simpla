@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useApi } from '@/features/auth/hooks/use-api';

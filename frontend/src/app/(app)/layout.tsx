@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import AppHeader from '@/components/layout/app-header';
+import { FoldersProvider } from '@/features/folders/context/folders-context';
 import {
   SidebarInset,
   SidebarProvider,

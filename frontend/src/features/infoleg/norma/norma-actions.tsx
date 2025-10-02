@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Copy, Download, Share2, Check, Link as LinkIcon, Star } from 'lucide-react';
+import { Copy, Download, Share2, Check, Link as LinkIcon, Star, FolderPlus } from 'lucide-react';
 import { SiX, SiWhatsapp } from 'react-icons/si';
 import {
   Tooltip,
@@ -18,11 +18,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useFavoriteToggle } from '@/features/favorites';
+import { AddToFolderDialog } from '@/features/folders';
 import { NormaDetallada } from '../utils/types';
 
 export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   const [copied, setCopied] = useState(false);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [isAddToFolderOpen, setIsAddToFolderOpen] = useState(false);
 
   // Favorites functionality
   const { isFavorite, loading: favoriteLoading, toggleFavorite } = useFavoriteToggle(norma?.id || 0);
@@ -315,6 +317,23 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
           </TooltipContent>
         </Tooltip>
 
+        {/* Add to Folder */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size='icon' 
+              variant='outline' 
+              onClick={() => setIsAddToFolderOpen(true)}
+              disabled={!norma?.id}
+            >
+              <FolderPlus className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            Agregar a carpeta
+          </TooltipContent>
+        </Tooltip>
+
         {/* Download */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -383,6 +402,14 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
           <TooltipContent>Compartir</TooltipContent>
         </Tooltip>
       </div>
+
+      {/* Add to Folder Dialog */}
+      <AddToFolderDialog
+        isOpen={isAddToFolderOpen}
+        onClose={() => setIsAddToFolderOpen(false)}
+        normaId={norma?.id || 0}
+        normaTitle={norma?.tituloSumario || norma?.nombreNorma}
+      />
     </TooltipProvider>
   );
 }
