@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from core.database.base import get_db
 from features.auth.auth_utils import verify_token
+from features.subscription.rate_limit_service import RateLimitService
 from .service import ConversationService
 from .schemas import (
     ConversationCreate,
@@ -164,9 +165,54 @@ async def send_message(
     
     Sends a user message and streams the AI response back in real-time.
     If no session_id is provided, creates a new conversation.
+    Rate limiting is enforced based on user's subscription tier.
     """
     try:
         user_id = get_current_user_id(request)
+        logger.info(f"Processing message for user: {user_id}")
+        
+        # Initialize rate limit service
+        rate_limit_service = RateLimitService(db)
+        
+        # Estimate tokens needed (rough estimate before API call)
+        estimated_tokens = max(50, len(data.content) // 4)  # Rough estimate
+        logger.info(f"Estimated tokens: {estimated_tokens}")
+        
+        # Check rate limit BEFORE processing
+        logger.info("Checking rate limit...")
+        rate_limit_check = await rate_limit_service.check_rate_limit(
+            user_id, 
+            estimated_tokens
+        )
+        logger.info(f"Rate limit check result: {rate_limit_check.allowed}")
+        
+        if not rate_limit_check.allowed:
+            logger.warning(f"Rate limit exceeded for user {user_id}: {rate_limit_check.message}")
+            # Return error as streaming response
+            async def error_stream():
+                error_data = {
+                    "content": f"Rate limit exceeded: {rate_limit_check.message}. Current usage: {rate_limit_check.current_usage}/{rate_limit_check.limit}. Resets at: {rate_limit_check.reset_at.isoformat()}",
+                    "session_id": str(data.session_id) if data.session_id else "error",
+                    "error": True,
+                    "rate_limit_exceeded": True,
+                    "current_usage": rate_limit_check.current_usage,
+                    "limit": rate_limit_check.limit,
+                    "reset_at": rate_limit_check.reset_at.isoformat(),
+                    "upgrade_url": "/configuracion"
+                }
+                yield f"data: {json.dumps(error_data)}\n\n"
+            
+            return StreamingResponse(
+                error_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                },
+                status_code=429
+            )
         
         service = ConversationService(db)
         
@@ -174,6 +220,7 @@ async def send_message(
             """Generate streaming response."""
             try:
                 actual_session_id = str(data.session_id) if data.session_id else "new-session"
+                ai_response_content = ""
                 
                 # Stream the AI response
                 async for chunk in service.stream_message_response(
@@ -187,12 +234,24 @@ async def send_message(
                         actual_session_id = chunk[1]
                         continue
                     
+                    # Accumulate the AI response content
+                    ai_response_content += chunk
+                    
                     # Format as Server-Sent Events
                     response_data = {
                         "content": chunk,
                         "session_id": actual_session_id
                     }
                     yield f"data: {json.dumps(response_data)}\n\n"
+                
+                # Record actual usage after streaming is complete
+                # Calculate total tokens used (user message + AI response)
+                total_tokens = estimated_tokens + max(50, len(ai_response_content) // 4)
+                logger.info(f"Recording usage: {total_tokens} tokens for user {user_id}")
+                success = await rate_limit_service.record_usage(user_id, total_tokens)
+                logger.info(f"Usage recording success: {success}")
+                
+                logger.info(f"Conversation request processed for user {user_id}, total tokens used: {total_tokens}")
                 
                 # Send final chunk to indicate completion
                 yield f"data: {json.dumps({'content': '', 'session_id': actual_session_id, 'done': True})}\n\n"

@@ -70,11 +70,7 @@ const data = {
       url: "/conversaciones",
       icon: MessageSquare,
     },
-    {
-      title: "Configuración",
-      url: "/configuracion",
-      icon: Settings,
-    },
+    
   ],
   copiloto: [
     {

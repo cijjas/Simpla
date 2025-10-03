@@ -207,6 +207,7 @@ class RateLimitService:
             True if successful, False otherwise
         """
         try:
+            logger.info(f"Starting to record usage for user {user_id}: {tokens_used} tokens")
             period_types = ['hour', 'day', 'month']
             
             for period_type in period_types:
@@ -240,11 +241,13 @@ class RateLimitService:
                     self.db.add(usage)
             
             self.db.commit()
-            logger.info(f"Recorded usage for user {user_id}: {tokens_used} tokens, 1 message")
+            logger.info(f"Successfully recorded usage for user {user_id}: {tokens_used} tokens, 1 message")
             return True
             
         except Exception as e:
             logger.error(f"Error recording usage for user {user_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             self.db.rollback()
             return False
     
@@ -266,7 +269,8 @@ class RateLimitService:
         start = self._get_period_start(period_type)
         
         if period_type == "hour":
-            return start.replace(hour=start.hour + 1)
+            from datetime import timedelta
+            return start + timedelta(hours=1)
         elif period_type == "day":
             from datetime import timedelta
             return start + timedelta(days=1)
