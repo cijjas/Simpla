@@ -10,7 +10,7 @@ class FolderBase(BaseModel):
     """Base folder schema."""
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    color: str = Field(default="#3B82F6", pattern=r"^#[0-9A-Fa-f]{6}$")
+    color: Optional[str] = Field(default="#3B82F6", pattern=r"^#[0-9A-Fa-f]{6}$")
     icon: str = Field(default="folder", max_length=50)
 
 
@@ -23,7 +23,7 @@ class FolderUpdate(BaseModel):
     """Schema for updating a folder."""
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
-    color: Optional[str] = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
+    color: Optional[str] = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$|^$")
     icon: Optional[str] = Field(None, max_length=50)
     parent_folder_id: Optional[str] = None
 
@@ -88,7 +88,7 @@ class FolderResponse(BaseModel):
     description: Optional[str] = None
     parent_folder_id: Optional[str] = None
     level: int
-    color: str
+    color: Optional[str]
     icon: str
     order_index: int
     created_at: datetime
@@ -102,7 +102,7 @@ class FolderTreeResponse(BaseModel):
     name: str
     description: Optional[str] = None
     level: int
-    color: str
+    color: Optional[str]
     icon: str
     order_index: int
     norma_count: int
@@ -122,7 +122,7 @@ class FolderCreateResponse(BaseModel):
     description: Optional[str] = None
     parent_folder_id: Optional[str] = None
     level: int
-    color: str
+    color: Optional[str]
     icon: str
     order_index: int
     created_at: datetime

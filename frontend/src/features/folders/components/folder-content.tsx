@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +29,9 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
 
   // Get the updated folder from context to ensure we have the latest data
   const currentFolder = folder ? findFolderById(folders, folder.id) : null;
+  
+  // Build breadcrumb path
+  const folderPath = currentFolder ? buildFolderPath(folders, currentFolder.id) : [];
 
   // Icon mapping
   const getIcon = (iconName: string) => {
@@ -47,94 +50,21 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
 
   if (!currentFolder) {
     return (
-      <Card>
-        <CardContent className="p-6">
+      <div className="bg-background text-foreground flex flex-col gap-6 rounded-xl py-6">
+        <div className="px-6">
           <div className="text-center text-muted-foreground">
             <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
             <p className="text-sm">Selecciona una carpeta para ver su contenido</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: currentFolder?.color }}
-            />
-            {currentFolder?.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2 text-sm text-muted-foreground">Cargando normas...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: currentFolder?.color }}
-            />
-            {currentFolder?.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center text-destructive py-8">
-            <p className="text-sm">Error: {error}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const _handleRemoveNorma = async (normaId: number, normaTitle: string) => {
-    if (!confirm(`¿Estás seguro de que quieres quitar "${normaTitle}" de esta carpeta?`)) {
-      return;
-    }
-
-    try {
-      await removeNormaFromFolder(normaId);
-      toast.success('Norma quitada de la carpeta');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al quitar la norma');
-    }
-  };
-
-  const handleUpdateNotes = async (folderNormaId: string, normaId: number, notes: string) => {
-    try {
-      await updateFolderNorma(normaId, { notes });
-      toast.success('Notas actualizadas');
-      setIsEditNotesOpen(false);
-      setEditingNorma(null);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al actualizar las notas');
-    }
-  };
-
-
-  const normas = folderWithNormas?.normas || [];
-  
-  // Build breadcrumb path
-  const folderPath = currentFolder ? buildFolderPath(folders, currentFolder.id) : [];
-
-  return (
-    <>
-      <Card>
-        <CardHeader className="space-y-4">
+      <div className="bg-background text-foreground flex flex-col gap-6 rounded-xl py-6">
+        <div className="@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 space-y-4">
           {/* Breadcrumb Navigation */}
           {folderPath.length > 1 && (
             <Breadcrumb>
@@ -170,17 +100,188 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
           {/* Header with title and actions */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div 
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: currentFolder?.color }}
-              />
+              {currentFolder?.color && (
+                <div 
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: currentFolder.color }}
+                />
+              )}
               <div>
-                <CardTitle className="text-xl flex items-center">
+                <div className="text-xl flex items-center leading-none font-semibold">
+                  <span className="font-bold pe-2" >{currentFolder?.name}</span>
+                  <Badge variant="secondary" className="mt-1">
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    Cargando...
+                  </Badge>  
+                </div>
+                 {/* Description */}
+                  {currentFolder?.description && (
+                      <p className="text-sm text-muted-foreground">{currentFolder.description}</p>
+                  )}
+                
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="px-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2 text-sm text-muted-foreground">Cargando normas...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-background text-foreground flex flex-col gap-6 rounded-xl py-6">
+        <div className="@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 space-y-4">
+          {/* Breadcrumb Navigation */}
+          {folderPath.length > 1 && (
+            <Breadcrumb>
+              <BreadcrumbList>
+                {folderPath.map((pathFolder, index) => {
+                  const IconComponent = getIcon(pathFolder.icon);
+                  return (
+                    <React.Fragment key={pathFolder.id}>
+                      <BreadcrumbItem>
+                        {index === folderPath.length - 1 ? (
+                          <BreadcrumbPage className="text-xs text-muted-foreground flex items-center gap-1">
+                            <IconComponent className="h-3 w-3" />
+                            {pathFolder.name}
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink 
+                            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
+                            onClick={() => onFolderSelect?.(pathFolder)}
+                          >
+                            <IconComponent className="h-3 w-3" />
+                            {pathFolder.name}
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                      {index < folderPath.length - 1 && <BreadcrumbSeparator />}
+                    </React.Fragment>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+          
+          {/* Header with title and actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {currentFolder?.color && (
+                <div 
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: currentFolder.color }}
+                />
+              )}
+              <div>
+                <div className="text-xl flex items-center leading-none font-semibold">
+                  <span className="font-bold pe-2" >{currentFolder?.name}</span>
+                  <Badge variant="destructive" className="mt-1">
+                    Error
+                  </Badge>  
+                </div>
+                 {/* Description */}
+                  {currentFolder?.description && (
+                      <p className="text-sm text-muted-foreground">{currentFolder.description}</p>
+                  )}
+                
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="px-6">
+          <div className="text-center text-destructive py-8">
+            <p className="text-sm">Error: {error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const _handleRemoveNorma = async (normaId: number, normaTitle: string) => {
+    if (!confirm(`¿Estás seguro de que quieres quitar "${normaTitle}" de esta carpeta?`)) {
+      return;
+    }
+
+    try {
+      await removeNormaFromFolder(normaId);
+      toast.success('Norma quitada de la carpeta');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al quitar la norma');
+    }
+  };
+
+  const handleUpdateNotes = async (folderNormaId: string, normaId: number, notes: string) => {
+    try {
+      await updateFolderNorma(normaId, { notes });
+      toast.success('Notas actualizadas');
+      setIsEditNotesOpen(false);
+      setEditingNorma(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al actualizar las notas');
+    }
+  };
+
+
+  const normas = folderWithNormas?.normas || [];
+
+  return (
+    <>
+      <div className="bg-background text-foreground flex flex-col gap-6 rounded-xl py-6">
+        <div className="@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 space-y-4">
+          {/* Breadcrumb Navigation */}
+          {folderPath.length > 1 && (
+            <Breadcrumb>
+              <BreadcrumbList>
+                {folderPath.map((pathFolder, index) => {
+                  const IconComponent = getIcon(pathFolder.icon);
+                  return (
+                    <React.Fragment key={pathFolder.id}>
+                      <BreadcrumbItem>
+                        {index === folderPath.length - 1 ? (
+                          <BreadcrumbPage className="text-xs text-muted-foreground flex items-center gap-1">
+                            <IconComponent className="h-3 w-3" />
+                            {pathFolder.name}
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink 
+                            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
+                            onClick={() => onFolderSelect?.(pathFolder)}
+                          >
+                            <IconComponent className="h-3 w-3" />
+                            {pathFolder.name}
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                      {index < folderPath.length - 1 && <BreadcrumbSeparator />}
+                    </React.Fragment>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          )}
+          
+          {/* Header with title and actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {currentFolder?.color && (
+                <div 
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: currentFolder.color }}
+                />
+              )}
+              <div>
+                <div className="text-xl flex items-center leading-none font-semibold">
                   <span className="font-bold pe-2" >{currentFolder?.name}</span>
                   <Badge variant="secondary" className="mt-1">
                   {normas.length} norma{normas.length !== 1 ? 's' : ''}
                 </Badge>  
-                </CardTitle>
+                </div>
                  {/* Description */}
                   {currentFolder?.description && (
                       <p className="text-sm text-muted-foreground">{currentFolder.description}</p>
@@ -191,8 +292,8 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
           </div>
           
          
-        </CardHeader>
-        <CardContent className="space-y-6">
+        </div>
+        <div className="px-6 space-y-6">
           {/* Subfolders Section */}
           {currentFolder?.subfolders && currentFolder.subfolders.length > 0 && (
             <div>
@@ -206,17 +307,19 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
                   return (
                     <Card 
                       key={subfolder.id} 
-                      className=" py-0  g-0 cursor-pointer hover:bg-accent/50 transition-colors aspect-[4/3]"
+                      className="shadow-none py-0 g-0 cursor-pointer bg-muted/30 hover:bg-muted/70 transition-colors aspect-[4/3]"
                       onClick={() => onFolderSelect?.(subfolder)}
                     >
                       <CardContent className="p-3 flex flex-col g-0">
                         <div className="flex items-center gap-2 mb-2">
                           <IconComponent className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           <h4 className="font-medium text-sm truncate flex-1">{subfolder.name}</h4>
-                          <div 
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: subfolder.color }}
-                          />
+                          {subfolder.color && (
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: subfolder.color }}
+                            />
+                          )}
                         </div>
                         <div className="">
                           <span className="text-xs text-muted-foreground">
@@ -270,17 +373,19 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
                   </div>
                   
                   {/* Right indicator/color dot */}
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: currentFolder?.color }}
-                  />
+                  {currentFolder?.color && (
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: currentFolder.color }}
+                    />
+                  )}
                 </div>
               ))}
             </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Edit Notes Dialog */}
       <Dialog open={isEditNotesOpen} onOpenChange={setIsEditNotesOpen}>

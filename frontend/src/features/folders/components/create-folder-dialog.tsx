@@ -28,7 +28,7 @@ const FOLDER_ICONS = [
 ];
 
 const PRESET_COLORS = [
-  '#FFFFFF', // No color (white/transparent)
+  null, // No color
   '#3B82F6', // Blue
   '#10B981', // Green
   '#F59E0B', // Yellow
@@ -75,7 +75,7 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
         name: '',
         description: '',
         parent_folder_id: parentFolderId,
-        color: '#FFFFFF',
+        color: '#3B82F6',
         icon: 'folder',
       });
     } catch (error) {
@@ -85,7 +85,7 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
     }
   };
 
-  const handleColorChange = (color: string) => {
+  const handleColorChange = (color: string | null) => {
     setFormData(prev => ({ ...prev, color }));
   };
 
@@ -160,11 +160,11 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
                   className={`w-8 h-8 rounded-full border-2 transition-all relative ${
                     formData.color === color ? 'border-black' : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: color || '#f0f0f0' }}
                   onClick={() => handleColorChange(color)}
-                  title={color === '#FFFFFF' ? 'Sin color' : color}
+                  title={color === null ? 'Sin color' : color}
                 >
-                  {color === '#FFFFFF' && (
+                  {color === null && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-6 h-0.5 bg-gray-400 rotate-45"></div>
                     </div>

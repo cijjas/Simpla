@@ -119,9 +119,9 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
           name: (
             <div className="flex items-center gap-2">
               <span>{folder.name}</span>
-              {folder.color !== '#FFFFFF' && (
+              {folder.color && (
                 <div 
-                  className="w-3 h-3 rounded-full"
+                  className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: folder.color }}
                 />
               )}
@@ -191,8 +191,8 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
+      <Card className="h-full flex flex-col gap-0 shadow-none">
+        <CardContent className="p-6 flex-1 flex items-center justify-center">
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2 text-sm text-muted-foreground">Cargando carpetas...</span>
@@ -204,8 +204,8 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="p-6">
+      <Card className="h-full flex flex-col gap-0 shadow-none">
+        <CardContent className="p-6 flex-1 flex items-center justify-center">
           <div className="text-center text-destructive">
             <p className="text-sm">Error: {error}</p>
             <Button 
@@ -224,7 +224,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   return (
     <>
-      <Card className="h-full flex flex-col gap-0">
+      <Card className="h-full flex flex-col gap-0 shadow-none ">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">

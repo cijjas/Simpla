@@ -140,10 +140,12 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
             onCheckedChange={(checked: boolean) => handleFolderToggle(folder.id, checked)}
             onClick={(e) => e.stopPropagation()} // Prevent double toggle
           />
-          <div
-            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: folder.color }}
-          />
+          {folder.color && (
+            <div
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: folder.color }}
+            />
+          )}
           <IconComponent className="h-4 w-4 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">

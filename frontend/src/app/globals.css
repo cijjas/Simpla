@@ -73,12 +73,12 @@
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: var(--color-stone-200);
   --secondary-foreground: var(--color-stone-900);
-  --muted: oklch(0.968 0.007 247.896);
+  --muted: var(--color-stone-200);
   --muted-foreground: oklch(0.554 0.046 257.417);
   --accent: var(--color-stone-100);
   --accent-foreground: var(--color-stone-900);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
+  --border: var(--color-stone-200);
   --input: oklch(0.929 0.013 255.508);
   --ring: oklch(0.704 0.04 256.788);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -159,7 +159,7 @@
 
   /* Markdown styles for chat messages */
   .prose-chat {
-    @apply prose prose-sm max-w-none dark:prose-invert;
+    @apply prose max-w-none dark:prose-invert;
   }
 
   .prose-chat p {

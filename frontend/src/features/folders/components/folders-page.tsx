@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FolderTree } from '@/features/folders';
-import { SimpleFolderContent } from './simple-folder-content';
+import { FolderContent, FolderTree } from '@/features/folders';
 import { FolderTreeItem } from '@/features/folders/types';
 import { useFoldersContext } from '@/features/folders/context/folders-context';
 
@@ -49,7 +48,7 @@ export function FoldersPage() {
         
         {/* Folder Content */}
         <div className="lg:col-span-3 overflow-auto">
-          <SimpleFolderContent folder={selectedFolder} />
+          <FolderContent folder={selectedFolder} />
         </div>
       </div>
     </div>

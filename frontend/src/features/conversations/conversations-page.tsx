@@ -2,7 +2,11 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+} from '@/components/ui/input-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,8 +19,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, Bot, User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil } from 'lucide-react';
+import { Bot, User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import TextareaAutosize from 'react-textarea-autosize';
 import { 
   useConversations,
   type Conversation,
@@ -252,24 +257,6 @@ export default function ConversacionesPage() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Chat Header - only show if there's a current conversation */}
-        {currentConversation && (
-          <div className="border-b p-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-semibold">{currentConversation.title}</h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline">
-                    {currentConversation.chat_type === 'normativa_nacional' ? 'Normativa Nacional' : 'Constituciones'}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {currentConversation.total_tokens} tokens
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Messages */}
         <div className="flex-1 min-h-0 p-4">
@@ -309,7 +296,7 @@ export default function ConversacionesPage() {
                         : ''
                     }`}
                   >
-                    <div className={`prose-chat ${message.role === 'user' ? 'text-primary-foreground' : 'tracking-wide leading-relaxed'}`}>
+                    <div className={`prose-chat text-md ${message.role === 'user' ? 'text-primary-foreground' : 'tracking-wide leading-relaxed'}`}>
                       <ReactMarkdown 
                         components={{
                           p: ({ children }) => <p className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</p>,
@@ -343,7 +330,7 @@ export default function ConversacionesPage() {
                     </div>
                   </div>
                   <div className="rounded-lg p-3">
-                    <div className="prose-chat tracking-wide leading-relaxed">
+                    <div className="prose-chat text-md tracking-wide leading-relaxed">
                       <ReactMarkdown>{streamingMessage}</ReactMarkdown>
                       <span className="animate-pulse inline-block ml-1">|</span>
                     </div>
@@ -358,25 +345,38 @@ export default function ConversacionesPage() {
         </div>
 
         {/* Input Area - always visible */}
-        <div className="border-t p-4 flex-shrink-0">
+        <div className="p-4  flex-shrink-0">
           <div className="max-w-4xl mx-auto">
-            <div className="flex gap-2">
-              <Textarea
+            <InputGroup className="rounded-3xl pl-3 pt-2">
+              <TextareaAutosize
                 ref={textareaRef}
+                data-slot="input-group-control"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
-                className="min-h-[60px] max-h-[120px] resize-none"
+                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none"
                 disabled={isStreaming}
+                maxRows={3}
               />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isStreaming}
-                size="lg"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+              <InputGroupAddon align="block-end">
+                <Button
+                  className="ml-auto h-8 w-8 rounded-full p-0"
+                  size="sm"
+                  variant="default"
+                  onClick={handleSendMessage}
+                  disabled={!inputMessage.trim() || isStreaming}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+              </InputGroupAddon>
+            </InputGroup>
+            
+            {/* Disclaimer text */}
+            <div className="flex justify-center mt-2">
+              <p className="text-xs text-muted-foreground text-center">
+                La IA puede cometer errores. Verifica la información importante.
+              </p>
             </div>
           </div>
         </div>
