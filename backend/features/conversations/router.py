@@ -5,6 +5,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+import asyncio
+
 
 from core.database.base import get_db
 from features.auth.auth_utils import verify_token
@@ -18,6 +20,9 @@ from .schemas import (
     SendMessageRequest
 )
 from core.utils.logging_config import get_logger
+from features.conversations.answer_generator.grpc_client import fetch_norm_by_infoleg_id
+from features.conversations.answer_generator.embedding_client import get_embedding
+from features.conversations.answer_generator.vectorial_client import search_vectors
 
 logger = get_logger(__name__)
 
@@ -167,38 +172,39 @@ async def send_message(
     """
     try:
         user_id = get_current_user_id(request)
-        
+
+        user_question = data.content
+        embedding_result = get_embedding(user_question)
+
+        if not embedding_result["success"] or not embedding_result["data"]:
+            raise HTTPException(status_code=500, detail="Failed to generate embedding")
+
+        embedding_vector = embedding_result["data"].get("embedding", [])
+
+        search_results = search_vectors(
+            embedding=embedding_vector,
+            filters={'document_type': 'article', 'infoleg_id': '183532'},
+            limit=5
+        )
+        logger.info(f"Vector search results: {search_results}")
+
         service = ConversationService(db)
-        
+
         async def generate_stream():
-            """Generate streaming response."""
-            try:
-                # Stream the AI response
-                async for chunk in service.stream_message_response(
-                    user_id=user_id,
-                    content=data.content,
-                    session_id=str(data.session_id) if data.session_id else None,
-                    chat_type=data.chat_type
-                ):
-                    # Format as Server-Sent Events
-                    response_data = {
-                        "content": chunk,
-                        "session_id": str(data.session_id) if data.session_id else "new-session"  # Convert UUID to string
-                    }
-                    yield f"data: {json.dumps(response_data)}\n\n"
-                
-                # Send final chunk to indicate completion
-                yield f"data: {json.dumps({'content': '', 'session_id': str(data.session_id) if data.session_id else 'new-session', 'done': True})}\n\n"
-                
-            except Exception as e:
-                logger.error(f"Error in message streaming: {str(e)}")
-                error_data = {
-                    "content": f"Error: {str(e)}",
-                    "session_id": str(data.session_id) if data.session_id else "new-session",
-                    "error": True
+            # Pretend response chunks
+            chunks = ["Hello", " ", "world", "!", " This is a dummy stream."]
+            
+            for chunk in chunks:
+                response_data = {
+                    "content": chunk,
+                    "session_id": str(data.session_id) if data.session_id else "new-session"
                 }
-                yield f"data: {json.dumps(error_data)}\n\n"
-        
+                yield f"data: {json.dumps(response_data)}\n\n"
+                await asyncio.sleep(0.5)  # simulate delay
+            
+            # Final chunk with done flag
+            yield f"data: {json.dumps({'content': '', 'session_id': str(data.session_id) if data.session_id else 'new-session', 'done': True})}\n\n"
+            
         return StreamingResponse(
             generate_stream(),
             media_type="text/event-stream",
@@ -253,22 +259,49 @@ async def update_conversation(
 ):
     """
     Update a conversation.
-    
+
     Updates conversation metadata like title and archived status.
     """
     try:
         user_id = get_current_user_id(request)
-        
+
         service = ConversationService(db)
         conversation = service.update_conversation(conversation_id, user_id, data)
-        
+
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
-        
+
         return ConversationDetailResponse.model_validate(conversation)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error updating conversation {conversation_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/test/grpc-norm")
+async def test_grpc_norm(
+    infoleg_id: int = Query(default=183532, description="Infoleg ID to fetch"),
+    grpc_host: str = Query(default="localhost", description="gRPC server host"),
+    grpc_port: int = Query(default=50051, description="gRPC server port")
+):
+    """
+    Test endpoint to fetch norm data via gRPC.
+
+    Calls the ReconstructNorm RPC on the relational microservice.
+    """
+    try:
+        logger.info(f"Testing gRPC call for infoleg_id={infoleg_id}")
+        result = fetch_norm_by_infoleg_id(infoleg_id, grpc_host, grpc_port)
+
+        return {
+            "success": result["success"],
+            "message": result["message"],
+            "norma_json": result["norma_json"],
+            "grpc_endpoint": f"{grpc_host}:{grpc_port}"
+        }
+
+    except Exception as e:
+        logger.error(f"Error testing gRPC: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"gRPC test failed: {str(e)}")
