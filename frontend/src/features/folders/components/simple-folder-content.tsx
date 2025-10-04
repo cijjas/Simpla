@@ -38,10 +38,12 @@ export function SimpleFolderContent({ folder }: SimpleFolderContentProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: folder.color }}
-            />
+            {folder.color && (
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: folder.color }}
+              />
+            )}
             {folder.name}
           </CardTitle>
         </CardHeader>
@@ -62,10 +64,12 @@ export function SimpleFolderContent({ folder }: SimpleFolderContentProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: folder.color }}
-            />
+            {folder.color && (
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: folder.color }}
+              />
+            )}
             {folder.name}
           </CardTitle>
         </CardHeader>
@@ -84,10 +88,12 @@ export function SimpleFolderContent({ folder }: SimpleFolderContentProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: folder.color }}
-            />
+            {folder.color && (
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: folder.color }}
+              />
+            )}
             {folder.name}
           </CardTitle>
         </CardHeader>
@@ -109,10 +115,12 @@ export function SimpleFolderContent({ folder }: SimpleFolderContentProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: folder.color }}
-            />
+            {folder.color && (
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: folder.color }}
+              />
+            )}
             {folder.name}
           </CardTitle>
           

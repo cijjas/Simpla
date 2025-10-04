@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { isTokenExpired, needsRefresh } from '../utils/jwt-utils';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
@@ -75,22 +76,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  const restoreAuthState = useCallback((): { accessToken: string | null; user: User | null } => {
+  const restoreAuthState = useCallback((): { accessToken: string | null; user: User | null; needsRefresh: boolean } => {
     try {
       const accessToken = localStorage.getItem('access_token');
       const userData = localStorage.getItem('user_data');
       const user = userData ? JSON.parse(userData) : null;
       
-      // Basic validation - if we have both token and user, consider it valid
-      // The backend will validate the actual token when we make requests
+      // Basic validation - if we have both token and user
       if (accessToken && user && user.id && user.email) {
-        return { accessToken, user };
+        // Check if token is expired or needs refresh
+        const isExpired = isTokenExpired(accessToken);
+        const needsTokenRefresh = needsRefresh(accessToken);
+        
+        if (isExpired) {
+          console.log('Stored token is expired, will need refresh');
+          return { accessToken: null, user: null, needsRefresh: true };
+        }
+        
+        if (needsTokenRefresh) {
+          console.log('Stored token needs refresh soon, will attempt refresh');
+          return { accessToken, user, needsRefresh: true };
+        }
+        
+        console.log('Stored token is still valid, no refresh needed');
+        return { accessToken, user, needsRefresh: false };
       }
       
-      return { accessToken: null, user: null };
+      return { accessToken: null, user: null, needsRefresh: false };
     } catch (error) {
       console.warn('Failed to restore auth state from localStorage:', error);
-      return { accessToken: null, user: null };
+      return { accessToken: null, user: null, needsRefresh: false };
     }
   }, []);
 
@@ -310,25 +325,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         console.log('Initializing auth with backend URL:', BACKEND_URL);
         
-        // First, try to restore from localStorage for immediate UI feedback
-        const { accessToken, user } = restoreAuthState();
-        if (accessToken && user) {
-          console.log('Found stored auth state, restoring immediately');
+        // First, try to restore from localStorage and check if refresh is needed
+        const { accessToken, user, needsRefresh: needsTokenRefresh } = restoreAuthState();
+        
+        if (accessToken && user && !needsTokenRefresh) {
+          // Token is valid and doesn't need refresh - restore immediately
+          console.log('Found valid stored auth state, restoring immediately');
           setAuthState({
             user,
             accessToken,
-            isLoading: true, // Still loading while we verify with backend
+            isLoading: false, // No need to load, token is valid
+            isAuthenticated: true,
+            isLoggingOut: false,
+          });
+          return; // Exit early - no backend call needed
+        }
+        
+        if (accessToken && user && needsTokenRefresh) {
+          // Token exists but needs refresh - show loading state
+          console.log('Found stored auth state but token needs refresh');
+          setAuthState({
+            user,
+            accessToken,
+            isLoading: true, // Still loading while we refresh
             isAuthenticated: true,
             isLoggingOut: false,
           });
         }
         
-        // Check if we have any stored auth state first
-        // Note: We'll attempt refresh even without a visible cookie, as the backend
-        // will handle validation and the cookie might be httpOnly
-        
-        // Only attempt refresh if we're not already logging out
-        if (!isLoggingOutRef.current) {
+        // Only attempt refresh if we're not already logging out and we need to
+        if (!isLoggingOutRef.current && (needsTokenRefresh || !accessToken)) {
           console.log('Attempting to restore session...');
           
           // Add timeout to prevent hanging
@@ -349,6 +375,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             console.error('Auth initialization timeout:', timeoutError);
             setAuthState(prev => ({ ...prev, isLoading: false }));
           }
+        } else if (!needsTokenRefresh && !accessToken) {
+          // No stored auth state and no refresh needed
+          console.log('No stored auth state, user needs to login');
+          setAuthState(prev => ({ ...prev, isLoading: false }));
         } else {
           console.log('Skipping auth initialization - logout in progress');
           setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -368,15 +398,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const refreshInterval = setInterval(async () => {
       // Only refresh if we're still authenticated and not logging out
-      if (authState.isAuthenticated && !isLoggingOutRef.current) {
-        const success = await refreshToken();
-        if (!success) {
-          clearInterval(refreshInterval);
+      if (authState.isAuthenticated && !isLoggingOutRef.current && authState.accessToken) {
+        // Check if token actually needs refresh before making the call
+        if (needsRefresh(authState.accessToken)) {
+          console.log('Token needs refresh, attempting refresh...');
+          const success = await refreshToken();
+          if (!success) {
+            clearInterval(refreshInterval);
+          }
+        } else {
+          console.log('Token is still valid, skipping refresh');
         }
       } else {
         clearInterval(refreshInterval);
       }
-    }, 14 * 60 * 1000); // Refresh every 14 minutes (tokens expire in 15)
+    }, 5 * 60 * 1000); // Check every 5 minutes instead of 14
 
     return () => clearInterval(refreshInterval);
   }, [authState.accessToken, authState.isAuthenticated, refreshToken]);

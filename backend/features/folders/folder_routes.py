@@ -8,7 +8,7 @@ from core.database.base import get_db
 from features.folders.folder_models import Folder, FolderNorma
 from features.folders.folder_schemas import (
     FolderCreate, FolderUpdate, FolderMove, FolderResponse, FolderTreeResponse,
-    FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma,
+    FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma, FolderNormaResponse,
     FolderWithNormasResponse, FolderCreateResponse
 )
 from features.auth.auth_utils import verify_token
@@ -443,6 +443,9 @@ async def get_folder_normas(
     """Get all normas in a specific folder."""
     logger.info(f"Fetching normas in folder {folder_id} for user {user_id}")
     
+    # TODO: Remove this when normas table is available
+    logger.info("NOTE: Normas functionality is temporarily disabled - returning empty list until normas table is available")
+    
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
@@ -462,6 +465,7 @@ async def get_folder_normas(
         FolderNorma.folder_id == folder_id
     ).order_by(FolderNorma.order_index).all()
     
+    # TODO: When normas table is available, replace this with actual norma data
     normas_with_details = []
     for fn in folder_normas:
         # Create simplified norma response for now
@@ -501,7 +505,7 @@ async def get_folder_normas(
     )
 
 
-@router.post("/folders/{folder_id}/normas/", response_model=FolderNormaWithNorma, status_code=status.HTTP_201_CREATED)
+@router.post("/folders/{folder_id}/normas/", response_model=FolderNormaResponse, status_code=status.HTTP_201_CREATED)
 async def add_norma_to_folder(
     folder_id: str,
     norma_data: FolderNormaCreate,
@@ -602,7 +606,7 @@ async def add_norma_to_folder(
         )
 
 
-@router.put("/folders/{folder_id}/normas/{norma_id}/", response_model=FolderNormaWithNorma)
+@router.put("/folders/{folder_id}/normas/{norma_id}/", response_model=FolderNormaResponse)
 async def update_folder_norma(
     folder_id: str,
     norma_id: int,
@@ -628,13 +632,13 @@ async def update_folder_norma(
             detail="Folder not found"
         )
     
-    # Find folder-norma relationship
+    # Find folder-norma relationship (without norma details until normas table is available)
     folder_norma = db.query(FolderNorma).filter(
         and_(
             FolderNorma.folder_id == folder_id,
             FolderNorma.norma_id == norma_id
         )
-    ).options(joinedload(FolderNorma.norma)).first()
+    ).first()
     
     if not folder_norma:
         raise HTTPException(
@@ -651,18 +655,9 @@ async def update_folder_norma(
     db.refresh(folder_norma)
     
     logger.info(f"Updated norma {norma_id} in folder {folder_id}")
-    return FolderNormaWithNorma(
+    return FolderNormaResponse(
         id=str(folder_norma.id),
-        norma={
-            "id": folder_norma.norma.id,
-            "infoleg_id": folder_norma.norma.infoleg_id,
-            "titulo_resumido": folder_norma.norma.titulo_resumido,
-            "jurisdiccion": folder_norma.norma.jurisdiccion,
-            "tipo_norma": folder_norma.norma.tipo_norma,
-            "sancion": folder_norma.norma.sancion.isoformat() if folder_norma.norma.sancion else None,
-            "publicacion": folder_norma.norma.publicacion.isoformat() if folder_norma.norma.publicacion else None,
-            "estado": folder_norma.norma.estado
-        },
+        norma_id=folder_norma.norma_id,
         added_at=folder_norma.added_at,
         order_index=folder_norma.order_index,
         notes=folder_norma.notes

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { TreeView, TreeDataItem } from '@/components/tree-view-old';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -40,30 +40,30 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
   }, []);
 
   // Handler functions for folder operations
-  const handleEditFolder = (folder: FolderTreeItem) => {
+  const handleEditFolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
     setIsEditDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteFolder = (folder: FolderTreeItem) => {
+  const handleDeleteFolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleDeleteDialogClose = (open: boolean) => {
+  const handleDeleteDialogClose = useCallback((open: boolean) => {
     setIsDeleteDialogOpen(open);
     if (!open) {
       // Reset selected folder when dialog closes
       setSelectedFolder(null);
     }
-  };
+  }, []);
 
-  const handleCreateSubfolder = (folder: FolderTreeItem) => {
+  const handleCreateSubfolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
     setIsCreateSubfolderDialogOpen(true);
-  };
+  }, []);
 
-  const confirmDeleteFolder = async (folderId: string) => {
+  const confirmDeleteFolder = useCallback(async (folderId: string) => {
     try {
       await deleteFolder(folderId);
       toast.success('Carpeta eliminada correctamente');
@@ -72,7 +72,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
       toast.error(error instanceof Error ? error.message : 'Error al eliminar la carpeta');
       throw error; // Re-throw so the dialog can handle it
     }
-  };
+  }, [deleteFolder, handleDeleteDialogClose]);
 
   // Filter folders based on search query
   const filteredFolders = useMemo(() => {
@@ -119,9 +119,9 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
           name: (
             <div className="flex items-center gap-2">
               <span>{folder.name}</span>
-              {folder.color !== '#FFFFFF' && (
+              {folder.color && (
                 <div 
-                  className="w-3 h-3 rounded-full"
+                  className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: folder.color }}
                 />
               )}
@@ -169,11 +169,10 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
     };
 
     return convertToTreeData(filteredFolders);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredFolders]);
+  }, [filteredFolders, onFolderSelect, handleEditFolder, handleCreateSubfolder, handleDeleteFolder]);
 
 
-  const handleDragAndDrop = async (sourceItem: TreeDataItem, targetItem: TreeDataItem) => {
+  const handleDragAndDrop = useCallback(async (sourceItem: TreeDataItem, targetItem: TreeDataItem) => {
     try {
       // Don't allow dropping on itself or if target is empty
       if (sourceItem.id === targetItem.id || !targetItem.id) {
@@ -188,12 +187,12 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
     } catch (error) {
       console.error('Error moving folder:', error);
     }
-  };
+  }, [moveFolder]);
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
+      <Card className="h-full flex flex-col gap-0 shadow-none">
+        <CardContent className="p-6 flex-1 flex items-center justify-center">
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2 text-sm text-muted-foreground">Cargando carpetas...</span>
@@ -205,8 +204,8 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="p-6">
+      <Card className="h-full flex flex-col gap-0 shadow-none">
+        <CardContent className="p-6 flex-1 flex items-center justify-center">
           <div className="text-center text-destructive">
             <p className="text-sm">Error: {error}</p>
             <Button 
@@ -225,7 +224,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   return (
     <>
-      <Card className="h-full flex flex-col gap-0">
+      <Card className="h-full flex flex-col gap-0 shadow-none ">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">

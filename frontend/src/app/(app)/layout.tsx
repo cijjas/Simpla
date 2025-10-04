@@ -35,16 +35,14 @@ export default function AppLayout({
   }
 
   return (
-    <FoldersProvider>
-      <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
-        <SidebarInset>
-          <AppHeader />
-          <div className="flex flex-1 flex-col gap-4 pt-4">
-            {children}
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </FoldersProvider>
+    <SidebarProvider defaultOpen={true}>
+      <AppSidebar />
+      <SidebarInset>
+        <AppHeader />
+        <div className="flex flex-1 flex-col gap-4">
+          {children}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

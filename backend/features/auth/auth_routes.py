@@ -11,6 +11,7 @@ from core.utils.db_logging import log_database_operation, log_database_error
 
 from core.database.base import get_db
 from features.auth.auth_models import User, RefreshToken
+from features.subscription.subscription_models import SubscriptionTier, UserSubscription
 from features.auth.auth_utils import (
     get_password_hash, 
     verify_password, 
@@ -113,6 +114,20 @@ async def register(
         db.add(user)
         db.commit()
         db.refresh(user)
+        
+        # Assign free tier automatically
+        free_tier = db.query(SubscriptionTier).filter(SubscriptionTier.name == "free").first()
+        if free_tier:
+            subscription = UserSubscription(
+                user_id=user.id,
+                tier_id=free_tier.id,
+                expires_at=None  # Free tier never expires
+            )
+            db.add(subscription)
+            db.commit()
+            logger.info(f"Free tier assigned to user: {user.email}")
+        else:
+            logger.warning(f"Free tier not found - user {user.email} registered without subscription")
         
         log_database_operation("INSERT", "users", user.id, {"email": user.email, "provider": user.provider})
         logger.info(f"User registered successfully: {user.email} (ID: {user.id}) - Email verification required")
@@ -246,6 +261,18 @@ async def google_login(
         db.add(user)
         db.commit()
         db.refresh(user)
+        
+        # Assign free tier for new Google users
+        free_tier = db.query(SubscriptionTier).filter(SubscriptionTier.name == "free").first()
+        if free_tier:
+            subscription = UserSubscription(
+                user_id=user.id,
+                tier_id=free_tier.id,
+                expires_at=None  # Free tier never expires
+            )
+            db.add(subscription)
+            db.commit()
+            logger.info(f"Free tier assigned to new Google user: {user.email}")
     else:
         # Update existing user if needed
         if user.provider != "google":

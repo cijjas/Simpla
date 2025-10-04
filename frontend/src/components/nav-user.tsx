@@ -9,6 +9,7 @@ import {
   LogOut,
   Sparkles,
   Loader2,
+  Settings,
 } from "lucide-react"
 import { useAuth } from "@/features/auth/hooks/use-auth"
 
@@ -32,6 +33,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 
 export function NavUser({
   user,
@@ -106,6 +108,12 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link href="/configuracion" className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Configuración
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
