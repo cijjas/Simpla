@@ -20,9 +20,9 @@ from .schemas import (
     SendMessageRequest
 )
 from core.utils.logging_config import get_logger
-from features.conversations.answer_generator.grpc_client import fetch_norm_by_infoleg_id, fetch_batch_entities
-from features.conversations.answer_generator.embedding_client import get_embedding
-from features.conversations.answer_generator.vectorial_client import search_vectors
+from core.clients.relational import fetch_norm_by_infoleg_id, fetch_batch_entities
+from core.clients.embedding import get_embedding
+from core.clients.vectorial import search_vectors
 
 logger = get_logger(__name__)
 
@@ -190,9 +190,7 @@ async def send_message(
 
         # Fetch batch entities from relational microservice using search results
         batch_result = fetch_batch_entities(search_results.get("results", []))
-        logger.info(f"Batch entities fetched: {batch_result['message']}")
-        logger.info(f"BATCH: {batch_result['articles_json']}")
-        logger.info(f"BATCH: {batch_result['divisions_json']}")
+        logger.info(f"BATCH: {batch_result}")
 
         service = ConversationService(db)
 

@@ -1,4 +1,4 @@
-"""gRPC client for communicating with vectorial microservice."""
+"""Client for communicating with the vectorial microservice via gRPC."""
 
 import grpc
 from typing import List, Dict, Any, Optional

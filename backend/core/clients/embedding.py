@@ -1,4 +1,4 @@
-"""Client for embedding service API."""
+"""Client for the embedding service API."""
 
 import requests
 from typing import Dict, Any

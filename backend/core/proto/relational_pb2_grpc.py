@@ -24,6 +24,11 @@ class RelationalServiceStub(object):
                 request_serializer=relational__pb2.ReconstructNormRequest.SerializeToString,
                 response_deserializer=relational__pb2.ReconstructNormResponse.FromString,
                 )
+        self.ReconstructNormById = channel.unary_unary(
+                '/relational.RelationalService/ReconstructNormById',
+                request_serializer=relational__pb2.ReconstructNormByIdRequest.SerializeToString,
+                response_deserializer=relational__pb2.ReconstructNormResponse.FromString,
+                )
         self.GetBatch = channel.unary_unary(
                 '/relational.RelationalService/GetBatch',
                 request_serializer=relational__pb2.GetBatchRequest.SerializeToString,
@@ -46,6 +51,12 @@ class RelationalServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ReconstructNormById(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetBatch(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -63,6 +74,11 @@ def add_RelationalServiceServicer_to_server(servicer, server):
             'ReconstructNorm': grpc.unary_unary_rpc_method_handler(
                     servicer.ReconstructNorm,
                     request_deserializer=relational__pb2.ReconstructNormRequest.FromString,
+                    response_serializer=relational__pb2.ReconstructNormResponse.SerializeToString,
+            ),
+            'ReconstructNormById': grpc.unary_unary_rpc_method_handler(
+                    servicer.ReconstructNormById,
+                    request_deserializer=relational__pb2.ReconstructNormByIdRequest.FromString,
                     response_serializer=relational__pb2.ReconstructNormResponse.SerializeToString,
             ),
             'GetBatch': grpc.unary_unary_rpc_method_handler(
@@ -110,6 +126,23 @@ class RelationalService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/ReconstructNorm',
             relational__pb2.ReconstructNormRequest.SerializeToString,
+            relational__pb2.ReconstructNormResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ReconstructNormById(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/ReconstructNormById',
+            relational__pb2.ReconstructNormByIdRequest.SerializeToString,
             relational__pb2.ReconstructNormResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
