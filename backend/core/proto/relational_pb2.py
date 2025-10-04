@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10relational.proto\x12\nrelational\"\x1c\n\x0cStoreRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\t\"J\n\rStoreResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x17\n\x0fpk_mapping_json\x18\x03 \x01(\t\",\n\x16ReconstructNormRequest\x12\x12\n\ninfoleg_id\x18\x01 \x01(\x05\"O\n\x17ReconstructNormResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x12\n\nnorma_json\x18\x03 \x01(\t2\xad\x01\n\x11RelationalService\x12<\n\x05Store\x12\x18.relational.StoreRequest\x1a\x19.relational.StoreResponse\x12Z\n\x0fReconstructNorm\x12\".relational.ReconstructNormRequest\x1a#.relational.ReconstructNormResponseB0\n\x1b\x63om.simpla.relational.protoB\x0fRelationalProtoP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10relational.proto\x12\nrelational\"\x1c\n\x0cStoreRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\t\"J\n\rStoreResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x17\n\x0fpk_mapping_json\x18\x03 \x01(\t\",\n\x16ReconstructNormRequest\x12\x12\n\ninfoleg_id\x18\x01 \x01(\x05\"O\n\x17ReconstructNormResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x12\n\nnorma_json\x18\x03 \x01(\t\"&\n\nEntityPair\x12\x0c\n\x04type\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\x03\";\n\x0fGetBatchRequest\x12(\n\x08\x65ntities\x18\x01 \x03(\x0b\x32\x16.relational.EntityPair\"c\n\x10GetBatchResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x16\n\x0e\x64ivisions_json\x18\x03 \x01(\t\x12\x15\n\rarticles_json\x18\x04 \x01(\t2\xf4\x01\n\x11RelationalService\x12<\n\x05Store\x12\x18.relational.StoreRequest\x1a\x19.relational.StoreResponse\x12Z\n\x0fReconstructNorm\x12\".relational.ReconstructNormRequest\x1a#.relational.ReconstructNormResponse\x12\x45\n\x08GetBatch\x12\x1b.relational.GetBatchRequest\x1a\x1c.relational.GetBatchResponseB0\n\x1b\x63om.simpla.relational.protoB\x0fRelationalProtoP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -30,6 +30,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_RECONSTRUCTNORMREQUEST']._serialized_end=182
   _globals['_RECONSTRUCTNORMRESPONSE']._serialized_start=184
   _globals['_RECONSTRUCTNORMRESPONSE']._serialized_end=263
-  _globals['_RELATIONALSERVICE']._serialized_start=266
-  _globals['_RELATIONALSERVICE']._serialized_end=439
+  _globals['_ENTITYPAIR']._serialized_start=265
+  _globals['_ENTITYPAIR']._serialized_end=303
+  _globals['_GETBATCHREQUEST']._serialized_start=305
+  _globals['_GETBATCHREQUEST']._serialized_end=364
+  _globals['_GETBATCHRESPONSE']._serialized_start=366
+  _globals['_GETBATCHRESPONSE']._serialized_end=465
+  _globals['_RELATIONALSERVICE']._serialized_start=468
+  _globals['_RELATIONALSERVICE']._serialized_end=712
 # @@protoc_insertion_point(module_scope)

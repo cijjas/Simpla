@@ -10,7 +10,6 @@ import asyncio
 
 from core.database.base import get_db
 from features.auth.auth_utils import verify_token
-from features.subscription.rate_limit_service import RateLimitService
 from .service import ConversationService
 from .schemas import (
     ConversationCreate,
@@ -21,7 +20,7 @@ from .schemas import (
     SendMessageRequest
 )
 from core.utils.logging_config import get_logger
-from features.conversations.answer_generator.grpc_client import fetch_norm_by_infoleg_id
+from features.conversations.answer_generator.grpc_client import fetch_norm_by_infoleg_id, fetch_batch_entities
 from features.conversations.answer_generator.embedding_client import get_embedding
 from features.conversations.answer_generator.vectorial_client import search_vectors
 
@@ -170,106 +169,48 @@ async def send_message(
     
     Sends a user message and streams the AI response back in real-time.
     If no session_id is provided, creates a new conversation.
-    Rate limiting is enforced based on user's subscription tier.
     """
     try:
         user_id = get_current_user_id(request)
-        logger.info(f"Processing message for user: {user_id}")
-        
-        # Initialize rate limit service
-        rate_limit_service = RateLimitService(db)
-        
-        # Estimate tokens needed (rough estimate before API call)
-        estimated_tokens = max(50, len(data.content) // 4)  # Rough estimate
-        logger.info(f"Estimated tokens: {estimated_tokens}")
-        
-        # Check rate limit BEFORE processing
-        logger.info("Checking rate limit...")
-        rate_limit_check = await rate_limit_service.check_rate_limit(
-            user_id, 
-            estimated_tokens
+
+        user_question = data.content
+        embedding_result = get_embedding(user_question)
+
+        if not embedding_result["success"] or not embedding_result["data"]:
+            raise HTTPException(status_code=500, detail="Failed to generate embedding")
+
+        embedding_vector = embedding_result["data"].get("embedding", [])
+
+        search_results = search_vectors(
+            embedding=embedding_vector,
+            filters={},
+            limit=5
         )
-        logger.info(f"Rate limit check result: {rate_limit_check.allowed}")
-        
-        if not rate_limit_check.allowed:
-            logger.warning(f"Rate limit exceeded for user {user_id}: {rate_limit_check.message}")
-            # Return error as streaming response
-            async def error_stream():
-                error_data = {
-                    "content": f"Rate limit exceeded: {rate_limit_check.message}. Current usage: {rate_limit_check.current_usage}/{rate_limit_check.limit}. Resets at: {rate_limit_check.reset_at.isoformat()}",
-                    "session_id": str(data.session_id) if data.session_id else "error",
-                    "error": True,
-                    "rate_limit_exceeded": True,
-                    "current_usage": rate_limit_check.current_usage,
-                    "limit": rate_limit_check.limit,
-                    "reset_at": rate_limit_check.reset_at.isoformat(),
-                    "upgrade_url": "/configuracion"
-                }
-                yield f"data: {json.dumps(error_data)}\n\n"
-            
-            return StreamingResponse(
-                error_stream(),
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "Connection": "keep-alive",
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers": "*",
-                },
-                status_code=429
-            )
-        
+        logger.info(f"Embedding result: {search_results}")
+
+        # Fetch batch entities from relational microservice using search results
+        batch_result = fetch_batch_entities(search_results.get("results", []))
+        logger.info(f"Batch entities fetched: {batch_result['message']}")
+        logger.info(f"BATCH: {batch_result['articles_json']}")
+        logger.info(f"BATCH: {batch_result['divisions_json']}")
+
         service = ConversationService(db)
 
         async def generate_stream():
-            """Generate streaming response."""
-            try:
-                actual_session_id = str(data.session_id) if data.session_id else "new-session"
-                ai_response_content = ""
-                
-                # Stream the AI response
-                async for chunk in service.stream_message_response(
-                    user_id=user_id,
-                    content=data.content,
-                    session_id=str(data.session_id) if data.session_id else None,
-                    chat_type=data.chat_type
-                ):
-                    # Check if this is a session_id chunk
-                    if isinstance(chunk, tuple) and len(chunk) == 2 and chunk[0] == "session_id":
-                        actual_session_id = chunk[1]
-                        continue
-                    
-                    # Accumulate the AI response content
-                    ai_response_content += chunk
-                    
-                    # Format as Server-Sent Events
-                    response_data = {
-                        "content": chunk,
-                        "session_id": actual_session_id
-                    }
-                    yield f"data: {json.dumps(response_data)}\n\n"
-                
-                # Record actual usage after streaming is complete
-                # Calculate total tokens used (user message + AI response)
-                total_tokens = estimated_tokens + max(50, len(ai_response_content) // 4)
-                logger.info(f"Recording usage: {total_tokens} tokens for user {user_id}")
-                success = await rate_limit_service.record_usage(user_id, total_tokens)
-                logger.info(f"Usage recording success: {success}")
-                
-                logger.info(f"Conversation request processed for user {user_id}, total tokens used: {total_tokens}")
-                
-                # Send final chunk to indicate completion
-                yield f"data: {json.dumps({'content': '', 'session_id': actual_session_id, 'done': True})}\n\n"
-                
-            except Exception as e:
-                logger.error(f"Error in message streaming: {str(e)}")
-                error_data = {
-                    "content": f"Error: {str(e)}",
-                    "session_id": actual_session_id,
-                    "error": True
+            # Pretend response chunks
+            chunks = ["Hello", " ", "world", "!", " This is a dummy stream."]
+            
+            for chunk in chunks:
+                response_data = {
+                    "content": chunk,
+                    "session_id": str(data.session_id) if data.session_id else "new-session"
                 }
-                yield f"data: {json.dumps(error_data)}\n\n"
-        
+                yield f"data: {json.dumps(response_data)}\n\n"
+                await asyncio.sleep(0.5)  # simulate delay
+            
+            # Final chunk with done flag
+            yield f"data: {json.dumps({'content': '', 'session_id': str(data.session_id) if data.session_id else 'new-session', 'done': True})}\n\n"
+            
         return StreamingResponse(
             generate_stream(),
             media_type="text/event-stream",

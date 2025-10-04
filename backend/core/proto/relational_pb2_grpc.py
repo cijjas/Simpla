@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import relational_pb2 as relational__pb2
+from core.proto import relational_pb2 as relational__pb2
 
 
 class RelationalServiceStub(object):
@@ -24,6 +24,11 @@ class RelationalServiceStub(object):
                 request_serializer=relational__pb2.ReconstructNormRequest.SerializeToString,
                 response_deserializer=relational__pb2.ReconstructNormResponse.FromString,
                 )
+        self.GetBatch = channel.unary_unary(
+                '/relational.RelationalService/GetBatch',
+                request_serializer=relational__pb2.GetBatchRequest.SerializeToString,
+                response_deserializer=relational__pb2.GetBatchResponse.FromString,
+                )
 
 
 class RelationalServiceServicer(object):
@@ -41,6 +46,12 @@ class RelationalServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetBatch(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RelationalServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -53,6 +64,11 @@ def add_RelationalServiceServicer_to_server(servicer, server):
                     servicer.ReconstructNorm,
                     request_deserializer=relational__pb2.ReconstructNormRequest.FromString,
                     response_serializer=relational__pb2.ReconstructNormResponse.SerializeToString,
+            ),
+            'GetBatch': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetBatch,
+                    request_deserializer=relational__pb2.GetBatchRequest.FromString,
+                    response_serializer=relational__pb2.GetBatchResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -95,5 +111,22 @@ class RelationalService(object):
         return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/ReconstructNorm',
             relational__pb2.ReconstructNormRequest.SerializeToString,
             relational__pb2.ReconstructNormResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetBatch(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/GetBatch',
+            relational__pb2.GetBatchRequest.SerializeToString,
+            relational__pb2.GetBatchResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
