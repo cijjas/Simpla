@@ -7,7 +7,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import asyncio
 
-
+from .answer_generation.utils import fetch_and_parse_legal_context, build_enhanced_prompt
+from features.subscription.rate_limit_service import RateLimitService
 from core.database.base import get_db
 from features.auth.auth_utils import verify_token
 from .service import ConversationService
@@ -20,13 +21,41 @@ from .schemas import (
     SendMessageRequest
 )
 from core.utils.logging_config import get_logger
-from core.clients.relational import fetch_norm_by_infoleg_id, fetch_batch_entities
-from core.clients.embedding import get_embedding
-from core.clients.vectorial import search_vectors
+from core.clients.relational import fetch_norm_by_infoleg_id
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
+
+async def create_rate_limit_error_response(
+    rate_limit_check,
+    session_id: Optional[str]
+) -> StreamingResponse:
+    """Create a streaming error response for rate limit exceeded."""
+    async def error_stream():
+        error_data = {
+            "content": f"Rate limit exceeded: {rate_limit_check.message}. Current usage: {rate_limit_check.current_usage}/{rate_limit_check.limit}. Resets at: {rate_limit_check.reset_at.isoformat()}",
+            "session_id": str(session_id) if session_id else "error",
+            "error": True,
+            "rate_limit_exceeded": True,
+            "current_usage": rate_limit_check.current_usage,
+            "limit": rate_limit_check.limit,
+            "reset_at": rate_limit_check.reset_at.isoformat(),
+            "upgrade_url": "/configuracion"
+        }
+        yield f"data: {json.dumps(error_data)}\n\n"
+
+    return StreamingResponse(
+        error_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+        status_code=429
+    )
 
 
 # Authentication dependency
@@ -166,49 +195,65 @@ async def send_message(
 ):
     """
     Send a message and stream AI response using Server-Sent Events.
-    
+
     Sends a user message and streams the AI response back in real-time.
     If no session_id is provided, creates a new conversation.
     """
     try:
         user_id = get_current_user_id(request)
+        logger.info(f"Processing message for user: {user_id}")
 
-        user_question = data.content
-        embedding_result = get_embedding(user_question)
+        # Check rate limits
+        rate_limit_service = RateLimitService(db)
+        estimated_tokens = max(50, len(data.content) // 4)
 
-        if not embedding_result["success"] or not embedding_result["data"]:
-            raise HTTPException(status_code=500, detail="Failed to generate embedding")
+        rate_limit_check = await rate_limit_service.check_rate_limit(user_id, estimated_tokens)
+        if not rate_limit_check.allowed:
+            logger.warning(f"Rate limit exceeded for user {user_id}")
+            return await create_rate_limit_error_response(rate_limit_check, data.session_id)
 
-        embedding_vector = embedding_result["data"].get("embedding", [])
+        # Fetch legal context and build enhanced prompt
+        articles_data, divisions_data = fetch_and_parse_legal_context(data.content)
+        enhanced_prompt = build_enhanced_prompt(data.content, articles_data, divisions_data)
 
-        search_results = search_vectors(
-            embedding=embedding_vector,
-            filters={},
-            limit=5
-        )
-        logger.info(f"Embedding result: {search_results}")
-
-        # Fetch batch entities from relational microservice using search results
-        batch_result = fetch_batch_entities(search_results.get("results", []))
-        logger.info(f"BATCH: {batch_result}")
-
+        # Initialize conversation service
         service = ConversationService(db)
 
         async def generate_stream():
-            # Pretend response chunks
-            chunks = ["Hello", " ", "world", "!", " This is a dummy stream."]
-            
-            for chunk in chunks:
-                response_data = {
-                    "content": chunk,
-                    "session_id": str(data.session_id) if data.session_id else "new-session"
-                }
-                yield f"data: {json.dumps(response_data)}\n\n"
-                await asyncio.sleep(0.5)  # simulate delay
-            
-            # Final chunk with done flag
-            yield f"data: {json.dumps({'content': '', 'session_id': str(data.session_id) if data.session_id else 'new-session', 'done': True})}\n\n"
-            
+            """Generate streaming response with AI content."""
+            actual_session_id = str(data.session_id) if data.session_id else "new-session"
+            ai_response_content = ""
+
+            try:
+                # Stream AI response chunks
+                async for chunk in service.stream_message_response(
+                    user_id=user_id,
+                    content=enhanced_prompt,
+                    session_id=str(data.session_id) if data.session_id else None,
+                    chat_type=data.chat_type
+                ):
+                    # Handle session_id metadata chunk
+                    if isinstance(chunk, tuple) and len(chunk) == 2 and chunk[0] == "session_id":
+                        actual_session_id = chunk[1]
+                        continue
+
+                    # Accumulate and stream content
+                    ai_response_content += chunk
+                    yield f"data: {json.dumps({'content': chunk, 'session_id': actual_session_id})}\n\n"
+
+                # Record token usage
+                total_tokens = estimated_tokens + max(50, len(ai_response_content) // 4)
+                await rate_limit_service.record_usage(user_id, total_tokens)
+                logger.info(f"Conversation processed for user {user_id}, tokens: {total_tokens}")
+
+                # Send completion signal
+                yield f"data: {json.dumps({'content': '', 'session_id': actual_session_id, 'done': True})}\n\n"
+
+            except Exception as e:
+                logger.error(f"Error in message streaming: {str(e)}")
+                error_data = {"content": f"Error: {str(e)}", "session_id": actual_session_id, "error": True}
+                yield f"data: {json.dumps(error_data)}\n\n"
+        
         return StreamingResponse(
             generate_stream(),
             media_type="text/event-stream",
