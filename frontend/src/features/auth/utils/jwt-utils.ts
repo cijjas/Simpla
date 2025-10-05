@@ -7,7 +7,7 @@ export interface JWTPayload {
   iat: number;
   sub: string;
   email?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

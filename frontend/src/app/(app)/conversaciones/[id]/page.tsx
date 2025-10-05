@@ -26,7 +26,7 @@ export default function Page() {
         });
       }
     }
-  }, [conversationId, state.currentSessionId]);
+  }, [conversationId, state.currentSessionId, loadConversation, router, selectEmptyConversation]);
 
   return <ConversacionesPage />;
 }

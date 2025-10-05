@@ -83,7 +83,7 @@ export function useGoogleAuth() {
       console.log(`${finalTimestamp} | GOOGLE-AUTH | INFO | Authentication flow completed`);
       setIsLoading(false);
     }
-  }, [refreshToken]);
+  }, [refreshToken, loginWithGoogle]);
 
   const signInWithPopup = useCallback(async () => {
     setIsLoading(true);

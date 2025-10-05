@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -50,21 +50,7 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
     return iconMap[iconName] || Folder;
   };
 
-  // Load which folders currently contain this norma and refresh folder list
-  useEffect(() => {
-    if (isOpen && normaId) {
-      const loadData = async () => {
-        console.log('AddToFolderDialog: Refreshing folders...');
-        // Refresh the folders list to ensure we have the latest folders
-        await fetchFolders();
-        console.log('AddToFolderDialog: Folders refreshed, current count:', folders.length);
-        await loadCurrentFolders();
-      };
-      loadData();
-    }
-  }, [isOpen, normaId, fetchFolders]);
-
-  const loadCurrentFolders = async () => {
+  const loadCurrentFolders = useCallback(async () => {
     try {
       setLoadingFolders(true);
       const folderIds = await api.get<string[]>(`/api/folders/normas/${normaId}/`);
@@ -77,7 +63,21 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
     } finally {
       setLoadingFolders(false);
     }
-  };
+  }, [api, normaId]);
+
+  // Load which folders currently contain this norma and refresh folder list
+  useEffect(() => {
+    if (isOpen && normaId) {
+      const loadData = async () => {
+        console.log('AddToFolderDialog: Refreshing folders...');
+        // Refresh the folders list to ensure we have the latest folders
+        await fetchFolders();
+        console.log('AddToFolderDialog: Folders refreshed, current count:', folders.length);
+        await loadCurrentFolders();
+      };
+      loadData();
+    }
+  }, [isOpen, normaId, fetchFolders, folders.length, loadCurrentFolders]);
 
   // Flatten folders for easier iteration (including subfolders)
   const flattenFolders = (folders: FolderTreeItem[], level = 0): Array<FolderTreeItem & { level: number }> => {
@@ -185,7 +185,7 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
 
       let addedCount = 0;
       let removedCount = 0;
-      let errors: string[] = [];
+      const errors: string[] = [];
 
       // Remove from folders first
       for (const folderId of foldersToRemove) {

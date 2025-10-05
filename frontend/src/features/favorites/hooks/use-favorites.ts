@@ -65,10 +65,14 @@ export function useFavorites() {
       } else {
         setFavorites([]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Favorites API error:', err);
-      console.error('Error status:', err.status);
-      console.error('Error message:', err.message);
+      if (err && typeof err === 'object' && 'status' in err) {
+        console.error('Error status:', (err as { status: unknown }).status);
+      }
+      if (err && typeof err === 'object' && 'message' in err) {
+        console.error('Error message:', (err as { message: unknown }).message);
+      }
       
       setError('Error al cargar los favoritos');
     } finally {
