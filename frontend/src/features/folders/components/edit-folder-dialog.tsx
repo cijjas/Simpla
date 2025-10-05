@@ -43,7 +43,7 @@ export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialo
   const [formData, setFormData] = useState<FolderUpdate>({
     name: '',
     description: '',
-    color: '#FFFFFF',
+    color: null,
     icon: 'folder',
   });
 
