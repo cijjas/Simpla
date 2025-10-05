@@ -2,6 +2,7 @@
 
 import json
 from typing import Optional
+from .prompt_augmentation import reformulate_user_question
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -212,8 +213,14 @@ async def send_message(
             logger.warning(f"Rate limit exceeded for user {user_id}")
             return await create_rate_limit_error_response(rate_limit_check, data.session_id)
 
+        # Reformulate the question for better search
+        reformulated_question = await reformulate_user_question(data.content)
+        
+        # Use the reformulated question for embedding generation
+        question_for_embedding = reformulated_question if reformulated_question else data.content
+
         # Fetch legal context and build enhanced prompt
-        articles_data, divisions_data = fetch_and_parse_legal_context(data.content)
+        articles_data, divisions_data = fetch_and_parse_legal_context(question_for_embedding)
         enhanced_prompt = build_enhanced_prompt(data.content, articles_data, divisions_data)
 
         # Initialize conversation service
