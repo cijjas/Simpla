@@ -322,7 +322,7 @@ export default function LandingPage() {
                       transition={{ duration: 0.3 }}
                       className='flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'
                     >
-                      <AlertCircle className='h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0' />
+                      <AlertCircle className='h-5 w-5 text-destructive dark:text-red-400 flex-shrink-0' />
                       <p className='text-red-700 dark:text-red-300 text-sm font-medium'>
                         {errorMessage || 'Hubo un error al enviar el mensaje. Por favor, intentá nuevamente.'}
                       </p>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { ConversationsAPI, type Message, type Conversation, type ConversationDetail, type ChatType, type FeedbackType } from '../index';
 
@@ -326,7 +326,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
       streamingContentRef.current = '';
     }
-  }, [state.currentSessionId, state.chatType, state.isStreaming, loadConversations]);
+  }, [state.currentSessionId, state.chatType, state.isStreaming, state.messages]);
 
   // Archive conversation
   const archiveConversation = useCallback(async (conversation: Conversation) => {

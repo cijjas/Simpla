@@ -66,7 +66,7 @@ export function EditNameDialog({ currentName, onNameUpdated, children }: EditNam
       console.log('Profile update response:', response);
       
       // The response should contain the updated user data
-      if (response && response.name) {
+      if (response && typeof response === 'object' && 'name' in response && typeof response.name === 'string') {
         // Update the user data in the auth context
         updateUser({ name: response.name });
         onNameUpdated(response.name);
@@ -82,9 +82,9 @@ export function EditNameDialog({ currentName, onNameUpdated, children }: EditNam
     } catch (error) {
       console.error('Error updating name:', error);
       console.error('Error details:', {
-        message: error.message,
-        status: error.status,
-        stack: error.stack
+        message: error && typeof error === 'object' && 'message' in error ? (error as { message: unknown }).message : 'Unknown error',
+        status: error && typeof error === 'object' && 'status' in error ? (error as { status: unknown }).status : 'Unknown status',
+        stack: error && typeof error === 'object' && 'stack' in error ? (error as { stack: unknown }).stack : 'No stack trace'
       });
       toast.error('Error al actualizar el nombre. Por favor, inténtalo de nuevo.');
     } finally {

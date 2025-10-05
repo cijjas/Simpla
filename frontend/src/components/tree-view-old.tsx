@@ -7,7 +7,7 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const treeVariants = cva(
-    'group hover:before:opacity-100 before:absolute before:rounded-lg before:left-0 px-2 before:w-full before:opacity-0 before:bg-accent before:h-[2rem] before:-z-10'
+    'group hover:before:opacity-100 hover:bg-stone-200/70 hover:dark:bg-accent hover:text-accent-foreground hover:rounded-md before:absolute before:rounded-lg before:left-0 px-2 before:w-full before:opacity-0 before:bg-accent before:h-[2rem] before:-z-10'
 )
 
 const selectedTreeVariants = cva(
@@ -517,8 +517,8 @@ const TreeActions = ({
     return (
         <div
             className={cn(
-                isSelected ? 'block' : 'hidden',
-                'absolute right-3 group-hover:block'
+                isSelected ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                'ml-auto group-hover:opacity-100 group-hover:pointer-events-auto relative transition-opacity'
             )}
         >
             {children}

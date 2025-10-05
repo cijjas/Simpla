@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useApi } from '@/features/auth/hooks/use-api';
 import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
 import type { NormaItem } from '@/features/infoleg/utils/types';
 import { useFolderNormas } from './use-folders';

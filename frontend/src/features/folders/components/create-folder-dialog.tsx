@@ -44,7 +44,7 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
     name: '',
     description: '',
     parent_folder_id: parentFolderId,
-    color: '#FFFFFF',
+    color: null,
     icon: 'folder',
   });
 
@@ -75,7 +75,7 @@ export function CreateFolderDialog({ open, onOpenChange, parentFolderId }: Creat
         name: '',
         description: '',
         parent_folder_id: parentFolderId,
-        color: '#3B82F6',
+        color: null,
         icon: 'folder',
       });
     } catch (error) {

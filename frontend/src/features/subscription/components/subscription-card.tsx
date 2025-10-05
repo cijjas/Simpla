@@ -14,14 +14,13 @@ interface SubscriptionCardProps {
   isLoading?: boolean;
 }
 
-const tierColors = {
+const _tierColors = {
   free: 'bg-gray-100 text-gray-800 border-gray-200',
   pro: 'bg-blue-100 text-blue-800 border-blue-200',
   enterprise: 'bg-purple-100 text-purple-800 border-purple-200',
 };
 
 export function SubscriptionCard({ tier, isCurrentPlan, onUpgrade, isLoading }: SubscriptionCardProps) {
-  const colorClass = tierColors[tier.name as keyof typeof tierColors] || tierColors.free;
 
   const formatPrice = (priceDollars: number) => {
     if (priceDollars === 0) return 'Gratis';

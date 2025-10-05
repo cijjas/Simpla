@@ -40,3 +40,4 @@ class MessageFeedback(Base):
         return f"<MessageFeedback(id={self.id}, message_id={self.message_id}, feedback_type={self.feedback_type})>"
 
 
+

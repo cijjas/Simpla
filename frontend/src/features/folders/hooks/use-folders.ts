@@ -58,10 +58,9 @@ export function useFolders() {
               color: newFolder.color,
               icon: newFolder.icon,
               level: 0,
-              parent_folder_id: null,
+              order_index: newFolder.order_index,
+              norma_count: 0,
               subfolders: [],
-              created_at: newFolder.created_at,
-              updated_at: newFolder.updated_at,
             }];
           }
           
@@ -77,10 +76,9 @@ export function useFolders() {
                   color: newFolder.color,
                   icon: newFolder.icon,
                   level: folder.level + 1,
-                  parent_folder_id: parentId,
+                  order_index: newFolder.order_index,
+                  norma_count: 0,
                   subfolders: [],
-                  created_at: newFolder.created_at,
-                  updated_at: newFolder.updated_at,
                 }]
               };
             }

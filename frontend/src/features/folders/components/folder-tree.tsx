@@ -5,7 +5,8 @@ import { TreeView, TreeDataItem } from '@/components/tree-view-old';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Folder, FileText, Search, FolderPlus, Archive, BookOpen, Star, Tag, Users, Edit, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, Folder, FileText, Search, FolderPlus, Archive, BookOpen, Star, Tag, Users, Edit, Trash2, MoreHorizontal, Loader2, Sparkles } from 'lucide-react';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
 import { findFolderById } from '../utils/folder-utils';
@@ -42,7 +43,10 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
   // Handler functions for folder operations
   const handleEditFolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
-    setIsEditDialogOpen(true);
+    // Small delay to allow dropdown menu to fully close before opening dialog
+    setTimeout(() => {
+      setIsEditDialogOpen(true);
+    }, 0);
   }, []);
 
   const handleDeleteFolder = useCallback((folder: FolderTreeItem) => {
@@ -60,7 +64,10 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   const handleCreateSubfolder = useCallback((folder: FolderTreeItem) => {
     setSelectedFolder(folder);
-    setIsCreateSubfolderDialogOpen(true);
+    // Small delay to allow dropdown menu to fully close before opening dialog
+    setTimeout(() => {
+      setIsCreateSubfolderDialogOpen(true);
+    }, 0);
   }, []);
 
   const confirmDeleteFolder = useCallback(async (folderId: string) => {
@@ -109,7 +116,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
     return iconMap[iconName] || Folder;
   };
 
-  // Convert folder tree to TreeDataItem format
+  // Convert folder tree to TreeDataItem format with enhanced styling
   const treeData = useMemo(() => {
     const convertToTreeData = (folders: FolderTreeItem[]): TreeDataItem[] => {
       return folders.map((folder) => {
@@ -139,9 +146,14 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
           actions: (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="inline-flex items-center justify-center h-6 w-6 p-0 hover:bg-accent hover:text-accent-foreground rounded-sm cursor-pointer">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreHorizontal className="h-3 w-3" />
-                </div>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
@@ -189,31 +201,60 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
     }
   }, [moveFolder]);
 
+  // Enhanced loading skeleton
   if (loading) {
     return (
-      <Card className="h-full flex flex-col gap-0 shadow-none">
-        <CardContent className="p-6 flex-1 flex items-center justify-center">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2 text-sm text-muted-foreground">Cargando carpetas...</span>
+      <Card className="h-full flex flex-col gap-0 border-border/50 bg-card">
+        <CardHeader className="pb-3 px-4 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <Skeleton className="h-10 w-10 rounded-md" />
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 flex-1 space-y-3">
+          {/* Skeleton folder items */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-2 py-2.5">
+              <Skeleton className="h-4 w-4 rounded-sm" />
+              <Skeleton className="h-4 flex-1 max-w-[180px]" />
+              <Skeleton className="h-4 w-4 rounded-full ml-auto" />
+            </div>
+          ))}
+          
+          {/* Loading indicator at bottom */}
+          <div className="flex items-center justify-center pt-4 pb-2">
+            <div className="flex items-center gap-2 text-muted-foreground/70">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs font-medium">Cargando carpetas...</span>
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  // Enhanced error state
   if (error) {
     return (
-      <Card className="h-full flex flex-col gap-0 shadow-none">
+      <Card className="h-full flex flex-col gap-0 border-destructive/20 bg-destructive/5">
         <CardContent className="p-6 flex-1 flex items-center justify-center">
-          <div className="text-center text-destructive">
-            <p className="text-sm">Error: {error}</p>
+          <div className="text-center max-w-sm">
+            <div className="mb-4 flex justify-center">
+              <div className="rounded-full bg-destructive/10 p-3">
+                <FileText className="h-8 w-8 text-destructive" />
+              </div>
+            </div>
+            <h3 className="text-sm font-semibold mb-2">Error al cargar carpetas</h3>
+            <p className="text-xs text-muted-foreground mb-4">{error}</p>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => window.location.reload()}
-              className="mt-2"
+              className="gap-2"
             >
+              <Loader2 className="h-3.5 w-3.5" />
               Reintentar
             </Button>
           </div>
@@ -224,45 +265,71 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
 
   return (
     <>
-      <Card className="h-full flex flex-col gap-0 shadow-none ">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
+      <Card className="h-full flex flex-col gap-0 border-border/50 bg-card overflow-hidden p-0 ">
+        {/* Enhanced Header */}
+        <CardHeader className="pb-3 pt-6 px-3 sm:px-4 bg-accent border-b border-border">
+          {/* Compact toolbar: search + create button */}
+          <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
               <Input
-                placeholder="Buscar carpetas..."
+                placeholder="Buscar..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 text-base"
+                className="pl-9 h-9 text-sm bg-background/50 border-border/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 transition-all"
+                aria-label="Buscar carpetas"
               />
             </div>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(true)}
-              className="h-10 w-10"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+              <Button
+                size="icon"
+                variant="default"
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="h-9 w-9"
+                title="Nueva carpeta"
+                aria-label="Crear carpeta"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1 flex flex-col">
-          
+
+        {/* Content Area */}
+        <CardContent className="p-0 pt-3 flex-1 flex flex-col min-h-0">
           {treeData.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8 px-6">
-              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm">
-                {searchQuery.trim() ? 'No se encontraron carpetas' : 'No tienes carpetas aún'}
-              </p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                {searchQuery.trim() 
-                  ? 'Intenta con otro término de búsqueda' 
-                  : 'Crea tu primera carpeta para organizar tus normas'
-                }
-              </p>
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="text-center max-w-xs">
+                <div className="mb-4 flex justify-center">
+                  <div className="rounded-full bg-primary/10 p-4">
+                    {searchQuery.trim() ? (
+                      <Search className="h-8 w-8 text-primary/60" />
+                    ) : (
+                      <Sparkles className="h-8 w-8 text-primary/60" />
+                    )}
+                  </div>
+                </div>
+                <h3 className="text-sm font-semibold mb-2">
+                  {searchQuery.trim() ? 'No se encontraron carpetas' : '¡Comienza a organizar!'}
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {searchQuery.trim() 
+                    ? 'Intenta con otro término de búsqueda' 
+                    : 'Crea tu primera carpeta para organizar tus documentos de forma eficiente'
+                  }
+                </p>
+                {!searchQuery.trim() && (
+                  <Button
+                    size="sm"
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Crear carpeta
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto custom-scrollbar">
               <TreeView
                 data={treeData}
                 initialSelectedItemId={selectedFolderId}
@@ -278,7 +345,7 @@ export function FolderTree({ onFolderSelect, selectedFolderId }: FolderTreeProps
                 onDocumentDrag={handleDragAndDrop}
                 defaultNodeIcon={Folder}
                 defaultLeafIcon={Folder}
-                className="px-2 pb-1"
+                className="px-2 py-2"
               />
             </div>
           )}
