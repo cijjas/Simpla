@@ -10,7 +10,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from '../ui/theme-toggle';
 import SvgEstampa from '../icons/Estampa';
 import React from 'react';
@@ -79,9 +79,13 @@ function renderBreadcrumb(pathname: string) {
 
 export default function AppHeader() {
   const pathname = usePathname();
+  const { state } = useSidebar();
 
   return (
-    <header className='flex h-14 shrink-0 items-center gap-2 px-4 border-b border-border'>
+    <header 
+      className='sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 px-4 border-b border-border bg-background transition-all duration-200 ease-linear'
+      data-sidebar-state={state}
+    >
       <SidebarTrigger className='-ml-1' />
 
       <Separator orientation='vertical' decorative className='mr-2 !h-4 ' />

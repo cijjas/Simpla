@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { isTokenExpired, needsRefresh } from '../utils/jwt-utils';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -28,6 +28,7 @@ export interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
   clearAuth: () => void;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,6 +121,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Clear any stored tokens
     localStorage.removeItem('access_token');
     localStorage.removeItem('user_data');
+  }, []);
+
+  const updateUser = useCallback((userData: Partial<User>) => {
+    setAuthState(prev => {
+      if (prev.user) {
+        const updatedUser = { ...prev.user, ...userData };
+        // Update localStorage as well
+        try {
+          localStorage.setItem('user_data', JSON.stringify(updatedUser));
+        } catch (error) {
+          console.warn('Failed to update user data in localStorage:', error);
+        }
+        return { ...prev, user: updatedUser };
+      }
+      return prev;
+    });
   }, []);
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
@@ -417,14 +434,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => clearInterval(refreshInterval);
   }, [authState.accessToken, authState.isAuthenticated, refreshToken]);
 
-  const value: AuthContextType = {
+  const value: AuthContextType = useMemo(() => ({
     ...authState,
     login,
     loginWithGoogle,
     logout,
     refreshToken,
     clearAuth,
-  };
+    updateUser,
+  }), [authState, login, loginWithGoogle, logout, refreshToken, clearAuth, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

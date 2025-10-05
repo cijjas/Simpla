@@ -5,19 +5,21 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useSubscriptionContext } from '../context/subscription-context';
-import { useUpgradeHandler } from '../hooks/use-upgrade-handler';
-import { SubscriptionCard } from './subscription-card';
+import { useUsageEvents } from '../hooks/use-usage-events';
 import { UsageDisplay } from './usage-display';
+import { UsageEventsTable } from './usage-events-table';
+import { UsageChart } from './usage-chart';
+import { UsageSummary } from './usage-summary';
 
-export function SubscriptionManager() {
-  const { status, tiers, isLoading, error } = useSubscriptionContext();
-  const { handleUpgrade, isUpgrading } = useUpgradeHandler();
+export function UsageManager() {
+  const { status, usageHistory, isLoading, error } = useSubscriptionContext();
+  const { events: usageEvents, isLoading: eventsLoading } = useUsageEvents();
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Cargando información de suscripción...</span>
+        <span className="ml-2">Cargando información de uso...</span>
       </div>
     );
   }
@@ -27,18 +29,18 @@ export function SubscriptionManager() {
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Error al cargar la información de suscripción: {error}
+          Error al cargar la información de uso: {error}
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (!status || !tiers.length) {
+  if (!status) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No se pudo cargar la información de suscripción.
+          No se pudo cargar la información de uso.
         </AlertDescription>
       </Alert>
     );
@@ -47,7 +49,7 @@ export function SubscriptionManager() {
   return (
     <div className="space-y-6">
       {/* Current Plan Status */}
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-500" />
@@ -68,38 +70,26 @@ export function SubscriptionManager() {
       {/* Usage Display */}
       <UsageDisplay status={status} />
 
-      {/* Available Plans */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Planes Disponibles</h3>
-          <p className="text-sm text-muted-foreground">
-            Cambia tu plan en cualquier momento. Los cambios se aplican inmediatamente.
-          </p>
-        </div>
+      {/* Usage Summary */}
+      <UsageSummary 
+        usageHistory={usageHistory} 
+        usageEvents={usageEvents}
+        currentUsage={status.current_usage}
+        limits={status.limits}
+        isLoading={eventsLoading}
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tiers.map((tier) => (
-            <SubscriptionCard
-              key={tier.id}
-              tier={tier}
-              isCurrentPlan={tier.name === status.tier.name}
-              onUpgrade={handleUpgrade}
-              isLoading={isUpgrading === tier.name}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Usage Chart */}
+      <UsageChart 
+        usageHistory={usageHistory}
+        isLoading={isLoading}
+      />
 
-      {/* Information Note */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Nota:</strong> Los cambios de plan se aplican inmediatamente. 
-          No hay período de facturación adicional. Todos los planes incluyen acceso completo 
-          a las funciones básicas de Simpla.
-        </AlertDescription>
-      </Alert>
+      {/* Usage Events Table */}
+      <UsageEventsTable 
+        events={usageEvents} 
+        isLoading={eventsLoading} 
+      />
     </div>
   );
 }
-

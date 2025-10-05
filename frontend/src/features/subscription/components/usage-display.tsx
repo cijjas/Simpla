@@ -19,7 +19,7 @@ export function UsageDisplay({ status }: UsageDisplayProps) {
     return Math.min((current / limit) * 100, 100);
   };
 
-  const getUsageColor = (percentage: number) => {
+  const _getUsageColor = (percentage: number) => {
     if (percentage >= 90) return 'bg-red-500';
     if (percentage >= 75) return 'bg-yellow-500';
     return 'bg-blue-500';
@@ -37,7 +37,7 @@ export function UsageDisplay({ status }: UsageDisplayProps) {
   };
 
   return (
-    <Card>
+    <Card className="shadow-none">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5" />

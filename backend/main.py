@@ -10,6 +10,7 @@ from features.folders.folder_models import Folder, FolderNorma
 from features.favorites.favorites_models import Favorite
 # from features.chat.chat_database_models import ChatSession, Message  # Deprecated
 from features.conversations.models import Conversation, Message
+from features.conversations.feedback_models import MessageFeedback
 from features.subscription.subscription_models import SubscriptionTier, UserSubscription, UserUsage
 
 # Import feature routers
@@ -20,6 +21,7 @@ from features.contact.contact_routes import router as contact_router
 from features.folders.folder_routes import router as folder_router
 from features.favorites.favorites_routes import router as favorites_router
 from features.conversations.router import router as conversations_router
+from features.conversations.feedback_routes import router as message_feedback_router
 from features.subscription.subscription_routes import router as subscription_router
 
 # Import core configuration and logging
@@ -60,6 +62,7 @@ app.include_router(feedback_router, prefix="/api")
 app.include_router(contact_router, prefix="/api")
 app.include_router(folder_router, prefix="/api")
 app.include_router(conversations_router, prefix="/api")
+app.include_router(message_feedback_router, prefix="/api")
 app.include_router(favorites_router, prefix="/api")
 app.include_router(subscription_router, prefix="/api")
 

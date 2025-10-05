@@ -91,7 +91,7 @@ export default function FeaturesSection() {
       >
         {features.map((feature, index) => (
           <motion.div key={index} variants={item}>
-            <Card className='h-full border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg'>
+            <Card className='h-full border-2 shadow-none hover:border-primary/50 transition-all duration-300'>
               <CardHeader>
                 <div className='w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4'>
                   <feature.icon className='w-6 h-6 text-primary' />

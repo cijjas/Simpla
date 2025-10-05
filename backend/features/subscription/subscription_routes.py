@@ -10,12 +10,16 @@ from sqlalchemy import and_
 from core.database.base import get_db
 from features.auth.auth_utils import get_current_user
 from features.auth.auth_models import User
-from features.subscription.subscription_models import SubscriptionTier, UserSubscription
+from features.subscription.subscription_models import SubscriptionTier, UserSubscription, UserUsage
 from features.subscription.subscription_schemas import (
     SubscriptionStatusSchema,
     UpgradeSubscriptionRequest,
     UpgradeSubscriptionResponse,
-    SubscriptionTierSchema
+    SubscriptionTierSchema,
+    UsageHistoryResponse,
+    UsageHistorySchema,
+    UsageEventsResponse,
+    UsageEventSchema
 )
 from features.subscription.rate_limit_service import RateLimitService
 
@@ -187,4 +191,139 @@ async def get_available_tiers(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error"
+        )
+
+
+@router.get("/usage-history", response_model=UsageHistoryResponse)
+async def get_usage_history(
+    days: int = 7,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get usage history for the current user."""
+    try:
+        # Calculate date range
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days)
+        
+        # Get daily usage data
+        daily_usage_records = db.query(UserUsage).filter(
+            and_(
+                UserUsage.user_id == current_user.id,
+                UserUsage.period_type == "day",
+                UserUsage.period_start >= start_date,
+                UserUsage.period_start <= end_date
+            )
+        ).order_by(UserUsage.period_start).all()
+        
+        # Get hourly usage data for the last 24 hours
+        hourly_start = end_date - timedelta(hours=24)
+        hourly_usage_records = db.query(UserUsage).filter(
+            and_(
+                UserUsage.user_id == current_user.id,
+                UserUsage.period_type == "hour",
+                UserUsage.period_start >= hourly_start,
+                UserUsage.period_start <= end_date
+            )
+        ).order_by(UserUsage.period_start).all()
+        
+        # Convert to response format
+        daily_usage = [
+            UsageHistorySchema(
+                date=record.period_start.date().isoformat(),
+                tokens_used=record.tokens_used,
+                messages_sent=record.messages_sent,
+                period_type=record.period_type
+            )
+            for record in daily_usage_records
+        ]
+        
+        hourly_usage = [
+            UsageHistorySchema(
+                date=record.period_start.isoformat(),
+                tokens_used=record.tokens_used,
+                messages_sent=record.messages_sent,
+                period_type=record.period_type
+            )
+            for record in hourly_usage_records
+        ]
+        
+        return UsageHistoryResponse(
+            daily_usage=daily_usage,
+            hourly_usage=hourly_usage
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting usage history for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get usage history"
+        )
+
+
+@router.get("/usage-events", response_model=UsageEventsResponse)
+async def get_usage_events(
+    days: int = 7,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get detailed usage events for the current user."""
+    try:
+        # Calculate date range
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days)
+        
+        # Get all usage records for the user in the date range
+        usage_records = db.query(UserUsage).filter(
+            and_(
+                UserUsage.user_id == current_user.id,
+                UserUsage.period_start >= start_date,
+                UserUsage.period_start <= end_date
+            )
+        ).order_by(UserUsage.period_start.desc()).all()
+        
+        # Convert to events format
+        events = []
+        total_tokens = 0
+        total_cost = 0
+        
+        for record in usage_records:
+            # Create individual events for each usage record
+            # For now, we'll create one event per record, but in a real system
+            # you might want to track individual API calls
+            
+            # Determine the kind based on usage patterns
+            kind = "Included"  # Default to included
+            if record.tokens_used == 0 and record.messages_sent == 0:
+                kind = "Errored"
+            
+            # Calculate cost (mock pricing for now)
+            cost = record.tokens_used * 0.0001 if kind != "Errored" else 0.0
+            
+            event = UsageEventSchema(
+                id=str(record.id),
+                date=record.period_start.isoformat(),
+                model="auto",  # Default model
+                kind=kind,
+                tokens=record.tokens_used,
+                cost=cost,
+                status="success" if kind != "Errored" else "error"
+            )
+            
+            events.append(event)
+            total_tokens += record.tokens_used
+            total_cost += cost
+        
+        return UsageEventsResponse(
+            events=events,
+            total_tokens=total_tokens,
+            total_cost=total_cost,
+            total_events=len(events)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting usage events for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get usage events"
         )

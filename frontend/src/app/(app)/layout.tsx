@@ -6,7 +6,6 @@ import { useEffect } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import AppHeader from '@/components/layout/app-header';
-import { FoldersProvider } from '@/features/folders/context/folders-context';
 import {
   SidebarInset,
   SidebarProvider,
@@ -37,12 +36,14 @@ export default function AppLayout({
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar />
-      <SidebarInset>
+      <div className="flex flex-1 flex-col">
         <AppHeader />
-        <div className="flex flex-1 flex-col gap-4">
-          {children}
-        </div>
-      </SidebarInset>
+        <SidebarInset>
+          <div className="flex flex-1 flex-col gap-4">
+            {children}
+          </div>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

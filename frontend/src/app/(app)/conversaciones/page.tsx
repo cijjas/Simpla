@@ -1,10 +1,15 @@
-import ConversacionesPage from '@/features/conversations/conversations-page';
-import { ConversationsProvider } from '@/features/conversations';
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Page() {
-  return (
-    <ConversationsProvider>
-      <ConversacionesPage />
-    </ConversationsProvider>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to new conversation
+    router.replace('/conversaciones/new');
+  }, [router]);
+
+  return null;
 }

@@ -1,5 +1,16 @@
 // Types for conversations feature
 
+export type FeedbackType = 'like' | 'dislike';
+
+export interface MessageFeedback {
+  id: string;
+  message_id: string;
+  user_id: string;
+  feedback_type: FeedbackType;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -7,6 +18,7 @@ export interface Message {
   tokens_used: number;
   metadata?: Record<string, unknown>;
   created_at: string;
+  feedback?: FeedbackType;  // User's feedback on this message
 }
 
 export interface Conversation {
@@ -52,6 +64,11 @@ export interface SendMessageResponse {
   session_id: string;
   done?: boolean;
   error?: boolean;
+}
+
+export interface FeedbackCreateRequest {
+  message_id: string;
+  feedback_type: FeedbackType;
 }
 
 export type ChatType = 'normativa_nacional' | 'constituciones';

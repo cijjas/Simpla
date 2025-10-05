@@ -10,7 +10,6 @@ import {
   Compass,
   Scale,
   MessageSquare,
-  Settings,
 } from "lucide-react"
 import SvgEstampa from "@/components/icons/Estampa"
 import { forwardRef } from "react"

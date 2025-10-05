@@ -5,6 +5,7 @@ export interface SubscriptionTier {
   price_usd: number;
   max_tokens_per_day: number | null;
   max_tokens_per_month: number | null;
+  max_tokens_per_hour: number | null;
   max_messages_per_day: number | null;
   max_messages_per_hour: number | null;
   max_concurrent_chats: number | null;

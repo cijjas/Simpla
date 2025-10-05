@@ -114,3 +114,36 @@ class UpgradeSubscriptionResponse(BaseModel):
     success: bool
     message: str
     new_tier: SubscriptionTierSchema
+
+
+class UsageHistorySchema(BaseModel):
+    """Schema for usage history data points."""
+    date: str  # ISO date string
+    tokens_used: int
+    messages_sent: int
+    period_type: str
+
+
+class UsageHistoryResponse(BaseModel):
+    """Response schema for usage history."""
+    daily_usage: list[UsageHistorySchema]
+    hourly_usage: list[UsageHistorySchema]
+
+
+class UsageEventSchema(BaseModel):
+    """Schema for individual usage events."""
+    id: str
+    date: str
+    model: str
+    kind: str
+    tokens: int
+    cost: float
+    status: str
+
+
+class UsageEventsResponse(BaseModel):
+    """Response schema for usage events."""
+    events: list[UsageEventSchema]
+    total_tokens: int
+    total_cost: float
+    total_events: int

@@ -1,15 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useSubscriptionContext } from '../context/subscription-context';
 import { useUpgradeHandler } from '../hooks/use-upgrade-handler';
 import { SubscriptionCard } from './subscription-card';
-import { UsageDisplay } from './usage-display';
 
-export function SubscriptionManager() {
+export function PlansManager() {
   const { status, tiers, isLoading, error } = useSubscriptionContext();
   const { handleUpgrade, isUpgrading } = useUpgradeHandler();
 
@@ -17,7 +15,7 @@ export function SubscriptionManager() {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Cargando información de suscripción...</span>
+        <span className="ml-2">Cargando planes disponibles...</span>
       </div>
     );
   }
@@ -27,7 +25,7 @@ export function SubscriptionManager() {
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Error al cargar la información de suscripción: {error}
+          Error al cargar los planes: {error}
         </AlertDescription>
       </Alert>
     );
@@ -38,7 +36,7 @@ export function SubscriptionManager() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No se pudo cargar la información de suscripción.
+          No se pudo cargar la información de planes.
         </AlertDescription>
       </Alert>
     );
@@ -46,28 +44,6 @@ export function SubscriptionManager() {
 
   return (
     <div className="space-y-6">
-      {/* Current Plan Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            Plan Actual: {status.tier.display_name}
-          </CardTitle>
-          <CardDescription>
-            Tu plan actual te permite {status.tier.max_tokens_per_day ? 
-              `${status.tier.max_tokens_per_day.toLocaleString()} tokens por día` : 
-              'tokens ilimitados'
-            } y {status.tier.max_messages_per_day ? 
-              `${status.tier.max_messages_per_day} mensajes por día` : 
-              'mensajes ilimitados'
-            }.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      {/* Usage Display */}
-      <UsageDisplay status={status} />
-
       {/* Available Plans */}
       <div className="space-y-4">
         <div>

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 
 from core.utils.logging_config import get_logger
 from core.utils.db_logging import log_database_operation, log_database_error
@@ -64,6 +64,19 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     token: str
     password: str
+
+class UpdateProfileRequest(BaseModel):
+    name: str
+    
+    @validator('name')
+    def validate_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Name is required and cannot be empty')
+        if len(v.strip()) < 1:
+            raise ValueError('Name must be at least 1 character long')
+        if len(v.strip()) > 255:
+            raise ValueError('Name cannot exceed 255 characters')
+        return v.strip()
 
 class RegisterResponse(BaseModel):
     message: str
@@ -479,7 +492,7 @@ async def get_current_user_info(
 ):
     """Get current user information."""
     return UserResponse(
-        id=current_user.id,
+        id=str(current_user.id),
         email=current_user.email,
         name=current_user.name,
         provider=current_user.provider,
@@ -698,6 +711,99 @@ async def resend_verification_email(
         log_database_error("resend_verification", e, "users")
         logger.error(f"Resend verification failed for {email}: {str(e)}")
         return {"message": "If the email exists and is unverified, a new verification email has been sent."}
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    request: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user profile information."""
+    logger.info(f"Profile update request for user: {current_user.email}")
+    
+    try:
+        # Update user name
+        current_user.name = request.name
+        current_user.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        log_database_operation("UPDATE", "users", current_user.id, {"name": request.name})
+        logger.info(f"Profile updated successfully for user: {current_user.email}")
+        
+        return UserResponse(
+            id=str(current_user.id),
+            email=current_user.email,
+            name=current_user.name,
+            provider=current_user.provider,
+            email_verified=current_user.email_verified,
+            created_at=current_user.created_at
+        )
+        
+    except Exception as e:
+        log_database_error("profile_update", e, "users")
+        logger.error(f"Profile update failed for {current_user.email}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update profile"
+        )
+
+
+@router.delete("/delete-account")
+async def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Permanently delete the user's account and all associated data."""
+    try:
+        user_id = current_user.id
+        user_email = current_user.email
+        
+        logger.info(f"Account deletion requested for user: {user_email}")
+        
+        # Delete all user-related data
+        # This will cascade to related tables if properly configured
+        # Otherwise, you may need to manually delete from related tables
+        
+        # Delete refresh tokens
+        db.query(RefreshToken).filter(RefreshToken.user_id == user_id).delete()
+        
+        # Delete user subscriptions (cascade should handle this, but being explicit)
+        from features.subscription.subscription_models import UserSubscription, UserUsage
+        db.query(UserSubscription).filter(UserSubscription.user_id == user_id).delete()
+        db.query(UserUsage).filter(UserUsage.user_id == user_id).delete()
+        
+        # Delete conversations and messages
+        from features.conversations.models import Conversation, Message
+        # First delete messages in user's conversations
+        user_conversations = db.query(Conversation).filter(Conversation.user_id == user_id).all()
+        for conversation in user_conversations:
+            db.query(Message).filter(Message.conversation_id == conversation.id).delete()
+        # Then delete conversations
+        db.query(Conversation).filter(Conversation.user_id == user_id).delete()
+        
+        # Delete favorites
+        from features.favorites.favorites_models import Favorite
+        db.query(Favorite).filter(Favorite.user_id == user_id).delete()
+        
+        # Finally, delete the user
+        db.delete(current_user)
+        db.commit()
+        
+        logger.info(f"Account successfully deleted for user: {user_email}")
+        
+        return {
+            "success": True,
+            "message": "Account deleted successfully"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting account for user {current_user.email}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error deleting account"
+        )
 
 
 @router.get("/debug-reset-token/{email}")

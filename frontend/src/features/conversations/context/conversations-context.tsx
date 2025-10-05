@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ConversationsAPI, type Message, type Conversation, type ConversationDetail, type ChatType } from '../index';
+import { ConversationsAPI, type Message, type Conversation, type ConversationDetail, type ChatType, type FeedbackType } from '../index';
 
 // State interface
 interface ConversationsState {
@@ -35,7 +35,8 @@ type ConversationsAction =
   | { type: 'SET_TEMP_TITLE'; payload: string }
   | { type: 'UPDATE_CONVERSATION_TITLE'; payload: { id: string; title: string } }
   | { type: 'REMOVE_CONVERSATION'; payload: string }
-  | { type: 'ADD_CONVERSATION'; payload: Conversation };
+  | { type: 'ADD_CONVERSATION'; payload: Conversation }
+  | { type: 'SET_MESSAGE_FEEDBACK'; payload: { messageId: string; feedback: FeedbackType | undefined } };
 
 // Initial state
 const initialState: ConversationsState = {
@@ -119,6 +120,26 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
         conversations: [action.payload, ...state.conversations],
       };
     
+    case 'SET_MESSAGE_FEEDBACK':
+      return {
+        ...state,
+        messages: state.messages.map(msg =>
+          msg.id === action.payload.messageId
+            ? { ...msg, feedback: action.payload.feedback }
+            : msg
+        ),
+        currentConversation: state.currentConversation
+          ? {
+              ...state.currentConversation,
+              messages: state.currentConversation.messages.map(msg =>
+                msg.id === action.payload.messageId
+                  ? { ...msg, feedback: action.payload.feedback }
+                  : msg
+              ),
+            }
+          : null,
+      };
+    
     default:
       return state;
   }
@@ -140,6 +161,8 @@ interface ConversationsContextType {
   cancelRenameConversation: () => void;
   setChatType: (chatType: ChatType) => void;
   setTempTitle: (title: string) => void;
+  submitFeedback: (messageId: string, feedbackType: FeedbackType) => Promise<void>;
+  removeFeedback: (messageId: string) => Promise<void>;
 }
 
 // Context
@@ -175,7 +198,10 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   // Load a specific conversation
   const loadConversation = useCallback(async (id: string) => {
     try {
+      // Clear messages first to show empty state while loading
+      dispatch({ type: 'SET_MESSAGES', payload: [] });
       dispatch({ type: 'SET_LOADING', payload: true });
+      
       const conversation = await ConversationsAPI.getConversation(id);
       dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversation });
       dispatch({ type: 'SET_MESSAGES', payload: conversation.messages });
@@ -369,6 +395,30 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     dispatch({ type: 'SET_TEMP_TITLE', payload: title });
   }, []);
 
+  // Submit feedback (optimistic update)
+  const submitFeedback = useCallback(async (messageId: string, feedbackType: FeedbackType) => {
+    // Update UI immediately (optimistic)
+    dispatch({ type: 'SET_MESSAGE_FEEDBACK', payload: { messageId, feedback: feedbackType } });
+    
+    // Send request in background, don't wait for response
+    ConversationsAPI.createOrUpdateFeedback(messageId, feedbackType).catch(error => {
+      console.error('Error submitting feedback:', error);
+      // Silently fail - user already sees the feedback as successful
+    });
+  }, []);
+
+  // Remove feedback (optimistic update)
+  const removeFeedback = useCallback(async (messageId: string) => {
+    // Update UI immediately (optimistic)
+    dispatch({ type: 'SET_MESSAGE_FEEDBACK', payload: { messageId, feedback: undefined } });
+    
+    // Send request in background, don't wait for response
+    ConversationsAPI.deleteFeedback(messageId).catch(error => {
+      console.error('Error removing feedback:', error);
+      // Silently fail - user already sees the feedback as removed
+    });
+  }, []);
+
   // Load conversations on mount
   React.useEffect(() => {
     if (!hasLoadedConversations.current) {
@@ -390,6 +440,8 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     cancelRenameConversation,
     setChatType,
     setTempTitle,
+    submitFeedback,
+    removeFeedback,
   };
 
   return (

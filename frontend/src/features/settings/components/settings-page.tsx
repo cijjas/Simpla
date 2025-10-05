@@ -1,234 +1,137 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { 
-  Settings, 
   CreditCard, 
-  User, 
-  Bell, 
-  Shield, 
-  Palette,
-  LogOut,
-  RefreshCw
+  Settings as SettingsIcon, 
+  BarChart3, 
+  Edit,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { SubscriptionManager } from '@/features/subscription/components/subscription-manager';
+import { useSubscriptionContext } from '@/features/subscription/context/subscription-context';
+import { EditNameDialog } from './edit-name-dialog';
+import { OverviewSection } from './overview-section';
+import { SettingsSection } from './settings-section';
+import { UsageSection } from './usage-section';
+import { PlansSection } from './plans-section';
 
 export function SettingsPage() {
-  const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('subscription');
+  const { user } = useAuth();
+  const { status: subscriptionStatus } = useSubscriptionContext();
+  const searchParams = useSearchParams();
+  const [activeSection, setActiveSection] = useState('overview');
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = '/';
+  // Handle tab query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['overview', 'settings', 'usage', 'plans'].includes(tab)) {
+      setActiveSection(tab);
+    }
+  }, [searchParams]);
+
+  const handleNameUpdated = (_newName: string) => {
+    // The user data will be updated automatically by the auth context
+    // when the API call succeeds, so we don't need to do anything here
   };
 
   const settingsSections = [
     {
-      id: 'subscription',
-      title: 'Suscripción',
-      description: 'Gestiona tu plan y límites de uso',
+      id: 'overview',
+      title: 'Resumen',
+      description: 'Resumen general de tu cuenta',
+      icon: Clock,
+    },
+    {
+      id: 'settings',
+      title: 'Configuración',
+      description: 'Configuración general',
+      icon: SettingsIcon,
+    },
+    {
+      id: 'usage',
+      title: 'Uso',
+      description: 'Uso y límites',
+      icon: BarChart3,
+    },
+    {
+      id: 'plans',
+      title: 'Planes',
+      description: 'Planes disponibles',
       icon: CreditCard,
-    },
-    {
-      id: 'profile',
-      title: 'Perfil',
-      description: 'Información personal y preferencias',
-      icon: User,
-    },
-    {
-      id: 'notifications',
-      title: 'Notificaciones',
-      description: 'Configura las notificaciones',
-      icon: Bell,
-    },
-    {
-      id: 'privacy',
-      title: 'Privacidad',
-      description: 'Configuración de privacidad y seguridad',
-      icon: Shield,
-    },
-    {
-      id: 'appearance',
-      title: 'Apariencia',
-      description: 'Tema y personalización',
-      icon: Palette,
     },
   ];
 
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'overview':
+        return <OverviewSection />;
+      case 'settings':
+        return <SettingsSection />;
+      case 'usage':
+        return <UsageSection />;
+      case 'plans':
+        return <PlansSection />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-6xl">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Configuración</h1>
-            <p className="text-muted-foreground">
-              Gestiona tu cuenta y preferencias de Simpla
-            </p>
+      <div className="flex gap-6">
+        {/* Sidebar */}
+        <div className="w-80 flex flex-col">
+          {/* User Info Header */}
+          <div className="p-6 border-b border-border">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold">{user?.name || 'Usuario'}</h2>
+                <EditNameDialog 
+                  currentName={user?.name || ''} 
+                  onNameUpdated={handleNameUpdated}
+                >
+                  <Button variant="ghost" size="sm">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </EditNameDialog>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {subscriptionStatus?.tier.display_name || 'Free'} · {user?.email}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-sm">
-              {user?.name || user?.email || 'Usuario'}
-            </Badge>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
+
+          {/* Navigation Menu */}
+          <div className="flex-1 p-4">
+            <nav className="space-y-2">
+              {settingsSections.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+                
+                return (
+                  <Button
+                    key={section.id}
+                    variant={isActive ? "secondary" : "ghost"}
+                    onClick={() => setActiveSection(section.id)}
+                    className="w-full justify-start gap-3 h-auto py-2 hover:bg-secondary"
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{section.title}</span>
+                  </Button>
+                );
+              })}
+            </nav>
           </div>
+
         </div>
 
-        <Separator />
-
-        {/* Settings Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            {settingsSections.map((section) => {
-              const Icon = section.icon;
-              return (
-                <TabsTrigger key={section.id} value={section.id} className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{section.title}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
-          {/* Subscription Tab */}
-          <TabsContent value="subscription" className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Gestión de Suscripción</h2>
-            </div>
-            <SubscriptionManager />
-          </TabsContent>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Perfil de Usuario</h2>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-                <CardDescription>
-                  Tu información de perfil y preferencias de cuenta
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Nombre</label>
-                    <p className="text-sm">{user?.name || 'No especificado'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Email</label>
-                    <p className="text-sm">{user?.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Proveedor</label>
-                    <p className="text-sm capitalize">{user?.provider || 'email'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Estado</label>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={user?.email_verified ? 'default' : 'secondary'}>
-                        {user?.email_verified ? 'Verificado' : 'Pendiente'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="text-sm text-muted-foreground">
-                  <p>• Los cambios de perfil se sincronizan automáticamente</p>
-                  <p>• Tu información está protegida y encriptada</p>
-                  <p>• Puedes cambiar tu contraseña en cualquier momento</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Notificaciones</h2>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración de Notificaciones</CardTitle>
-                <CardDescription>
-                  Controla qué notificaciones recibes
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Configuración de notificaciones próximamente</p>
-                  <p className="text-sm">Podrás personalizar las notificaciones por email y en la aplicación</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Privacy Tab */}
-          <TabsContent value="privacy" className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Privacidad y Seguridad</h2>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración de Privacidad</CardTitle>
-                <CardDescription>
-                  Gestiona tu privacidad y seguridad
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  <Shield className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Configuración de privacidad próximamente</p>
-                  <p className="text-sm">Podrás gestionar permisos, exportar datos y configurar la seguridad</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Appearance Tab */}
-          <TabsContent value="appearance" className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Palette className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Apariencia</h2>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Personalización</CardTitle>
-                <CardDescription>
-                  Personaliza la apariencia de la aplicación
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  <Palette className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Configuración de apariencia próximamente</p>
-                  <p className="text-sm">Podrás personalizar temas, colores y la interfaz</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Main Content */}
+        <div className="flex-1 pt-6">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );

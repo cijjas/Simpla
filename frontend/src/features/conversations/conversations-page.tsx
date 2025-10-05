@@ -1,11 +1,11 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupButton,
 } from '@/components/ui/input-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -19,22 +19,24 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Bot, User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp } from 'lucide-react';
+import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import SvgEstampa from '@/components/icons/Estampa';
 import ReactMarkdown from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
 import { 
   useConversations,
   type Conversation,
-  formatTime,
   formatDate 
 } from './index';
 
 export default function ConversacionesPage() {
+  const router = useRouter();
+  const params = useParams();
+  const conversationId = params?.id as string;
+
   // Use conversations context
   const {
     state,
-    loadConversation,
-    selectEmptyConversation,
     sendMessage,
     archiveConversation,
     deleteConversation,
@@ -43,19 +45,20 @@ export default function ConversacionesPage() {
     cancelRenameConversation,
     setChatType,
     setTempTitle,
+    submitFeedback,
+    removeFeedback,
   } = useConversations();
 
   // Local state for UI
   const [inputMessage, setInputMessage] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   // Destructure state for easier access
   const {
     conversations,
-    currentConversation,
     messages,
-    currentSessionId,
     chatType,
     isLoading,
     isStreaming,
@@ -92,9 +95,15 @@ export default function ConversacionesPage() {
   const confirmDeleteConversation = async () => {
     if (!conversationToDelete) return;
     
+    const wasCurrentConversation = conversationToDelete.id === conversationId;
     await deleteConversation(conversationToDelete);
     setDeleteDialogOpen(false);
     setConversationToDelete(null);
+    
+    // If we deleted the current conversation, navigate to new conversation
+    if (wasCurrentConversation) {
+      router.push('/conversaciones/new');
+    }
   };
 
   const handleSendMessage = async () => {
@@ -105,10 +114,58 @@ export default function ConversacionesPage() {
     await sendMessage(messageContent);
   };
 
+  // Navigate to new conversation ID after it's created
+  useEffect(() => {
+    if (state.currentSessionId && conversationId === 'new' && !isStreaming) {
+      // Navigate to the new conversation URL
+      router.replace(`/conversaciones/${state.currentSessionId}`);
+    }
+  }, [state.currentSessionId, conversationId, isStreaming, router]);
+
+  // Handle conversation selection - navigate to conversation URL
+  const handleLoadConversation = (id: string) => {
+    router.push(`/conversaciones/${id}`);
+  };
+
+  // Handle new conversation - navigate to 'new' URL
+  const handleNewConversation = () => {
+    router.push('/conversaciones/new');
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handleLikeMessage = async (messageId: string, currentFeedback?: string) => {
+    if (currentFeedback === 'like') {
+      // If already liked, remove the feedback
+      await removeFeedback(messageId);
+    } else {
+      // Otherwise, submit like feedback
+      await submitFeedback(messageId, 'like');
+    }
+  };
+
+  const handleDislikeMessage = async (messageId: string, currentFeedback?: string) => {
+    if (currentFeedback === 'dislike') {
+      // If already disliked, remove the feedback
+      await removeFeedback(messageId);
+    } else {
+      // Otherwise, submit dislike feedback
+      await submitFeedback(messageId, 'dislike');
     }
   };
 
@@ -121,7 +178,7 @@ export default function ConversacionesPage() {
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-foreground mb-3">Conversaciones</h2>
             <Button 
-              onClick={selectEmptyConversation} 
+              onClick={handleNewConversation} 
               size="sm" 
               disabled={isLoading}
               className="w-full rounded-md bg-primary hover:bg-primary/90 shadow-sm"
@@ -159,11 +216,11 @@ export default function ConversacionesPage() {
                 <div
                   key={conv.id}
                   className={`cursor-pointer transition-colors duration-150 border-b border-border/60 last:border-b-0 ${
-                    currentSessionId === conv.id 
+                    conversationId === conv.id 
                       ? 'bg-primary/10 border-l-4 border-l-primary' 
                       : 'hover:bg-muted/30'
                   }`}
-                  onClick={() => loadConversation(conv.id)}
+                  onClick={() => handleLoadConversation(conv.id)}
                 >
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -260,8 +317,43 @@ export default function ConversacionesPage() {
 
         {/* Messages */}
         <div className="flex-1 min-h-0 p-4">
-          <ScrollArea className="h-full">
-            <div className="max-w-4xl mx-auto space-y-4">
+          {isLoading ? (
+            /* Loading state when switching conversations */
+            <div className="h-full flex flex-col items-center justify-center text-center">
+              <div className="max-w-md space-y-4">
+                <div className="flex justify-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Cargando conversación...
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : messages.length === 0 && !isStreaming ? (
+            /* Welcome message when no messages - full height centering */
+            <div className="h-full flex flex-col items-center justify-center text-center">
+              <div className="max-w-md space-y-4">
+                <div className="flex justify-center">
+                  <SvgEstampa className="h-24 w-24 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    ¡Hola! ¿En qué puedo ayudarte?
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Puedes preguntarme sobre normativa nacional o constituciones. 
+                    Empieza escribiendo tu pregunta abajo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Messages area with scroll */
+            <ScrollArea className="h-full">
+              <div className="max-w-4xl mx-auto space-y-4">
+            
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -271,50 +363,81 @@ export default function ConversacionesPage() {
               >
                 <div
                   className={`flex gap-3 max-w-[80%] ${
-                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row items-start'
                   }`}
                 >
-                  <div className="flex-shrink-0">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {message.role === 'user' ? (
+                  <div className={`flex-shrink-0 ${message.role === 'user' ? '' : 'pt-4'}`}>
+                    {message.role === 'user' ? (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
                         <User className="h-4 w-4" />
-                      ) : (
-                        <Bot className="h-4 w-4" />
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <SvgEstampa className="h-6 w-6 text-primary" />
+                    )}
                   </div>
                   <div
-                    className={`rounded-lg p-3 ${
+                    className={`rounded-lg p-3 group ${
                       message.role === 'user'
-                        ? 'bg-primary'
+                        ? 'bg-accent'
                         : ''
                     }`}
                   >
-                    <div className={`prose-chat text-md ${message.role === 'user' ? 'text-primary-foreground' : 'tracking-wide leading-relaxed'}`}>
+                    <div className={`prose-chat text-md ${message.role === 'user' ? 'text-accent-foreground' : 'tracking-wide leading-relaxed'}`}>
                       <ReactMarkdown 
                         components={{
-                          p: ({ children }) => <p className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</p>,
-                          strong: ({ children }) => <strong className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</strong>,
-                          em: ({ children }) => <em className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</em>,
-                          code: ({ children }) => <code className={message.role === 'user' ? 'text-primary-foreground bg-primary-foreground/20' : 'bg-muted-foreground/20'}>{children}</code>,
-                          pre: ({ children }) => <pre className={message.role === 'user' ? 'text-primary-foreground bg-primary-foreground/20' : 'bg-muted-foreground/20'}>{children}</pre>,
-                          ul: ({ children }) => <ul className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</ul>,
-                          ol: ({ children }) => <ol className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</ol>,
-                          li: ({ children }) => <li className={message.role === 'user' ? 'text-primary-foreground' : ''}>{children}</li>,
+                          p: ({ children }) => <p className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</p>,
+                          strong: ({ children }) => <strong className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</strong>,
+                          em: ({ children }) => <em className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</em>,
+                          code: ({ children }) => <code className={message.role === 'user' ? 'text-accent-foreground bg-accent-foreground/20' : 'bg-muted-foreground/20'}>{children}</code>,
+                          pre: ({ children }) => <pre className={message.role === 'user' ? 'text-accent-foreground bg-accent-foreground/20' : 'bg-muted-foreground/20'}>{children}</pre>,
+                          ul: ({ children }) => <ul className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</ul>,
+                          ol: ({ children }) => <ol className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</ol>,
+                          li: ({ children }) => <li className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</li>,
                         }}
                       >
                         {message.content}
                       </ReactMarkdown>
                     </div>
-                    <p className={`text-xs opacity-70 mt-1 ${message.role === 'user' ? 'text-primary-foreground' : ''}`}>
-                      {formatTime(message.created_at)}
-                    </p>
+                    {message.role === 'assistant' && (
+                      <div className="flex items-center gap-1 mt-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyMessage(message.content, message.id)}
+                          className="h-7 w-7 p-1"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <div className="h-3 w-3 rounded-full bg-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleLikeMessage(message.id, message.feedback)}
+                          className={`h-7 w-7 p-1 ${
+                            message.feedback === 'like' 
+                              ? 'bg-muted' 
+                              : ''
+                          }`}
+                        >
+                          <ThumbsUp className={`h-3 w-3 ${message.feedback === 'like' ? 'fill-current' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDislikeMessage(message.id, message.feedback)}
+                          className={`h-7 w-7 p-1 ${
+                            message.feedback === 'dislike' 
+                              ? 'bg-muted' 
+                              : ''
+                          }`}
+                        >
+                          <ThumbsDown className={`h-3 w-3 ${message.feedback === 'dislike' ? 'fill-current' : ''}`} />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -326,7 +449,7 @@ export default function ConversacionesPage() {
                 <div className="flex gap-3 max-w-[80%]">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
-                      <Bot className="h-4 w-4" />
+                      <SvgEstampa className="h-4 w-4" />
                     </div>
                   </div>
                   <div className="rounded-lg p-3">
@@ -339,9 +462,10 @@ export default function ConversacionesPage() {
               </div>
             )}
             
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          )}
         </div>
 
         {/* Input Area - always visible */}

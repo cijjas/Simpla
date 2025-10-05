@@ -87,9 +87,9 @@ export default function PricingSection() {
             className='flex'
           >
             <Card
-              className={`flex flex-col h-full border-2 ${
+              className={`flex flex-col h-full border-2 shadow-none ${
                 plan.popular
-                  ? 'border-primary shadow-lg relative'
+                  ? 'border-primary relative'
                   : 'hover:border-primary/20'
               } transition-all duration-300`}
             >
