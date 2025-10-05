@@ -2,6 +2,7 @@
 
 import json
 from typing import Optional
+from .prompt_augmentation import reformulate_user_question
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -174,7 +175,15 @@ async def send_message(
         user_id = get_current_user_id(request)
 
         user_question = data.content
-        embedding_result = get_embedding(user_question)
+        
+        # Reformulate the question for better search
+        reformulated_question = await reformulate_user_question(user_question)
+        
+        # Use the reformulated question for embedding generation
+        question_for_embedding = reformulated_question if reformulated_question else user_question
+        
+        # Generate embedding
+        embedding_result = get_embedding(question_for_embedding)
 
         if not embedding_result["success"] or not embedding_result["data"]:
             raise HTTPException(status_code=500, detail="Failed to generate embedding")
