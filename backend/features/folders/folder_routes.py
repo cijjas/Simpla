@@ -505,7 +505,7 @@ async def get_folder_normas(
     )
 
 
-@router.post("/folders/{folder_id}/normas/", response_model=FolderNormaResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/folders/{folder_id}/normas/", response_model=FolderNormaWithNorma, status_code=status.HTTP_201_CREATED)
 async def add_norma_to_folder(
     folder_id: str,
     norma_data: FolderNormaCreate,

@@ -36,7 +36,7 @@ class FolderMove(BaseModel):
 
 class FolderNormaBase(BaseModel):
     """Base folder-norma relationship schema."""
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=500, description="Optional notes about the norma (max 500 characters)")
     order_index: int = 0
 
 
@@ -47,7 +47,7 @@ class FolderNormaCreate(FolderNormaBase):
 
 class FolderNormaUpdate(BaseModel):
     """Schema for updating folder-norma relationship."""
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=500, description="Optional notes about the norma (max 500 characters)")
     order_index: Optional[int] = None
 
 
@@ -57,7 +57,7 @@ class FolderNormaResponse(BaseModel):
     norma_id: int
     added_at: datetime
     order_index: int
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=500, description="Optional notes about the norma (max 500 characters)")
 
 
 class NormaInFolder(BaseModel):
@@ -78,7 +78,7 @@ class FolderNormaWithNorma(BaseModel):
     norma: NormaInFolder
     added_at: datetime
     order_index: int
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=500, description="Optional notes about the norma (max 500 characters)")
 
 
 class FolderResponse(BaseModel):

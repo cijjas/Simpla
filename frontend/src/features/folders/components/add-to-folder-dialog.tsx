@@ -253,7 +253,7 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md w-full max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Gestionar Carpetas</DialogTitle>
           <DialogDescription>
@@ -261,11 +261,11 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 w-full overflow-hidden">
           {/* Folder Selection */}
-          <div>
+          <div className="w-full overflow-hidden">
             <Label htmlFor="folder-selection">Carpetas</Label>
-            <ScrollArea className="h-48 w-full border rounded-md p-2 mt-2">
+            <ScrollArea className="h-48 w-full border rounded-md p-2 mt-2 overflow-x-hidden">
               {folders.length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">
                   <Folder className="h-8 w-8 mx-auto mb-2" />
@@ -279,15 +279,30 @@ export function AddToFolderDialog({ isOpen, onClose, normaId, normaTitle }: AddT
 
           {/* Notes - only show for new additions */}
           {addCount > 0 && (
-            <div>
+            <div className="w-full overflow-hidden">
               <Label htmlFor="notes">Notas para nuevas adiciones (opcional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Agrega notas sobre esta norma..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-2"
-              />
+              <div className="mt-2 space-y-2 w-full overflow-hidden">
+                <Textarea
+                  id="notes"
+                  placeholder="Agrega notas sobre esta norma..."
+                  value={notes}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 500) {
+                      setNotes(value);
+                    }
+                  }}
+                  maxLength={500}
+                  rows={3}
+                  className="w-full resize-none break-words whitespace-pre-wrap"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Máximo 500 caracteres</span>
+                  <span className={notes.length > 450 ? 'text-orange-500' : notes.length > 480 ? 'text-red-500' : ''}>
+                    {notes.length}/500
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 

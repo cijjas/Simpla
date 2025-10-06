@@ -9,12 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { FileText, Folder, FolderPlus, Archive, BookOpen, Star, Tag, Users, Loader2 } from 'lucide-react';
 import { useFolderNormas } from '../hooks/use-folders';
+import { useFolderNormasWithData } from '../hooks/use-folder-normas-with-data';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
 import { buildFolderPath, findFolderById } from '../utils/folder-utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Link from 'next/link';
 
 interface FolderContentProps {
   folder: FolderTreeItem | null;
@@ -22,10 +24,14 @@ interface FolderContentProps {
 }
 
 export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
-  const { folderWithNormas, loading, error, removeNormaFromFolder, updateFolderNorma } = useFolderNormas(folder?.id || '');
+  const { folderWithNormas, loading: folderLoading, error: folderError, removeNormaFromFolder, updateFolderNorma } = useFolderNormas(folder?.id || '');
+  const { normas: normasWithDetails, loading: normasDetailsLoading } = useFolderNormasWithData(folder?.id || '');
   const { folders } = useFoldersContext();
   const [editingNorma, setEditingNorma] = useState<{ id: string; normaId: number; notes: string } | null>(null);
   const [isEditNotesOpen, setIsEditNotesOpen] = useState(false);
+  
+  const loading = folderLoading || normasDetailsLoading;
+  const error = folderError;
 
   // Get the updated folder from context to ensure we have the latest data
   const currentFolder = folder ? findFolderById(folders, folder.id) : null;
@@ -227,8 +233,14 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
     }
   };
 
-
-  const normas = folderWithNormas?.normas || [];
+  // Combine folder normas metadata with detailed norma data
+  const combinedNormas = (folderWithNormas?.normas || []).map(folderNorma => {
+    const normaDetails = normasWithDetails.find(detail => detail.id === folderNorma.norma.id);
+    return {
+      ...folderNorma,
+      normaDetails
+    };
+  });
 
   return (
     <>
@@ -279,7 +291,9 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
                 <div className="text-xl flex items-center leading-none font-semibold">
                   <span className="font-bold pe-2" >{currentFolder?.name}</span>
                   <Badge variant="secondary" className="mt-1">
-                  {normas.length} norma{normas.length !== 1 ? 's' : ''}
+                                  <span className="text-xs text-muted-foreground">
+                  {combinedNormas.length} norma{combinedNormas.length !== 1 ? 's' : ''}
+                </span>
                 </Badge>  
                 </div>
                  {/* Description */}
@@ -340,7 +354,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
               <h3 className="text-sm font-medium text-muted-foreground">Normas</h3>
               <div className="flex-1 h-px bg-border"></div>
             </div>
-            {normas.length === 0 ? (
+            {combinedNormas.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                 <p className="text-sm">No hay normas en esta carpeta</p>
@@ -350,37 +364,58 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
               </div>
             ) : (
             <div className="space-y-2">
-              {normas.map((folderNorma) => (
-                <div 
-                  key={folderNorma.id} 
-                  className="flex items-center justify-between px-4 py-2 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {/* Icon placeholder */}
-                    <div className="w-4 h-4 rounded border border-muted-foreground flex-shrink-0" />
-                    
-                    <div className="flex-1 min-w-0">
-                      {/* First line: Title */}
-                      <div className="font-medium text-sm truncate">
-                        {folderNorma.norma.titulo_resumido}
+              {combinedNormas.map((item) => {
+                const normaDetails = item.normaDetails;
+                const folderNorma = item;
+                
+                return (
+                  <Link 
+                    key={folderNorma.id}
+                    href={`/norma/${normaDetails?.id || folderNorma.norma.id}`}
+                    className="block"
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Document icon */}
+                        <div className="w-8 h-8 rounded-lg border border-muted-foreground/30 bg-muted/30 flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          {/* First line: Title */}
+                          <div className="font-medium text-sm line-clamp-1">
+                            {normaDetails?.tituloSumarioFormateado || 
+                             normaDetails?.tituloResumidoFormateado || 
+                             folderNorma.norma.titulo_resumido}
+                          </div>
+                          
+                          {/* Second line: Document info */}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {normaDetails?.tipoNorma || folderNorma.norma.tipo_norma || 'Documento'} • 
+                            {normaDetails?.jurisdiccion || folderNorma.norma.jurisdiccion} • 
+                            Agregada el {format(new Date(folderNorma.added_at), 'dd/MM/yyyy', { locale: es })}
+                          </div>
+                          
+                          {/* Third line: Notes if available */}
+                          {folderNorma.notes && (
+                            <div className="text-xs text-muted-foreground/80 mt-1 line-clamp-2">
+                              📝 {folderNorma.notes}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       
-                      {/* Second line: Document info */}
-                      <div className="text-xs text-muted-foreground">
-                        {folderNorma.norma.tipo_norma || 'Documento'} • {format(new Date(folderNorma.added_at), 'dd/MM/yyyy', { locale: es })}
-                      </div>
+                      {/* Right indicator/color dot */}
+                      {currentFolder?.color && (
+                        <div 
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: currentFolder.color }}
+                        />
+                      )}
                     </div>
-                  </div>
-                  
-                  {/* Right indicator/color dot */}
-                  {currentFolder?.color && (
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: currentFolder.color }}
-                    />
-                  )}
-                </div>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
             )}
           </div>
@@ -395,12 +430,27 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
           </DialogHeader>
           {editingNorma && (
             <div className="space-y-4">
-              <Textarea
-                value={editingNorma.notes}
-                onChange={(e) => setEditingNorma(prev => prev ? { ...prev, notes: e.target.value } : null)}
-                placeholder="Agrega tus notas sobre esta norma..."
-                rows={4}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  value={editingNorma.notes}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 500) {
+                      setEditingNorma(prev => prev ? { ...prev, notes: value } : null);
+                    }
+                  }}
+                  placeholder="Agrega tus notas sobre esta norma..."
+                  maxLength={500}
+                  rows={4}
+                  className="w-full resize-none break-words whitespace-pre-wrap"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Máximo 500 caracteres</span>
+                  <span className={editingNorma.notes.length > 450 ? 'text-orange-500' : editingNorma.notes.length > 480 ? 'text-red-500' : ''}>
+                    {editingNorma.notes.length}/500
+                  </span>
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"

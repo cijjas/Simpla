@@ -294,7 +294,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             // Create a new conversation object based on the first message
             const newConversation: Conversation = {
               id: sessionId,
-              title: content.length > 50 ? content.substring(0, 50) + '...' : content,
+              title: createConversationTitle(content),
               chat_type: state.chatType,
               snippet: content,
               create_time: new Date().toISOString(),
@@ -396,6 +396,21 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_TEMP_TITLE', payload: '' });
     }
   }, [state.tempTitle]);
+
+  // Helper function to create a smart title from user message
+  const createConversationTitle = (content: string): string => {
+    if (content.length <= 80) return content;
+    
+    // Find the last space before 80 characters to avoid cutting words
+    const truncated = content.substring(0, 80);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 50) { // Only use word boundary if it's not too short
+      return truncated.substring(0, lastSpaceIndex).trim();
+    }
+    
+    return truncated.trim();
+  };
 
   // Cancel renaming conversation
   const cancelRenameConversation = useCallback(() => {

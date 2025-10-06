@@ -33,7 +33,7 @@ export function FoldersPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Mis Carpetas</h1>
         <p className="text-muted-foreground">
-          Organiza y gestiona tus normas en carpetas personalizadas
+          Organizá y gestioná tus normas en carpetas personalizadas
         </p>
       </div>
       
@@ -48,7 +48,10 @@ export function FoldersPage() {
         
         {/* Folder Content */}
         <div className="lg:col-span-3 overflow-auto">
-          <FolderContent folder={selectedFolder} />
+          <FolderContent 
+            folder={selectedFolder} 
+            onFolderSelect={setSelectedFolder}
+          />
         </div>
       </div>
     </div>

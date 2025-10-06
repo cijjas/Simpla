@@ -23,6 +23,7 @@ import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, 
 import SvgEstampa from '@/components/icons/Estampa';
 import ReactMarkdown from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
+import { LoadingMessage } from '@/features/conversations/components/loading-message';
 import { 
   useConversations,
   type Conversation,
@@ -246,7 +247,7 @@ export default function ConversacionesPage() {
                               onClick={(e) => e.stopPropagation()}
                             />
                           ) : (
-                            <h3 className="font-medium text-sm truncate text-foreground">
+                            <h3 className="font-medium text-sm text-foreground line-clamp-2 leading-snug">
                               {conv.title}
                             </h3>
                           )}
@@ -449,6 +450,11 @@ export default function ConversacionesPage() {
               </div>
             ))}
             
+            {/* Loading indicator when streaming starts but no content yet */}
+            {isStreaming && !streamingMessage && (
+              <LoadingMessage />
+            )}
+            
             {/* Streaming message */}
             {isStreaming && streamingMessage && (
               <div className="flex gap-3 justify-start">
@@ -497,7 +503,11 @@ export default function ConversacionesPage() {
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isStreaming}
                 >
-                  <ArrowUp className="h-4 w-4" />
+                  {isStreaming ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUp className="h-4 w-4" />
+                  )}
                 </Button>
               </InputGroupAddon>
             </InputGroup>
