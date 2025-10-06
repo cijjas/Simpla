@@ -150,10 +150,11 @@ class MessagePipeline:
                 # Stream AI response chunks
                 async for chunk in self.conversation_service.stream_message_response(
                     user_id=user_id,
-                    content=enhanced_prompt,
+                    content=data.content,  # Use original user content for message storage
                     session_id=str(data.session_id) if data.session_id else None,
                     chat_type=data.chat_type,
-                    norma_ids=norma_ids
+                    norma_ids=norma_ids,
+                    enhanced_prompt=enhanced_prompt  # Pass enhanced prompt separately for AI generation
                 ):
                     # Handle session_id metadata chunk
                     if isinstance(chunk, tuple) and len(chunk) == 2 and chunk[0] == "session_id":

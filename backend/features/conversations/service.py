@@ -305,7 +305,8 @@ class ConversationService:
         content: str,
         session_id: Optional[str] = None,
         chat_type: str = "normativa_nacional",
-        norma_ids: Optional[List[int]] = None
+        norma_ids: Optional[List[int]] = None,
+        enhanced_prompt: Optional[str] = None
     ):
         """Stream AI response for a message."""
         try:
@@ -341,8 +342,10 @@ class ConversationService:
                 if not msg.is_deleted
             ]
             
-            # Add the new user message to history
-            history_messages.append(AIMessage(role="user", content=content))
+            # Add the new user message to history for context
+            # Use enhanced_prompt if provided, otherwise use original content
+            user_content_for_ai = enhanced_prompt if enhanced_prompt else content
+            history_messages.append(AIMessage(role="user", content=user_content_for_ai))
             
             # Generate AI response
             system_prompt = conversation.system_prompt or get_system_prompt(chat_type)

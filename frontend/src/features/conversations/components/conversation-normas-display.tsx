@@ -58,7 +58,7 @@ export function ConversationNormasDisplay({ normaIds }: ConversationNormasDispla
     return (
       <div className='mt-4'>
         <div className='text-sm font-medium text-muted-foreground mb-3'>
-          Normas utilizadas como contexto:
+          Normas relevantes:
         </div>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
           {normaIds.map((id) => (
@@ -73,7 +73,7 @@ export function ConversationNormasDisplay({ normaIds }: ConversationNormasDispla
     return (
       <div className='mt-4'>
         <div className='text-sm font-medium text-muted-foreground mb-3'>
-          Normas utilizadas como contexto:
+          Normas relevantes:
         </div>
         <div className='text-sm text-red-500'>
           {error}
@@ -89,7 +89,7 @@ export function ConversationNormasDisplay({ normaIds }: ConversationNormasDispla
   return (
     <div className='mt-4'>
       <div className='text-sm font-medium text-muted-foreground mb-3'>
-        Normas utilizadas como contexto:
+        Normas relevantes:
       </div>
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
         {normas.map((norma) => (
