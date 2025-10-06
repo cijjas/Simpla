@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
+import { ThemeSelector } from '@/components/ui/theme-selector';
 
 export function SettingsSection() {
   const { user, logout, accessToken } = useAuth();
@@ -55,6 +56,9 @@ export function SettingsSection() {
 
   return (
     <div className="space-y-6">
+      {/* Theme Settings */}
+      <ThemeSelector />
+
       {/* Account Settings */}
       <Card className="shadow-none">
         <CardHeader>

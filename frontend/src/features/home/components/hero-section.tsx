@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 export function HeroSection() {
   return (
-    <section className='relative bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-background py-20 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8'>
+    <section className='relative bg-background py-20 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8'>
       <div className='mx-auto max-w-7xl'>
         <div className='flex flex-col items-center text-center'>
           <div className='mb-10 w-56 sm:w-72'>

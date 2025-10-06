@@ -7,15 +7,15 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const treeVariants = cva(
-    'group hover:before:opacity-100 hover:bg-stone-200/70 hover:dark:bg-accent hover:text-accent-foreground hover:rounded-md before:absolute before:rounded-lg before:left-0 px-2 before:w-full before:opacity-0 before:bg-accent before:h-[2rem] before:-z-10'
+    'group hover:before:opacity-100 hover:bg-accent/70 hover:text-sidebar-accent-foreground hover:rounded-md before:absolute before:rounded-md before:left-0 px-2 before:w-full before:opacity-0 before:bg-accent/70 before:h-6 before:-z-10 transition-all my-0.5'
 )
 
 const selectedTreeVariants = cva(
-    'before:opacity-100 before:bg-accent bg-stone-200/70 dark:bg-accent text-accent-foreground rounded-md'
+    'before:opacity-100 before:bg-accent/70 bg-accent/70 text-sidebar-accent-foreground rounded-md font-medium my-0.5'
 )
 
 const dragOverVariants = cva(
-    'before:opacity-100 before:bg-accent bg-stone-200/70 dark:bg-accent text-accent-foreground rounded-md'
+    'before:opacity-100 before:bg-accent/70 bg-accent/70 text-sidebar-accent-foreground rounded-md my-0.5'
 )
 
 interface TreeDataItem {
@@ -135,7 +135,7 @@ const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
         }, [data, expandAll, initialSelectedItemId])
 
         return (
-            <div className={cn('overflow-hidden relative p-1', className)}>
+            <div className={cn('overflow-hidden relative', className)}>
                 <TreeItem
                     data={data}
                     ref={ref}
