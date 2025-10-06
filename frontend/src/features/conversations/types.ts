@@ -19,6 +19,7 @@ export interface Message {
   metadata?: Record<string, unknown>;
   created_at: string;
   feedback?: FeedbackType;  // User's feedback on this message
+  relevant_docs?: number[];  // Relevant document/norma IDs used as context for this message
 }
 
 export interface Conversation {
@@ -64,6 +65,7 @@ export interface SendMessageResponse {
   session_id: string;
   done?: boolean;
   error?: boolean;
+  norma_ids?: number[];
 }
 
 export interface FeedbackCreateRequest {

@@ -304,7 +304,9 @@ class ConversationService:
         user_id: str,
         content: str,
         session_id: Optional[str] = None,
-        chat_type: str = "normativa_nacional"
+        chat_type: str = "normativa_nacional",
+        norma_ids: Optional[List[int]] = None,
+        enhanced_prompt: Optional[str] = None
     ):
         """Stream AI response for a message."""
         try:
@@ -340,8 +342,10 @@ class ConversationService:
                 if not msg.is_deleted
             ]
             
-            # Add the new user message to history
-            history_messages.append(AIMessage(role="user", content=content))
+            # Add the new user message to history for context
+            # Use enhanced_prompt if provided, otherwise use original content
+            user_content_for_ai = enhanced_prompt if enhanced_prompt else content
+            history_messages.append(AIMessage(role="user", content=user_content_for_ai))
             
             # Generate AI response
             system_prompt = conversation.system_prompt or get_system_prompt(chat_type)
@@ -356,11 +360,15 @@ class ConversationService:
                 yield chunk
             
             # Create assistant message after streaming is complete
+            metadata = {"relevant_docs": []}
+            if norma_ids:
+                metadata["relevant_docs"] = norma_ids
+                
             assistant_message_data = MessageCreate(
                 role="assistant",
                 content=ai_response_content,
                 tokens_used=self.ai_service.count_tokens(ai_response_content),
-                metadata={"relevant_docs": []}  # TODO: Add RAG integration
+                metadata=metadata
             )
             assistant_message = self.create_message(session_id, assistant_message_data)
             

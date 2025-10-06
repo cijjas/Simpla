@@ -174,6 +174,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const hasLoadedConversations = useRef(false);
   const isLoadingRef = useRef(false);
   const streamingContentRef = useRef('');
+  const normaIdsRef = useRef<number[] | undefined>(undefined);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -203,8 +204,19 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_LOADING', payload: true });
       
       const conversation = await ConversationsAPI.getConversation(id);
+      
+      // Process messages to extract relevant_docs from metadata
+      const processedMessages = conversation.messages.map(message => {
+        // Extract relevant_docs from metadata if available
+        const relevant_docs = message.metadata?.relevant_docs as number[] | undefined;
+        return {
+          ...message,
+          relevant_docs: relevant_docs || undefined
+        };
+      });
+      
       dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversation });
-      dispatch({ type: 'SET_MESSAGES', payload: conversation.messages });
+      dispatch({ type: 'SET_MESSAGES', payload: processedMessages });
       dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: id });
       dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
     } catch (error) {
@@ -252,6 +264,10 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             streamingContentRef.current += chunk.content;
             dispatch({ type: 'SET_STREAMING_MESSAGE', payload: streamingContentRef.current });
           }
+          // Store relevant_docs when the response is complete
+          if (chunk.done && chunk.norma_ids) {
+            normaIdsRef.current = chunk.norma_ids;
+          }
         },
         (sessionId) => {
           // Add the completed streamed message to the messages array
@@ -261,6 +277,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             content: streamingContentRef.current,
             tokens_used: 0,
             created_at: new Date().toISOString(),
+            relevant_docs: normaIdsRef.current, // Include relevant_docs in the message
           }});
           
           // Set the session ID - now it should be a valid UUID from the backend
@@ -270,6 +287,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           dispatch({ type: 'SET_STREAMING', payload: false });
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
+          normaIdsRef.current = undefined; // Clear relevant_docs for next message
           
           // If this was a new conversation, create it and add to the list
           if (!state.currentSessionId && sessionId) {
