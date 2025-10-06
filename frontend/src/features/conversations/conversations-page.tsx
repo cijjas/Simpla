@@ -28,6 +28,7 @@ import {
   type Conversation,
   formatDate 
 } from './index';
+import { ConversationNormasDisplay } from './components';
 
 export default function ConversacionesPage() {
   const router = useRouter();
@@ -397,6 +398,11 @@ export default function ConversacionesPage() {
                       >
                         {message.content}
                       </ReactMarkdown>
+                      
+                      {/* Display normas used as context if available */}
+                      {message.role === 'assistant' && message.relevant_docs && message.relevant_docs.length > 0 && (
+                        <ConversationNormasDisplay normaIds={message.relevant_docs} />
+                      )}
                     </div>
                     {message.role === 'assistant' && (
                       <div className="flex items-center gap-1 mt-4">

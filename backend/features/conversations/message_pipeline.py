@@ -136,8 +136,8 @@ class MessagePipeline:
         try:
             logger.info(f"Processing legal question. Original: {data.content}, Reformulated: {reformulated_question}")
             
-            # Step 1: Fetch legal context
-            articles_data, divisions_data = fetch_and_parse_legal_context(reformulated_question)
+            # Step 1: Fetch legal context and norma IDs
+            articles_data, divisions_data, norma_ids = fetch_and_parse_legal_context(reformulated_question)
             
             # Step 2: Build enhanced prompt
             enhanced_prompt = build_enhanced_prompt(data.content, articles_data, divisions_data)
@@ -152,7 +152,8 @@ class MessagePipeline:
                     user_id=user_id,
                     content=enhanced_prompt,
                     session_id=str(data.session_id) if data.session_id else None,
-                    chat_type=data.chat_type
+                    chat_type=data.chat_type,
+                    norma_ids=norma_ids
                 ):
                     # Handle session_id metadata chunk
                     if isinstance(chunk, tuple) and len(chunk) == 2 and chunk[0] == "session_id":
@@ -168,8 +169,14 @@ class MessagePipeline:
                 await self.rate_limit_service.record_usage(user_id, total_tokens)
                 logger.info(f"Conversation processed for user {user_id}, tokens: {total_tokens}")
 
-                # Send completion signal
-                yield f"data: {json.dumps({'content': '', 'session_id': actual_session_id, 'done': True})}\n\n"
+                # Send completion signal with norma IDs
+                completion_data = {
+                    'content': '', 
+                    'session_id': actual_session_id, 
+                    'done': True,
+                    'norma_ids': norma_ids
+                }
+                yield f"data: {json.dumps(completion_data)}\n\n"
 
             except Exception as e:
                 logger.error(f"Error in AI response streaming: {str(e)}")

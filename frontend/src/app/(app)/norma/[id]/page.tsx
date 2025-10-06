@@ -6,6 +6,7 @@ import {
   getNormaDetallada,
   getNormaDetalladaResumen,
 } from '@/features/infoleg/utils/api';
+import { FoldersProvider } from '@/features/folders/context/folders-context';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -17,10 +18,12 @@ export default async function NormaPage({ params }: Props) {
   if (!norma) notFound();
 
   return (
-    <section className='container mx-auto max-w-5xl p-10 space-y-10'>
-      <NormaHeader norma={norma} />
-      <NormaBody originalHtml={norma.textoNorma || norma.textoNormaAct} />
-    </section>
+    <FoldersProvider>
+      <section className='container mx-auto max-w-5xl p-10 space-y-10'>
+        <NormaHeader norma={norma} />
+        <NormaBody originalHtml={norma.textoNorma || norma.textoNormaAct} />
+      </section>
+    </FoldersProvider>
   );
 }
 
