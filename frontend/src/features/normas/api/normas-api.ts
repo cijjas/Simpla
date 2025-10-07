@@ -1,0 +1,174 @@
+/**
+ * API service for normas functionality
+ */
+
+export interface NormaSummary {
+  id: number;
+  infoleg_id: number;
+  jurisdiccion?: string;
+  clase_norma?: string;
+  tipo_norma?: string;
+  sancion?: string;
+  publicacion?: string;
+  titulo_sumario?: string;
+  titulo_resumido?: string;
+  observaciones?: string;
+  nro_boletin?: string;
+  pag_boletin?: string;
+  estado?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NormaDetail extends NormaSummary {
+  id_normas?: Record<string, unknown>;
+  texto_resumido?: string;
+  texto_norma?: string;
+  texto_norma_actualizado?: string;
+  lista_normas_que_complementa?: Record<string, unknown>;
+  lista_normas_que_la_complementan?: Record<string, unknown>;
+  purified_texto_norma?: string;
+  purified_texto_norma_actualizado?: string;
+  embedding_model?: string;
+  embedding_source?: string;
+  embedded_at?: string;
+  embedding_type?: string;
+  llm_model_used?: string;
+  llm_models_used?: Record<string, unknown>;
+  llm_tokens_used?: number;
+  llm_processing_time?: number;
+  llm_similarity_score?: number;
+  inserted_at: string;
+  divisions: Division[];
+}
+
+export interface Division {
+  id: number;
+  name?: string;
+  ordinal?: string;
+  title?: string;
+  body?: string;
+  order_index?: number;
+  created_at: string;
+  articles: Article[];
+  child_divisions: Division[];
+}
+
+export interface Article {
+  id: number;
+  ordinal?: string;
+  body: string;
+  order_index?: number;
+  created_at: string;
+  child_articles: Article[];
+}
+
+export interface NormaSearchResponse {
+  normas: NormaSummary[];
+  total_count: number;
+  has_more: boolean;
+  limit: number;
+  offset: number;
+}
+
+export interface NormaFilterOptions {
+  jurisdicciones: string[];
+  tipos_norma: string[];
+  clases_norma: string[];
+  estados: string[];
+}
+
+export interface NormaStats {
+  total_normas: number;
+  total_divisions: number;
+  total_articles: number;
+  normas_by_jurisdiction: Record<string, number>;
+  normas_by_type: Record<string, number>;
+  normas_by_status: Record<string, number>;
+}
+
+export interface NormaFilters {
+  search_term?: string;
+  jurisdiccion?: string;
+  tipo_norma?: string;
+  clase_norma?: string;
+  estado?: string;
+  sancion_desde?: string;
+  sancion_hasta?: string;
+  publicacion_desde?: string;
+  publicacion_hasta?: string;
+  limit?: number;
+  offset?: number;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+class NormasAPI {
+  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const url = `${API_BASE}${endpoint}`;
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  private buildQueryString(filters: NormaFilters): string {
+    const params = new URLSearchParams();
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value.toString());
+      }
+    });
+
+    return params.toString();
+  }
+
+  /**
+   * List normas with optional filters (bulk operation - returns summaries)
+   */
+  async listNormas(filters: NormaFilters = {}): Promise<NormaSearchResponse> {
+    const queryString = this.buildQueryString(filters);
+    return this.request<NormaSearchResponse>(`/normas/?${queryString}`);
+  }
+
+  /**
+   * Get a complete norma with full hierarchical structure by infoleg_id
+   */
+  async getNorma(infolegId: number): Promise<NormaDetail> {
+    return this.request<NormaDetail>(`/normas/${infolegId}/`);
+  }
+
+  /**
+   * Get a norma summary (lightweight) by infoleg_id
+   */
+  async getNormaSummary(infolegId: number): Promise<NormaSummary> {
+    return this.request<NormaSummary>(`/normas/${infolegId}/summary/`);
+  }
+
+  /**
+   * Get available filter options
+   */
+  async getFilterOptions(): Promise<NormaFilterOptions> {
+    return this.request<NormaFilterOptions>('/normas/filter-options/');
+  }
+
+  /**
+   * Get normas statistics
+   */
+  async getStats(): Promise<NormaStats> {
+    return this.request<NormaStats>('/normas/stats/');
+  }
+}
+
+export const normasAPI = new NormasAPI();

@@ -10,6 +10,7 @@ import {
   Compass,
   Scale,
   MessageSquare,
+  FileText,
 } from "lucide-react"
 import SvgEstampa from "@/components/icons/Estampa"
 import { forwardRef } from "react"
@@ -68,6 +69,11 @@ const data = {
       title: "Conversaciones",
       url: "/conversaciones",
       icon: MessageSquare,
+    },
+    {
+      title: "Normas",
+      url: "/normas",
+      icon: FileText,
     },
     
   ],

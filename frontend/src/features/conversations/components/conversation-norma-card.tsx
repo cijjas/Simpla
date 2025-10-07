@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarIcon, FileTextIcon } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDatePretty } from '@/lib/utils';
@@ -51,7 +51,7 @@ export function ConversationNormaCard({ norma }: ConversationNormaCardProps) {
             {/* Publication date */}
             {norma.publicacion && (
               <div className='flex items-center gap-1'>
-                <CalendarIcon className='h-3 w-3' />
+                <Calendar className='h-3 w-3' />
                 <span className='text-xs'>{formatDatePretty(norma.publicacion)}</span>
               </div>
             )}

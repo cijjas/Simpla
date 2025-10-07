@@ -15,7 +15,6 @@ from features.subscription.subscription_models import SubscriptionTier, UserSubs
 
 # Import feature routers
 from features.auth.auth_routes import router as auth_router
-from features.chat.chat_routes import router as chat_router  # Re-enabled for rate limiting
 from features.feedback.feedback_routes import router as feedback_router
 from features.contact.contact_routes import router as contact_router
 from features.folders.folder_routes import router as folder_router
@@ -23,6 +22,7 @@ from features.favorites.favorites_routes import router as favorites_router
 from features.conversations.router import router as conversations_router
 from features.conversations.feedback.feedback_routes import router as message_feedback_router
 from features.subscription.subscription_routes import router as subscription_router
+from features.normas.normas_routes import router as normas_router
 
 # Import core configuration and logging
 from core.config.config import settings
@@ -57,7 +57,6 @@ app.add_middleware(
 
 # Include feature routers
 app.include_router(auth_router, prefix="/api")
-app.include_router(chat_router, prefix="/api")  # Re-enabled for rate limiting
 app.include_router(feedback_router, prefix="/api")
 app.include_router(contact_router, prefix="/api")
 app.include_router(folder_router, prefix="/api")
@@ -65,6 +64,7 @@ app.include_router(conversations_router, prefix="/api")
 app.include_router(message_feedback_router, prefix="/api")
 app.include_router(favorites_router, prefix="/api")
 app.include_router(subscription_router, prefix="/api")
+app.include_router(normas_router, prefix="/api")
 
 
 @app.get("/api/")

@@ -42,6 +42,7 @@ function renderBreadcrumb(pathname: string) {
     dashboard: 'Dashboard',
     busqueda: 'Búsqueda',
     norma: 'Norma',
+    normas: 'Normas',
     chat: 'Chat',
     constitucion: 'Constituciones',
     constituciones: 'Constituciones',

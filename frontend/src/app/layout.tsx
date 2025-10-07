@@ -5,7 +5,6 @@ import './globals.css';
 
 import { AuthProvider } from '@/features/auth/context/auth-context';
 import { ThemeProvider } from 'next-themes';
-import { ThemeProvider as CustomThemeProvider } from '@/contexts/theme-context';
 import { Analytics } from '@vercel/analytics/react';
 
 // ⟵ fonts
@@ -59,9 +58,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-            <CustomThemeProvider>
-              {children}
-            </CustomThemeProvider>
+            {children}
           </ThemeProvider>
         </AuthProvider>
         <Analytics />
