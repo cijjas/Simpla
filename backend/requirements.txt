@@ -1,7 +1,6 @@
 # Core web framework
 fastapi==0.116.2
 uvicorn==0.35.0
-starlette==0.48.0
 pydantic==2.11.9
 python-dotenv==1.1.1
 python-multipart==0.0.9
@@ -16,26 +15,19 @@ bcrypt==4.2.0
 python-jose[cryptography]==3.3.0
 email-validator==2.2.0
 
-# Google AI & APIs (let pip resolve protobuf and grpc versions)
+# Google AI (required for AI service)
 google-generativeai>=0.8.0
-google-auth>=2.40.0
-google-api-python-client>=2.182.0
 
-# Pinecone
-pinecone>=7.3.0
+# gRPC for microservices (runtime only, not tools)
+grpcio>=1.62.0,<1.76.0
+grpcio-status>=1.62.0,<1.76.0
+protobuf>=4.21.0,<6.0.0
 
-# Hugging Face
-huggingface-hub>=0.35.0
-
-# NumPy
-numpy>=2.3.0
+# HTTP client for embedding service
+requests>=2.32.0
 
 # Email
 resend==2.4.0
 
 # Logging
 colorlog==6.8.2
-
-# gRPC (let Google packages determine compatible versions)
-grpcio>=1.62.0
-grpcio-tools>=1.62.0
