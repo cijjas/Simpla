@@ -23,13 +23,13 @@ export function NormasStats({ className }: NormasStatsProps) {
     stats,
     loading,
     error,
-    hasStats,
-    totalNormas,
-    totalDivisions,
-    totalArticles,
-    normasByJurisdiction,
-    normasByType,
-    normasByStatus
+    hasStats: _hasStats,
+    totalNormas: _totalNormas,
+    totalDivisions: _totalDivisions,
+    totalArticles: _totalArticles,
+    normasByJurisdiction: _normasByJurisdiction,
+    normasByType: _normasByType,
+    normasByStatus: _normasByStatus
   } = useNormasStats();
 
   if (loading) {

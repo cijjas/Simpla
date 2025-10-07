@@ -18,16 +18,12 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNormasSearch } from '../hooks/use-normas-search';
 
-interface NormasListProps {
-  // No props needed - uses context
-}
-
-export function NormasList({}: NormasListProps) {
+export function NormasList() {
   const {
     results: data,
     loading,
     handlePageChange: onPageChange,
-    hasResults,
+    hasResults: _hasResults,
     totalCount,
     hasMore,
     currentPage,
