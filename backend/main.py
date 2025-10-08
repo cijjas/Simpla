@@ -23,6 +23,7 @@ from features.favorites.favorites_routes import router as favorites_router
 from features.conversations.router import router as conversations_router
 from features.conversations.feedback.feedback_routes import router as message_feedback_router
 from features.subscription.subscription_routes import router as subscription_router
+from features.norma_chat.routes import router as norma_chat_router
 
 # Import core configuration and logging
 from core.config.config import settings
@@ -65,6 +66,7 @@ app.include_router(conversations_router, prefix="/api")
 app.include_router(message_feedback_router, prefix="/api")
 app.include_router(favorites_router, prefix="/api")
 app.include_router(subscription_router, prefix="/api")
+app.include_router(norma_chat_router, prefix="/api")
 
 
 @app.get("/api/")
