@@ -247,7 +247,7 @@ export default function ConversacionesPage() {
                               onClick={(e) => e.stopPropagation()}
                             />
                           ) : (
-                            <h3 className="font-medium text-sm text-foreground line-clamp-2 leading-snug">
+                            <h3 className="font-medium text-sm text-foreground line-clamp-1 leading-snug">
                               {conv.title}
                             </h3>
                           )}
