@@ -29,7 +29,7 @@ import {
   type Conversation,
   formatDate 
 } from './index';
-import { ConversationNormasDisplay } from './components';
+import { ConversationNormasDisplay, ToneSelector } from './components';
 
 export default function ConversacionesPage() {
   const router = useRouter();
@@ -46,6 +46,7 @@ export default function ConversacionesPage() {
     saveRenameConversation,
     cancelRenameConversation,
     setChatType,
+    setTone,
     setTempTitle,
     submitFeedback,
     removeFeedback,
@@ -62,6 +63,7 @@ export default function ConversacionesPage() {
     conversations,
     messages,
     chatType,
+    tone,
     isLoading,
     isStreaming,
     streamingMessage,
@@ -483,7 +485,7 @@ export default function ConversacionesPage() {
         {/* Input Area - always visible */}
         <div className="p-4  flex-shrink-0">
           <div className="max-w-4xl mx-auto">
-            <InputGroup className="rounded-3xl pl-3 pt-2">
+            <InputGroup className="rounded-3xl pl-3 pt-2 bg-gray-50 border border-gray-200 dark:border-gray-700">
               <TextareaAutosize
                 ref={textareaRef}
                 data-slot="input-group-control"
@@ -491,24 +493,31 @@ export default function ConversacionesPage() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
-                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none"
+                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 disabled={isStreaming}
                 maxRows={3}
               />
               <InputGroupAddon align="block-end">
-                <Button
-                  className="ml-auto h-8 w-8 rounded-full p-0"
-                  size="sm"
-                  variant="default"
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isStreaming}
-                >
-                  {isStreaming ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowUp className="h-4 w-4" />
-                  )}
-                </Button>
+                <div className="flex items-center justify-between w-full">
+                  <ToneSelector
+                    selectedTone={tone}
+                    onToneChange={setTone}
+                    disabled={isStreaming}
+                  />
+                  <Button
+                    className="h-8 w-8 rounded-full p-0 ml-2"
+                    size="sm"
+                    variant="default"
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isStreaming}
+                  >
+                    {isStreaming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ArrowUp className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </InputGroupAddon>
             </InputGroup>
             

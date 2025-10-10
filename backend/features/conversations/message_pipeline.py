@@ -140,7 +140,7 @@ class MessagePipeline:
             normas_data, norma_ids = fetch_and_parse_legal_context(reformulated_question)
 
             # Step 2: Build enhanced prompt
-            enhanced_prompt = build_enhanced_prompt(data.content, normas_data)
+            enhanced_prompt = build_enhanced_prompt(data.content, normas_data, data.tone)
             
             # Step 3: Generate AI response
             actual_session_id = str(data.session_id) if data.session_id else "new-session"
