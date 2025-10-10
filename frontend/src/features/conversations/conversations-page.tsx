@@ -338,11 +338,11 @@ export default function ConversacionesPage() {
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="max-w-md space-y-4">
                 <div className="flex justify-center">
-                  <SvgEstampa className="h-24 w-24 text-primary" />
+                  <SvgEstampa className="h-24 w-24 text-primary dark:text-foreground" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    ¡Hola! ¿En qué puedo ayudarte?
+                  <h3 className="font-serif text-3xl font-semibold text-foreground">
+                    Bienvenido
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Puedes preguntarme sobre normativa nacional o constituciones. 
@@ -374,7 +374,7 @@ export default function ConversacionesPage() {
                         <User className="h-4 w-4" />
                       </div>
                     ) : (
-                      <SvgEstampa className="h-6 w-6 text-primary" />
+                      <SvgEstampa className="h-6 w-6 text-primary dark:text-foreground" />
                     )}
                   </div>
                   <div
@@ -461,7 +461,7 @@ export default function ConversacionesPage() {
                 <div className="flex gap-3 max-w-[80%]">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
-                      <SvgEstampa className="h-4 w-4" />
+                      <SvgEstampa className="h-4 w-4 dark:text-foreground" />
                     </div>
                   </div>
                   <div className="rounded-lg p-3">
@@ -483,7 +483,7 @@ export default function ConversacionesPage() {
         {/* Input Area - always visible */}
         <div className="p-4  flex-shrink-0">
           <div className="max-w-4xl mx-auto">
-            <InputGroup className="rounded-3xl pl-3 pt-2">
+            <InputGroup className="rounded-3xl pl-3 pt-2 bg-input border-border/50">
               <TextareaAutosize
                 ref={textareaRef}
                 data-slot="input-group-control"
@@ -491,7 +491,7 @@ export default function ConversacionesPage() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
-                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none"
+                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent dark:bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none placeholder:text-muted-foreground"
                 disabled={isStreaming}
                 maxRows={3}
               />

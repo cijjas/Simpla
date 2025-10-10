@@ -18,14 +18,21 @@ const pendingChecks = new Set<number>();
 export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
   const { isAuthenticated } = useAuth();
   const api = useApi();
-  const [isFavorite, setIsFavorite] = useState(favoriteCache.get(normaId) || false);
+  const [isFavorite, setIsFavorite] = useState(
+    favoriteCache.get(normaId) || false,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasChecked = useRef(false);
 
   // Check if norma is favorited
   const checkFavoriteStatus = useCallback(async () => {
-    if (!isAuthenticated || !normaId || hasChecked.current || pendingChecks.has(normaId)) {
+    if (
+      !isAuthenticated ||
+      !normaId ||
+      hasChecked.current ||
+      pendingChecks.has(normaId)
+    ) {
       return;
     }
 
@@ -39,9 +46,18 @@ export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
     try {
       pendingChecks.add(normaId);
       setError(null);
-      
-      const response = await api.get<{ is_favorite: boolean }>(`/api/favorites/check/${normaId}`);
-      
+
+      const response = await api.get<{ is_favorite: boolean }>(
+        `/api/favorites/check/${normaId}`,
+      );
+
+      console.log(
+        '[useFavoriteToggle] Check response for normaId',
+        normaId,
+        ':',
+        response,
+      );
+
       // Update cache and state
       favoriteCache.set(normaId, response.is_favorite);
       setIsFavorite(response.is_favorite);
@@ -69,7 +85,7 @@ export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
       setError(null);
 
       await api.post('/api/favorites/toggle', { norma_id: normaId });
-      
+
       // Update cache and state immediately for better UX
       const newFavoriteStatus = !isFavorite;
       favoriteCache.set(normaId, newFavoriteStatus);
@@ -107,6 +123,6 @@ export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
     isFavorite,
     loading,
     error,
-    toggleFavorite
+    toggleFavorite,
   };
 }

@@ -20,8 +20,6 @@
   --neutral-800: #1e253b;
   --neutral-900: #0f152a;
   --neutral-950: #020717;
-
-  /* Nano theme as default */
   --background: oklch(0.9791 0 0);
   --foreground: oklch(0.3564 0.0391 248.9745);
   --card: oklch(1.0000 0 0);
@@ -33,7 +31,7 @@
   --secondary: oklch(0.9524 0.0045 214.3287);
   --secondary-foreground: oklch(0.3564 0.0391 248.9745);
   --muted: oklch(0.9551 0 0);
-  --muted-foreground: oklch(0.6299 0.0152 202.3668);
+  --muted-foreground: oklch(0.4302 0.0127 261.7549);
   --accent: oklch(0.9421 0.0035 247.8596);
   --accent-foreground: oklch(0.3970 0.0444 249.0002);
   --destructive: oklch(0.5433 0.1740 29.6967);
@@ -72,7 +70,7 @@
   --shadow-lg: 0px 2px 4px 0px hsl(0 0% 40% / 0.10), 0px 4px 6px -1px hsl(0 0% 40% / 0.10);
   --shadow-xl: 0px 2px 4px 0px hsl(0 0% 40% / 0.10), 0px 8px 10px -1px hsl(0 0% 40% / 0.10);
   --shadow-2xl: 0px 2px 4px 0px hsl(0 0% 40% / 0.25);
-  --tracking-normal: -0.025em;
+  --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
 

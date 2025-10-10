@@ -9,7 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Copy, Download, Share2, Check, Link as LinkIcon, Star, FolderPlus } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  Share2,
+  Check,
+  Link as LinkIcon,
+  Star,
+  FolderPlus,
+} from 'lucide-react';
 import { SiX, SiWhatsapp } from 'react-icons/si';
 import {
   Tooltip,
@@ -27,7 +35,13 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   const [isAddToFolderOpen, setIsAddToFolderOpen] = useState(false);
 
   // Favorites functionality
-  const { isFavorite, loading: favoriteLoading, toggleFavorite } = useFavoriteToggle(norma?.id || 0);
+  const {
+    isFavorite,
+    loading: favoriteLoading,
+    toggleFavorite,
+  } = useFavoriteToggle(norma?.id || 0);
+
+  console.log('[NormaActions] norma.id:', norma?.id, 'isFavorite:', isFavorite);
 
   /* ───────── Copy ───────── */
   const handleCopy = async () => {
@@ -297,18 +311,16 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
         {/* Favorite */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              size='icon' 
-              variant='outline' 
+            <Button
+              size='icon'
+              variant='outline'
               onClick={toggleFavorite}
               disabled={favoriteLoading || !norma?.id}
             >
-              <Star 
+              <Star
                 className={`h-4 w-4 ${
-                  isFavorite 
-                    ? 'fill-yellow-400 text-yellow-400' 
-                    : 'text-gray-400'
-                }`} 
+                  isFavorite ? 'fill-yellow-400 text-yellow-400' : ''
+                }`}
               />
             </Button>
           </TooltipTrigger>
@@ -320,18 +332,16 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
         {/* Add to Folder */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button 
-              size='icon' 
-              variant='outline' 
+            <Button
+              size='icon'
+              variant='outline'
               onClick={() => setIsAddToFolderOpen(true)}
               disabled={!norma?.id}
             >
-              <FolderPlus className="h-4 w-4" />
+              <FolderPlus className='h-4 w-4' />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            Agregar a carpeta
-          </TooltipContent>
+          <TooltipContent>Agregar a carpeta</TooltipContent>
         </Tooltip>
 
         {/* Download */}
