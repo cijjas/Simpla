@@ -128,7 +128,7 @@ def fetch_batch_entities(search_results: List[Dict], grpc_host: str = "localhost
         grpc_port: The gRPC server port (default: 50051)
 
     Returns:
-        dict with keys: success (bool), message (str), divisions_json (str), articles_json (str)
+        dict with keys: success (bool), message (str), normas_json (str)
     """
     entity_pairs = _parse_entity_pairs_from_search_results(search_results)
 
@@ -138,8 +138,7 @@ def fetch_batch_entities(search_results: List[Dict], grpc_host: str = "localhost
         return {
             "success": response.success,
             "message": response.message,
-            "divisions_json": response.divisions_json,
-            "articles_json": response.articles_json
+            "normas_json": response.normas_json
         }
 
     return _handle_grpc_call(
@@ -148,7 +147,7 @@ def fetch_batch_entities(search_results: List[Dict], grpc_host: str = "localhost
         rpc_call,
         "Successfully fetched batch entities",
         "gRPC error fetching batch entities",
-        {"success": False, "divisions_json": "[]", "articles_json": "[]"}
+        {"success": False, "normas_json": "[]"}
     )
 
 

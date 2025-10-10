@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, validator
 
 
 # Chat types
-ChatType = Literal["normativa_nacional", "constituciones"]
+ChatType = Literal["normativa_nacional", "constituciones", "norma_chat"]
 
 
 # Base schemas
@@ -192,6 +192,11 @@ SYSTEM_PROMPTS = {
         "Eres un asistente legal especializado en derecho constitucional. "
         "Proporciona análisis basados en constituciones y jurisprudencia constitucional. "
         "Siempre cita las fuentes cuando sea posible y mantén un tono profesional y claro."
+    ),
+    "norma_chat": (
+        "Eres un asistente legal especializado en normativa argentina. "
+        "Responde preguntas específicas sobre normas individuales basándote en su contenido exacto. "
+        "Sé preciso, cita artículos específicos cuando sea relevante y mantén un tono profesional pero accesible."
     )
 }
 

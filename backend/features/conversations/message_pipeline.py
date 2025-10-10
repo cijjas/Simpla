@@ -137,10 +137,10 @@ class MessagePipeline:
             logger.info(f"Processing legal question. Original: {data.content}, Reformulated: {reformulated_question}")
             
             # Step 1: Fetch legal context and norma IDs
-            articles_data, divisions_data, norma_ids = fetch_and_parse_legal_context(reformulated_question)
-            
+            normas_data, norma_ids = fetch_and_parse_legal_context(reformulated_question)
+
             # Step 2: Build enhanced prompt
-            enhanced_prompt = build_enhanced_prompt(data.content, articles_data, divisions_data)
+            enhanced_prompt = build_enhanced_prompt(data.content, normas_data)
             
             # Step 3: Generate AI response
             actual_session_id = str(data.session_id) if data.session_id else "new-session"

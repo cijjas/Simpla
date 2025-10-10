@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from core.proto import relational_pb2 as relational__pb2
+from core.proto import relational_pb2 as core_dot_proto_dot_relational__pb2
 
 
 class RelationalServiceStub(object):
@@ -16,23 +16,23 @@ class RelationalServiceStub(object):
         """
         self.Store = channel.unary_unary(
                 '/relational.RelationalService/Store',
-                request_serializer=relational__pb2.StoreRequest.SerializeToString,
-                response_deserializer=relational__pb2.StoreResponse.FromString,
+                request_serializer=core_dot_proto_dot_relational__pb2.StoreRequest.SerializeToString,
+                response_deserializer=core_dot_proto_dot_relational__pb2.StoreResponse.FromString,
                 )
         self.ReconstructNorm = channel.unary_unary(
                 '/relational.RelationalService/ReconstructNorm',
-                request_serializer=relational__pb2.ReconstructNormRequest.SerializeToString,
-                response_deserializer=relational__pb2.ReconstructNormResponse.FromString,
+                request_serializer=core_dot_proto_dot_relational__pb2.ReconstructNormRequest.SerializeToString,
+                response_deserializer=core_dot_proto_dot_relational__pb2.ReconstructNormResponse.FromString,
                 )
         self.ReconstructNormById = channel.unary_unary(
                 '/relational.RelationalService/ReconstructNormById',
-                request_serializer=relational__pb2.ReconstructNormByIdRequest.SerializeToString,
-                response_deserializer=relational__pb2.ReconstructNormResponse.FromString,
+                request_serializer=core_dot_proto_dot_relational__pb2.ReconstructNormByIdRequest.SerializeToString,
+                response_deserializer=core_dot_proto_dot_relational__pb2.ReconstructNormResponse.FromString,
                 )
         self.GetBatch = channel.unary_unary(
                 '/relational.RelationalService/GetBatch',
-                request_serializer=relational__pb2.GetBatchRequest.SerializeToString,
-                response_deserializer=relational__pb2.GetBatchResponse.FromString,
+                request_serializer=core_dot_proto_dot_relational__pb2.GetBatchRequest.SerializeToString,
+                response_deserializer=core_dot_proto_dot_relational__pb2.GetBatchResponse.FromString,
                 )
 
 
@@ -68,23 +68,23 @@ def add_RelationalServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'Store': grpc.unary_unary_rpc_method_handler(
                     servicer.Store,
-                    request_deserializer=relational__pb2.StoreRequest.FromString,
-                    response_serializer=relational__pb2.StoreResponse.SerializeToString,
+                    request_deserializer=core_dot_proto_dot_relational__pb2.StoreRequest.FromString,
+                    response_serializer=core_dot_proto_dot_relational__pb2.StoreResponse.SerializeToString,
             ),
             'ReconstructNorm': grpc.unary_unary_rpc_method_handler(
                     servicer.ReconstructNorm,
-                    request_deserializer=relational__pb2.ReconstructNormRequest.FromString,
-                    response_serializer=relational__pb2.ReconstructNormResponse.SerializeToString,
+                    request_deserializer=core_dot_proto_dot_relational__pb2.ReconstructNormRequest.FromString,
+                    response_serializer=core_dot_proto_dot_relational__pb2.ReconstructNormResponse.SerializeToString,
             ),
             'ReconstructNormById': grpc.unary_unary_rpc_method_handler(
                     servicer.ReconstructNormById,
-                    request_deserializer=relational__pb2.ReconstructNormByIdRequest.FromString,
-                    response_serializer=relational__pb2.ReconstructNormResponse.SerializeToString,
+                    request_deserializer=core_dot_proto_dot_relational__pb2.ReconstructNormByIdRequest.FromString,
+                    response_serializer=core_dot_proto_dot_relational__pb2.ReconstructNormResponse.SerializeToString,
             ),
             'GetBatch': grpc.unary_unary_rpc_method_handler(
                     servicer.GetBatch,
-                    request_deserializer=relational__pb2.GetBatchRequest.FromString,
-                    response_serializer=relational__pb2.GetBatchResponse.SerializeToString,
+                    request_deserializer=core_dot_proto_dot_relational__pb2.GetBatchRequest.FromString,
+                    response_serializer=core_dot_proto_dot_relational__pb2.GetBatchResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -108,8 +108,8 @@ class RelationalService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/Store',
-            relational__pb2.StoreRequest.SerializeToString,
-            relational__pb2.StoreResponse.FromString,
+            core_dot_proto_dot_relational__pb2.StoreRequest.SerializeToString,
+            core_dot_proto_dot_relational__pb2.StoreResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -125,8 +125,8 @@ class RelationalService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/ReconstructNorm',
-            relational__pb2.ReconstructNormRequest.SerializeToString,
-            relational__pb2.ReconstructNormResponse.FromString,
+            core_dot_proto_dot_relational__pb2.ReconstructNormRequest.SerializeToString,
+            core_dot_proto_dot_relational__pb2.ReconstructNormResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -142,8 +142,8 @@ class RelationalService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/ReconstructNormById',
-            relational__pb2.ReconstructNormByIdRequest.SerializeToString,
-            relational__pb2.ReconstructNormResponse.FromString,
+            core_dot_proto_dot_relational__pb2.ReconstructNormByIdRequest.SerializeToString,
+            core_dot_proto_dot_relational__pb2.ReconstructNormResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -159,7 +159,7 @@ class RelationalService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/relational.RelationalService/GetBatch',
-            relational__pb2.GetBatchRequest.SerializeToString,
-            relational__pb2.GetBatchResponse.FromString,
+            core_dot_proto_dot_relational__pb2.GetBatchRequest.SerializeToString,
+            core_dot_proto_dot_relational__pb2.GetBatchResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

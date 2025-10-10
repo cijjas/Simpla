@@ -34,7 +34,7 @@ class Conversation(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint(
-            "chat_type IN ('normativa_nacional', 'constituciones')",
+            "chat_type IN ('normativa_nacional', 'constituciones', 'norma_chat')",
             name="check_conversation_chat_type"
         ),
         Index('idx_conversations_user_updated', 'user_id', 'updated_at', postgresql_where=is_deleted == False),
