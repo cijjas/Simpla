@@ -8,12 +8,12 @@ from fastapi import HTTPException
 from core.utils.logging_config import get_logger
 logger = get_logger(__name__)
 
-def fetch_and_parse_legal_context(user_question: str) -> tuple[list, list, list]:
+def fetch_and_parse_legal_context(user_question: str) -> tuple[list, list]:
     """
-    Fetch relevant legal articles and divisions based on user question.
+    Fetch relevant legal context based on user question.
 
     Returns:
-        Tuple of (articles_data, divisions_data, norma_ids)
+        Tuple of (normas_data, norma_ids)
     """
     # Generate embedding for user question
     embedding_result = get_embedding(user_question)
@@ -29,7 +29,7 @@ def fetch_and_parse_legal_context(user_question: str) -> tuple[list, list, list]
         filters={},
         limit=5
     )
-    
+
     # Log individual search results structure
     for i, result in enumerate(search_results.get("results", [])):
         logger.info(f"Search result {i}: {result}")
@@ -40,29 +40,18 @@ def fetch_and_parse_legal_context(user_question: str) -> tuple[list, list, list]
 
     # Fetch batch entities from relational microservice
     batch_result = fetch_batch_entities(search_results.get("results", []))
-    logger.info(f"Batch fetch result: {batch_result}")
 
-    # Parse divisions
-    divisions_json_str = batch_result["divisions_json"]
+    # Parse normas
+    normas_json_str = batch_result["normas_json"]
     try:
-        divisions_data = json.loads(divisions_json_str)
-        logger.info("Divisions JSON:\n%s", json.dumps(divisions_data, indent=2, ensure_ascii=False))
+        normas_data = json.loads(normas_json_str)
+        logger.info("Normas JSON:\n%s", json.dumps(normas_data, indent=2, ensure_ascii=False))
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse divisions_json: {e}")
-        logger.info(f"Raw divisions_json string: {divisions_json_str}")
-        divisions_data = []
+        logger.error(f"Failed to parse normas_json: {e}")
+        logger.info(f"Raw normas_json string: {normas_json_str}")
+        normas_data = []
 
-    # Parse articles
-    articles_json_str = batch_result["articles_json"]
-    try:
-        articles_data = json.loads(articles_json_str)
-        logger.info("Articles JSON:\n%s", json.dumps(articles_data, indent=2, ensure_ascii=False))
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse articles_json: {e}")
-        logger.info(f"Raw articles_json string: {articles_json_str}")
-        articles_data = []
-
-    return articles_data, divisions_data, norma_ids
+    return normas_data, norma_ids
 
 
 def _extract_norma_ids_from_search_results(search_results: list) -> list:
@@ -92,25 +81,26 @@ def _extract_norma_ids_from_search_results(search_results: list) -> list:
     return list(norma_ids)
 
 
-def build_enhanced_prompt(user_question: str, articles_data: list, divisions_data: list) -> str:
+def build_enhanced_prompt(user_question: str, normas_data: list) -> str:
     """Build an enhanced prompt with legal context for the AI."""
     prompt = f"""
-    Eres un asistente experto en derecho y normativa argentina. 
+    Eres un asistente experto en derecho y normativa argentina.
     Tu tarea es responder con precisión, claridad y neutralidad a consultas sobre leyes, decretos, disposiciones y reglamentaciones de la República Argentina.
 
-    Dispones de información proveniente de artículos y divisiones jurídicas que pueden contener fragmentos relevantes para la consulta. 
-    Usa esa información como si formara parte de tu conocimiento, **sin mencionar que proviene de un contexto o de documentos**. 
+    Dispones de información proveniente de normas jurídicas que pueden contener fragmentos relevantes para la consulta.
+    Usa esa información como fuente exlusiva de conocimiento, haciendo referencia a la norma **SOLO UTILIZANDO LA INFORMACION PROVISTA en normas relevantes**.
+    (por ejemplo: "según el Decreto que trata acerca de Simbolos patrios (titulo_sumario) publicado en ...").
 
-    Si un fragmento menciona leyes, decretos, artículos o normas específicas, **puedes citarlos naturalmente en tu respuesta** 
-    (por ejemplo: “según la Ley 14.346…” o “el Decreto 10.302/1944 establece…”).  
-    Si la información no aparece en los textos, puedes complementar con conocimiento general y verificado, 
+    Si un fragmento menciona leyes, decretos, artículos o normas específicas, **puedes citarlos naturalmente en tu respuesta**
+    (por ejemplo: "según la Ley 14.346…" o "el Decreto 10.302/1944 establece…").
+    Si la información no aparece en los textos, puedes complementar con conocimiento general y verificado,
     siempre que sea factual, seguro y relacionado con Argentina.
 
     Reglas generales:
-    - No digas que te fueron proporcionados “documentos”, “contexto” o “fragmentos”.
+    - No digas que te fueron proporcionados "documentos", "contexto" o "fragmentos".
     - Sí puedes citar leyes, artículos o decretos si aparecen o son relevantes.
     - No inventes normas ni cites leyes inexistentes.
-    - Si no existe una norma aplicable, acláralo con naturalidad (“no hay una ley específica que regule este tema”).
+    - Si no existe una norma aplicable, acláralo con naturalidad ("no hay una ley específica que regule este tema").
     - Si la pregunta no es jurídica, respóndela brevemente con información verificada, de manera respetuosa y neutral.
     - Evita opiniones políticas, ideológicas o personales.
     - No especules sobre hechos, personas o instituciones.
@@ -119,11 +109,8 @@ def build_enhanced_prompt(user_question: str, articles_data: list, divisions_dat
     Pregunta del usuario:
     <pregunta_usuario>{user_question}</pregunta_usuario>
 
-    Fragmentos de normas relevantes:
-    <normas_relevantes>{json.dumps(articles_data, indent=2, ensure_ascii=False)}</normas_relevantes>
-
-    Fragmentos de divisiones jurídicas relevantes:
-    <divisiones_relevantes>{json.dumps(divisions_data, indent=2, ensure_ascii=False)}</divisiones_relevantes>
+    Normas relevantes:
+    <normas_relevantes>{json.dumps(normas_data, indent=2, ensure_ascii=False)}</normas_relevantes>
 
     Elabora la mejor respuesta posible cumpliendo las reglas anteriores.
     """
