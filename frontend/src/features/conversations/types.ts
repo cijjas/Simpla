@@ -58,6 +58,7 @@ export interface SendMessageRequest {
   content: string;
   session_id?: string;
   chat_type: 'normativa_nacional' | 'constituciones';
+  tone?: ToneType;
 }
 
 export interface SendMessageResponse {
@@ -74,3 +75,5 @@ export interface FeedbackCreateRequest {
 }
 
 export type ChatType = 'normativa_nacional' | 'constituciones';
+
+export type ToneType = 'default' | 'formal' | 'academico' | 'conciso';

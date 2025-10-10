@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ConversationsAPI, type Message, type Conversation, type ConversationDetail, type ChatType, type FeedbackType } from '../index';
+import { ConversationsAPI, type Message, type Conversation, type ConversationDetail, type ChatType, type FeedbackType, type ToneType } from '../index';
 
 // State interface
 interface ConversationsState {
@@ -11,6 +11,7 @@ interface ConversationsState {
   messages: Message[];
   currentSessionId: string | null;
   chatType: ChatType;
+  tone: ToneType;
   isLoading: boolean;
   isStreaming: boolean;
   streamingMessage: string;
@@ -27,6 +28,7 @@ type ConversationsAction =
   | { type: 'ADD_MESSAGE'; payload: Message }
   | { type: 'SET_CURRENT_SESSION_ID'; payload: string | null }
   | { type: 'SET_CHAT_TYPE'; payload: ChatType }
+  | { type: 'SET_TONE'; payload: ToneType }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_STREAMING'; payload: boolean }
   | { type: 'SET_STREAMING_MESSAGE'; payload: string }
@@ -45,6 +47,7 @@ const initialState: ConversationsState = {
   messages: [],
   currentSessionId: null,
   chatType: 'normativa_nacional',
+  tone: 'default',
   isLoading: false,
   isStreaming: false,
   streamingMessage: '',
@@ -73,6 +76,9 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
     
     case 'SET_CHAT_TYPE':
       return { ...state, chatType: action.payload };
+    
+    case 'SET_TONE':
+      return { ...state, tone: action.payload };
     
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
@@ -160,6 +166,7 @@ interface ConversationsContextType {
   saveRenameConversation: (conversationId: string) => Promise<void>;
   cancelRenameConversation: () => void;
   setChatType: (chatType: ChatType) => void;
+  setTone: (tone: ToneType) => void;
   setTempTitle: (title: string) => void;
   submitFeedback: (messageId: string, feedbackType: FeedbackType) => Promise<void>;
   removeFeedback: (messageId: string) => Promise<void>;
@@ -175,6 +182,12 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const isLoadingRef = useRef(false);
   const streamingContentRef = useRef('');
   const normaIdsRef = useRef<number[] | undefined>(undefined);
+  const currentToneRef = useRef<ToneType>(state.tone);
+
+  // Sync ref with state changes
+  useEffect(() => {
+    currentToneRef.current = state.tone;
+  }, [state.tone]);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -234,7 +247,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: null });
   }, []);
 
-  // Send message
+        // Send message
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || state.isStreaming) return;
 
@@ -258,6 +271,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           content: content.trim(),
           session_id: state.currentSessionId || undefined,
           chat_type: state.chatType,
+          tone: currentToneRef.current,
         },
         (chunk) => {
           if (chunk.content) {
@@ -408,6 +422,12 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     dispatch({ type: 'SET_CHAT_TYPE', payload: chatType });
   }, []);
 
+  // Set tone
+  const setTone = useCallback((tone: ToneType) => {
+    currentToneRef.current = tone; // Update ref immediately
+    dispatch({ type: 'SET_TONE', payload: tone });
+  }, []);
+
   // Set temp title
   const setTempTitle = useCallback((title: string) => {
     dispatch({ type: 'SET_TEMP_TITLE', payload: title });
@@ -457,6 +477,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     saveRenameConversation,
     cancelRenameConversation,
     setChatType,
+    setTone,
     setTempTitle,
     submitFeedback,
     removeFeedback,

@@ -29,7 +29,7 @@ import {
   type Conversation,
   formatDate 
 } from './index';
-import { ConversationNormasDisplay } from './components';
+import { ConversationNormasDisplay, ToneSelector } from './components';
 
 export default function ConversacionesPage() {
   const router = useRouter();
@@ -46,6 +46,7 @@ export default function ConversacionesPage() {
     saveRenameConversation,
     cancelRenameConversation,
     setChatType,
+    setTone,
     setTempTitle,
     submitFeedback,
     removeFeedback,
@@ -62,6 +63,7 @@ export default function ConversacionesPage() {
     conversations,
     messages,
     chatType,
+    tone,
     isLoading,
     isStreaming,
     streamingMessage,
@@ -496,19 +498,26 @@ export default function ConversacionesPage() {
                 maxRows={3}
               />
               <InputGroupAddon align="block-end">
-                <Button
-                  className="ml-auto h-8 w-8 rounded-full p-0"
-                  size="sm"
-                  variant="default"
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isStreaming}
-                >
-                  {isStreaming ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowUp className="h-4 w-4" />
-                  )}
-                </Button>
+                <div className="flex items-center justify-between w-full">
+                  <ToneSelector
+                    selectedTone={tone}
+                    onToneChange={setTone}
+                    disabled={isStreaming}
+                  />
+                  <Button
+                    className="h-8 w-8 rounded-full p-0 ml-2"
+                    size="sm"
+                    variant="default"
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isStreaming}
+                  >
+                    {isStreaming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ArrowUp className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </InputGroupAddon>
             </InputGroup>
             
