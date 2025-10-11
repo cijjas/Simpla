@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,6 +50,7 @@ export default function ConversacionesPage() {
     setTempTitle,
     submitFeedback,
     removeFeedback,
+    createNewConversation,
   } = useConversations();
 
   // Local state for UI
@@ -91,6 +92,23 @@ export default function ConversacionesPage() {
     }
   }, [inputMessage]);
 
+  // Handle new conversation - create immediately and navigate (or navigate to existing empty one)
+  const handleNewConversation = useCallback(async () => {
+    try {
+      const conversationId = await createNewConversation();
+      router.push(`/conversaciones/${conversationId}`);
+    } catch (error) {
+      console.error('Failed to create new conversation:', error);
+    }
+  }, [createNewConversation, router]);
+
+  // Handle /conversaciones/new route - create new conversation automatically
+  useEffect(() => {
+    if (conversationId === 'new') {
+      handleNewConversation();
+    }
+  }, [conversationId, handleNewConversation]);
+
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
@@ -118,22 +136,9 @@ export default function ConversacionesPage() {
     await sendMessage(messageContent);
   };
 
-  // Navigate to new conversation ID after it's created
-  useEffect(() => {
-    if (state.currentSessionId && conversationId === 'new' && !isStreaming) {
-      // Navigate to the new conversation URL
-      router.replace(`/conversaciones/${state.currentSessionId}`);
-    }
-  }, [state.currentSessionId, conversationId, isStreaming, router]);
-
   // Handle conversation selection - navigate to conversation URL
   const handleLoadConversation = (id: string) => {
     router.push(`/conversaciones/${id}`);
-  };
-
-  // Handle new conversation - navigate to 'new' URL
-  const handleNewConversation = () => {
-    router.push('/conversaciones/new');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -61,32 +61,16 @@ const data = {
       icon: Search,
     },
     {
-      title: "Carpetas",
-      url: "/carpetas",
-      icon: Folder,
-    },
-    {
-      title: "Conversaciones",
-      url: "/conversaciones",
-      icon: MessageSquare,
-    },
-    {
       title: "Normas",
       url: "/normas",
       icon: FileText,
     },
-    
   ],
   copiloto: [
     {
-      name: "Normativa Nacional",
-      url: "/chat",
-      icon: Scale,
-    },
-    {
-      name: "Constituciones",
-      url: "/chat/constituciones",
-      icon: BookOpen,
+      name: "Conversaciones",
+      url: "/conversaciones",
+      icon: MessageSquare,
     },
   ],
   projects: [
@@ -96,9 +80,9 @@ const data = {
       icon: Star,
     },
     {
-      name: "Recent",
-      url: "/recent",
-      icon: BookOpen,
+      name: "Carpetas",
+      url: "/carpetas",
+      icon: Folder,
     },
   ],
 }
