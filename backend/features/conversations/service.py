@@ -285,12 +285,9 @@ class ConversationService:
             conversation.updated_at = datetime.utcnow()
             conversation.total_tokens += user_message.tokens_used + assistant_message.tokens_used
             
-            # Update snippet and title if this is the first message
+            # Update snippet if this is the first message
             if not conversation.snippet:
                 conversation.snippet = generate_snippet(content)
-                # Also update title to user's first message if it's still "Nueva conversación"
-                if conversation.title == "Nueva conversación":
-                    conversation.title = generate_title(content)
             
             self.db.commit()
             
@@ -379,12 +376,9 @@ class ConversationService:
             conversation.updated_at = datetime.utcnow()
             conversation.total_tokens += user_message.tokens_used + assistant_message.tokens_used
             
-            # Update snippet and title if this is the first message
+            # Update snippet if this is the first message
             if not conversation.snippet:
                 conversation.snippet = generate_snippet(content)
-                # Also update title to user's first message if it's still "Nueva conversación"
-                if conversation.title == "Nueva conversación":
-                    conversation.title = generate_title(content)
             
             self.db.commit()
             

@@ -159,7 +159,6 @@ interface ConversationsContextType {
   loadConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   selectEmptyConversation: () => void;
-  createNewConversation: () => Promise<string>; // Returns the new conversation ID
   sendMessage: (content: string) => Promise<void>;
   archiveConversation: (conversation: Conversation) => Promise<void>;
   deleteConversation: (conversation: Conversation) => Promise<void>;
@@ -248,67 +247,9 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: null });
   }, []);
 
-  // Create new conversation immediately (or navigate to existing empty one)
-  const createNewConversation = useCallback(async (): Promise<string> => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      
-      // Check if there's already an empty conversation in the list
-      // Look for conversations with no snippet or total_tokens = 0 (indicators of no messages)
-      const emptyConversation = state.conversations.find(conv => 
-        (!conv.snippet || conv.snippet.trim() === '') && conv.total_tokens === 0
-      );
-      
-      if (emptyConversation) {
-        // Found an empty conversation, return its ID
-        return emptyConversation.id;
-      }
-      
-      // No empty conversations found, create a new one
-      const conversation = await ConversationsAPI.createConversation({
-        chat_type: state.chatType,
-        title: `Nueva conversación`,
-      });
-      
-      // Add to conversations list
-      const newConversation: Conversation = {
-        id: conversation.id,
-        title: conversation.title,
-        chat_type: conversation.chat_type,
-        snippet: conversation.snippet || '',
-        create_time: conversation.created_at,
-        update_time: conversation.updated_at,
-        is_archived: conversation.is_archived,
-        total_tokens: conversation.total_tokens,
-      };
-      
-      dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
-      
-      // Set up the empty conversation state
-      dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversation });
-      dispatch({ type: 'SET_MESSAGES', payload: [] });
-      dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: conversation.id });
-      dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
-      
-      return conversation.id;
-    } catch (error) {
-      toast.error('Error creating new conversation');
-      console.error(error);
-      throw error;
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  }, [state.chatType, state.conversations]);
-
         // Send message
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || state.isStreaming) return;
-
-    // Ensure we have a session ID before sending
-    if (!state.currentSessionId) {
-      toast.error('No conversation selected');
-      return;
-    }
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
@@ -328,7 +269,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       await ConversationsAPI.sendMessage(
         {
           content: content.trim(),
-          session_id: state.currentSessionId,
+          session_id: state.currentSessionId || undefined,
           chat_type: state.chatType,
           tone: currentToneRef.current,
         },
@@ -353,33 +294,54 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             relevant_docs: normaIdsRef.current, // Include relevant_docs in the message
           }});
           
-          // Update the conversation in the list to mark it as having messages
-          if (state.currentSessionId) {
-            // Update the title in real-time for immediate UI feedback
-            dispatch({ type: 'UPDATE_CONVERSATION_TITLE', payload: { 
-              id: state.currentSessionId, 
-              title: content.trim().substring(0, 50) + (content.trim().length > 50 ? '...' : '')
-            }});
-            
-            // Also update the conversation's snippet and tokens to indicate it has messages
-            // This ensures the conversation is no longer considered "empty"
-            const updatedConversations = state.conversations.map(conv => 
-              conv.id === state.currentSessionId 
-                ? { 
-                    ...conv, 
-                    snippet: content.trim(),
-                    total_tokens: Math.max(1, conv.total_tokens), // Ensure it's not 0
-                    update_time: new Date().toISOString()
-                  }
-                : conv
-            );
-            dispatch({ type: 'SET_CONVERSATIONS', payload: updatedConversations });
+          // Set the session ID - now it should be a valid UUID from the backend
+          if (sessionId) {
+            dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: sessionId });
           }
-          
           dispatch({ type: 'SET_STREAMING', payload: false });
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
           normaIdsRef.current = undefined; // Clear relevant_docs for next message
+          
+          // If this was a new conversation, create it and add to the list
+          if (!state.currentSessionId && sessionId) {
+            // Create a new conversation object based on the first message
+            const newConversation: Conversation = {
+              id: sessionId,
+              title: content.trim(), // Use full content - truncation handled by Tailwind
+              chat_type: state.chatType,
+              snippet: content,
+              create_time: new Date().toISOString(),
+              update_time: new Date().toISOString(),
+              is_archived: false,
+              total_tokens: 0, // This will be updated when we get the actual conversation details
+            };
+            
+            // Create a conversation detail object for the current conversation
+            const newConversationDetail: ConversationDetail = {
+              ...newConversation,
+              messages: [...state.messages, {
+                id: `temp-${Date.now()}`,
+                role: 'user' as const,
+                content: content.trim(),
+                tokens_used: 0,
+                created_at: new Date().toISOString(),
+              }, {
+                id: `assistant-${Date.now()}`,
+                role: 'assistant' as const,
+                content: streamingContentRef.current,
+                tokens_used: 0,
+                created_at: new Date().toISOString(),
+              }],
+              system_prompt: '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            
+            // Add the new conversation to the list and set it as current
+            dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
+            dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: newConversationDetail });
+          }
         },
         (error) => {
           toast.error('Error sending message');
@@ -508,7 +470,6 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     loadConversations,
     loadConversation,
     selectEmptyConversation,
-    createNewConversation,
     sendMessage,
     archiveConversation,
     deleteConversation,
