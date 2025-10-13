@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,7 +50,6 @@ export default function ConversacionesPage() {
     setTempTitle,
     submitFeedback,
     removeFeedback,
-    createNewConversation,
   } = useConversations();
 
   // Local state for UI
@@ -92,23 +91,6 @@ export default function ConversacionesPage() {
     }
   }, [inputMessage]);
 
-  // Handle new conversation - create immediately and navigate (or navigate to existing empty one)
-  const handleNewConversation = useCallback(async () => {
-    try {
-      const conversationId = await createNewConversation();
-      router.push(`/conversaciones/${conversationId}`);
-    } catch (error) {
-      console.error('Failed to create new conversation:', error);
-    }
-  }, [createNewConversation, router]);
-
-  // Handle /conversaciones/new route - create new conversation automatically
-  useEffect(() => {
-    if (conversationId === 'new') {
-      handleNewConversation();
-    }
-  }, [conversationId, handleNewConversation]);
-
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
@@ -136,9 +118,22 @@ export default function ConversacionesPage() {
     await sendMessage(messageContent);
   };
 
+  // Navigate to new conversation ID after it's created
+  useEffect(() => {
+    if (state.currentSessionId && conversationId === 'new' && !isStreaming) {
+      // Navigate to the new conversation URL
+      router.replace(`/conversaciones/${state.currentSessionId}`);
+    }
+  }, [state.currentSessionId, conversationId, isStreaming, router]);
+
   // Handle conversation selection - navigate to conversation URL
   const handleLoadConversation = (id: string) => {
     router.push(`/conversaciones/${id}`);
+  };
+
+  // Handle new conversation - navigate to 'new' URL
+  const handleNewConversation = () => {
+    router.push('/conversaciones/new');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -345,11 +340,11 @@ export default function ConversacionesPage() {
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="max-w-md space-y-4">
                 <div className="flex justify-center">
-                  <SvgEstampa className="h-24 w-24 text-primary dark:text-foreground" />
+                  <SvgEstampa className="h-24 w-24 text-primary" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-serif text-3xl font-semibold text-foreground">
-                    Bienvenido
+                  <h3 className="text-lg font-semibold text-foreground">
+                    ¡Hola! ¿En qué puedo ayudarte?
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Puedes preguntarme sobre normativa nacional o constituciones. 
@@ -381,7 +376,7 @@ export default function ConversacionesPage() {
                         <User className="h-4 w-4" />
                       </div>
                     ) : (
-                      <SvgEstampa className="h-6 w-6 text-primary dark:text-foreground" />
+                      <SvgEstampa className="h-6 w-6 text-primary" />
                     )}
                   </div>
                   <div
@@ -468,7 +463,7 @@ export default function ConversacionesPage() {
                 <div className="flex gap-3 max-w-[80%]">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
-                      <SvgEstampa className="h-4 w-4 dark:text-foreground" />
+                      <SvgEstampa className="h-4 w-4" />
                     </div>
                   </div>
                   <div className="rounded-lg p-3">
@@ -490,7 +485,7 @@ export default function ConversacionesPage() {
         {/* Input Area - always visible */}
         <div className="p-4  flex-shrink-0">
           <div className="max-w-4xl mx-auto">
-            <InputGroup className="rounded-3xl pl-3 pt-2 bg-input border-border/50">
+            <InputGroup className="rounded-3xl pl-3 pt-2 bg-gray-50 border border-gray-200 dark:border-gray-700">
               <TextareaAutosize
                 ref={textareaRef}
                 data-slot="input-group-control"
@@ -498,7 +493,7 @@ export default function ConversacionesPage() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
-                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent dark:bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none placeholder:text-muted-foreground"
+                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 disabled={isStreaming}
                 maxRows={3}
               />
