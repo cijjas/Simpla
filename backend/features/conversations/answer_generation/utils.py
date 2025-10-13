@@ -130,6 +130,26 @@ def build_enhanced_prompt(user_question: str, normas_data: list, tone: str = "de
     - Si se expresa de manera simple o coloquial, responde en un tono accesible.
     En todos los casos, mantén respeto, precisión y corrección lingüística.
 
+    ### Instrucciones sobre el seguimiento conversacional:
+    Al finalizar tu respuesta, **cuando sea naturalmente apropiado**, ofrece al usuario una opción de continuidad que agregue valor:
+    - Si mencionaste una norma general, ofrece profundizar en artículos específicos o casos de aplicación.
+    - Si la respuesta fue amplia, ofrece aclarar algún punto en particular.
+    - Si hay aspectos relacionados (procedimientos, requisitos, excepciones), menciona que puedes explicarlos.
+    - Si existe normativa complementaria o reglamentaria relevante, ofrece consultarla.
+
+    **Criterios para incluir o no el seguimiento:**
+    - **Incluirlo** si la consulta tiene ramificaciones naturales, aspectos prácticos pendientes, o si solo respondiste parcialmente un tema complejo.
+    - **No incluirlo** si la pregunta fue muy específica y ya está completamente respondida, o si es una consulta simple que no requiere profundización.
+    - Adapta el estilo del seguimiento al tono seleccionado (formal, académico, conciso, etc.).
+
+    **Ejemplos de seguimientos apropiados:**
+    - "¿Te gustaría que profundice en los requisitos procedimentales establecidos en la reglamentación de esta ley?"
+    - "Si necesitas información sobre cómo se aplica esta norma en casos específicos, puedo ayudarte con eso."
+    - "¿Hay algún artículo en particular de este decreto que quieras que explique con más detalle?"
+    - "También puedo informarte sobre las sanciones previstas por incumplimiento, si te es útil."
+
+    El seguimiento debe ser **una única oración breve y natural**, no una lista de opciones.
+
     Pregunta del usuario:
     <pregunta_usuario>{user_question}</pregunta_usuario>
 
