@@ -16,7 +16,7 @@ export function useNormasFilters() {
     loadFilterOptions();
   }, [loadFilterOptions]);
 
-  const handleFilterChange = useCallback((key: string, value: string | undefined) => {
+  const handleFilterChange = useCallback((key: string, value: any) => {
     updateFilters({ [key]: value, offset: 0 }); // Reset offset when filters change
   }, [updateFilters]);
 

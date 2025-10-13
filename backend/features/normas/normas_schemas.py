@@ -16,6 +16,7 @@ class NormaSummaryResponse(BaseModel):
     publicacion: Optional[date] = None
     titulo_sumario: Optional[str] = None
     titulo_resumido: Optional[str] = None
+    texto_resumido: Optional[str] = None
     observaciones: Optional[str] = None
     nro_boletin: Optional[str] = None
     pag_boletin: Optional[str] = None

@@ -1,12 +1,10 @@
 'use client';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Search, BarChart3 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { NormasFilter } from '../components/normas-filter';
 import { NormasList } from '../components/normas-list';
-import { NormasStats } from '../components/normas-stats';
 import { useNormasSearch } from '../hooks/use-normas-search';
 
 export function NormasPage() {
@@ -15,63 +13,50 @@ export function NormasPage() {
     error
   } = useNormasSearch();
 
-
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold">Explorador de Normas</h1>
-        <p className="text-muted-foreground text-lg">
-          Busca y explora la base de datos de normas legales argentinas
-        </p>
+    <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
+      {/* Header Section - Fixed */}
+      <div className="flex-shrink-0 border-b bg-background px-6 py-4">
+        <div className="text-start space-y-1">
+          <h1 className="text-3xl font-bold font-serif">Explorador de Normas</h1>
+          <p className="text-muted-foreground text-sm">
+            Busca y explora la base de datos de normas legales argentinas
+          </p>
+        </div>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive" className="mt-3">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>{error}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="ml-4"
+              >
+                Reintentar
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>{error}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-              className="ml-4"
-            >
-              Reintentar
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Main Content - Sidebar + Results */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Filter Sidebar - Fixed width */}
+        <div className="w-80 flex-shrink-0 border-r bg-muted overflow-y-auto">
+          <div className="p-6">
+            <NormasFilter loading={loading} />
+          </div>
+        </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="search" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="search" className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Buscar Normas
-          </TabsTrigger>
-          <TabsTrigger value="stats" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Estadísticas
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Search Tab */}
-        <TabsContent value="search" className="space-y-6">
-          {/* Filter Component */}
-          <NormasFilter loading={loading} />
-
-          {/* Results */}
+        {/* Results Section - Fills remaining space */}
+        <div className="flex-1 overflow-hidden">
           <NormasList />
-        </TabsContent>
-
-        {/* Stats Tab */}
-        <TabsContent value="stats">
-          <NormasStats />
-        </TabsContent>
-      </Tabs>
-
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,22 +1,25 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { 
   FileText, 
-  Calendar, 
-  MapPin, 
-  Tag, 
   ChevronLeft, 
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Eye,
-  ExternalLink
+  ExternalLink,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNormasSearch } from '../hooks/use-normas-search';
+import { NormaCard } from './norma-card';
 
 export function NormasList() {
   const {
@@ -30,6 +33,21 @@ export function NormasList() {
     totalPages
   } = useNormasSearch();
 
+  // View state management with localStorage persistence
+  const STORAGE_KEY = 'normasViewPreference';
+  const [view, setView] = useState<'list' | 'grid'>('grid');
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'list' || saved === 'grid') {
+      setView(saved);
+    }
+  }, []);
+
+  const handleViewChange = (v: 'list' | 'grid') => {
+    setView(v);
+    localStorage.setItem(STORAGE_KEY, v);
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'No especificada';
@@ -40,7 +58,7 @@ export function NormasList() {
     }
   };
 
-  const getStatusColor = (estado?: string) => {
+  const _getStatusColor = (estado?: string) => {
     switch (estado?.toLowerCase()) {
       case 'vigente':
         return 'bg-green-100 text-green-800';
@@ -53,7 +71,7 @@ export function NormasList() {
     }
   };
 
-  const getTypeColor = (tipo?: string) => {
+  const _getTypeColor = (tipo?: string) => {
     switch (tipo?.toLowerCase()) {
       case 'ley':
         return 'bg-blue-100 text-blue-800';
@@ -66,28 +84,78 @@ export function NormasList() {
     }
   };
 
+  // Loading skeletons
   if (loading) {
+    if (view === 'grid') {
+      return (
+        <div className="px-6 py-4">
+          <section
+            className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            style={{
+              WebkitMaskImage:
+                'linear-gradient(to bottom, black 70%, transparent 100%)',
+              maskImage:
+                'linear-gradient(to bottom, black 70%, transparent 100%)',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+            }}
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card
+                key={i}
+                className='flex h-full flex-col bg-card rounded-xl animate-pulse'
+              >
+                <CardContent className='flex grow flex-col gap-3 p-4'>
+                  <div className='h-36 w-full bg-muted rounded-lg mt-auto' />
+                  <div className='flex-1' />
+                  <div className='h-7 w-3/4 mb-2 bg-muted rounded' />
+                  <div className='h-4 w-1/2 bg-muted rounded' />
+                </CardContent>
+              </Card>
+            ))}
+          </section>
+        </div>
+      );
+    }
+
+    // List skeleton - table rows
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-6 w-20" />
-                  <Skeleton className="h-6 w-24" />
-                </div>
+      <div className="h-full overflow-hidden">
+        {/* Header skeleton */}
+        <div className="bg-muted/50 border-b">
+          <div className="grid grid-cols-12 gap-4 px-4 py-3">
+            <Skeleton className="h-4 w-20 col-span-5" />
+            <Skeleton className="h-4 w-16 col-span-2" />
+            <Skeleton className="h-4 w-16 col-span-2" />
+            <Skeleton className="h-4 w-16 col-span-2" />
+            <Skeleton className="h-4 w-16 col-span-1" />
+          </div>
+        </div>
+        
+        {/* Row skeletons */}
+        <div className="divide-y divide-border">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-12 gap-4 px-4 py-3">
+              <div className="col-span-5 space-y-2">
                 <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-3 w-2/3" />
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="col-span-2 flex items-center gap-2">
+                <Skeleton className="h-6 w-16" />
+              </div>
+              <Skeleton className="h-4 w-24 col-span-2" />
+              <Skeleton className="h-4 w-20 col-span-2" />
+              <div className="col-span-1 flex justify-end gap-1">
+                <Skeleton className="h-8 w-8" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
+  // Empty state
   if (!data || data.normas.length === 0) {
     return (
       <Card>
@@ -106,56 +174,171 @@ export function NormasList() {
   const hasPrevPage = (data?.offset || 0) > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Results Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Normas Encontradas</h2>
-          <p className="text-muted-foreground">
-            {totalCount.toLocaleString()} norma{totalCount !== 1 ? 's' : ''} encontrada{totalCount !== 1 ? 's' : ''}
-          </p>
+    <div className="h-full flex flex-col">
+      {/* Results Header with View Toggle and Pagination - Fixed */}
+      <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b bg-background">
+        <div className="flex items-center gap-4">
+          <div>
+            <span className="text-sm font-medium">
+              {totalCount.toLocaleString()} norma{totalCount !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Página {currentPage} de {totalPages}
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Página {currentPage} de {totalPages}
+        
+        <div className="flex items-center gap-4">
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={!hasPrevPage}
+              onClick={() => onPageChange(0)}
+              title="Primera página"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={!hasPrevPage}
+              onClick={() => onPageChange(Math.max(0, (data?.offset || 0) - (data?.limit || 12)))}
+              title="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={!hasNextPage}
+              onClick={() => onPageChange((data?.offset || 0) + (data?.limit || 12))}
+              title="Página siguiente"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              disabled={!hasNextPage}
+              onClick={() => onPageChange((totalPages - 1) * (data?.limit || 12))}
+              title="Última página"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* View Toggle */}
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(value) => {
+              if (value) handleViewChange(value as 'list' | 'grid');
+            }}
+          >
+            <ToggleGroupItem value="grid" aria-label="Vista en cuadrícula">
+              <LayoutGrid className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="Vista en lista">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
       </div>
 
-      {/* Normas List */}
-      <div className="space-y-4">
-        {data.normas.map((norma) => (
-          <Card 
-            key={norma.id} 
-            className="transition-all hover:shadow-md"
-          >
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-2">
+      {/* Results Container - Fills space */}
+      {view === 'grid' ? (
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.normas.map((norma) => (
+              <NormaCard key={norma.id} norma={norma} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-hidden">
+          {/* Normas List View - Table Rows */}
+          <div className="h-full overflow-y-auto">
+            {/* Table Header */}
+            <div className="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b">
+              <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <div className="col-span-5">Título</div>
+                <div className="col-span-2">Fecha Publicación</div>
+                <div className="col-span-2">Tipo</div>
+                <div className="col-span-2">Boletín Oficial</div>
+                <div className="col-span-1 text-right">Acciones</div>
+              </div>
+            </div>
+
+            {/* Table Rows */}
+            <div className="divide-y divide-border">
+              {data.normas.map((norma, index) => (
+                <div
+                  key={norma.id}
+                  className={`grid grid-cols-12 gap-4 px-4 py-3 transition-colors cursor-pointer group ${
+                    index % 2 === 0 ? 'bg-background' : 'bg-muted/80'
+                  } hover:bg-muted/50`}
+                  onClick={() => window.location.href = `/normas/${norma.infoleg_id}`}
+                >
+                  {/* Title Column */}
+                  <div className="col-span-5 flex flex-col gap-1 min-w-0">
+                    <h3 className="text-sm font-serif font-bold text-foreground truncate group-hover:text-primary">
                       {norma.titulo_resumido || norma.titulo_sumario || 'Sin título'}
                     </h3>
-                    {norma.titulo_sumario && norma.titulo_sumario !== norma.titulo_resumido && (
-                      <p className="text-sm text-muted-foreground mb-2 line-clamp-1">
-                        {norma.titulo_sumario}
-                      </p>
+                   
+                  </div>
+
+                  {/* Date Column */}
+                  <div className="col-span-2 flex items-center text-sm text-muted-foreground">
+                    {norma.publicacion ? (
+                      <span>{formatDate(norma.publicacion)}</span>
+                    ) : (
+                      <span className="text-xs">-</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+
+                  {/* Type Column */}
+                  <div className="col-span-2 flex items-center text-sm text-muted-foreground">
+                    {norma.tipo_norma ? (
+                      <span>{norma.tipo_norma}</span>
+                    ) : (
+                      <span className="text-xs">-</span>
+                    )}
+                  </div>
+
+                  {/* Boletín Column */}
+                  <div className="col-span-2 flex items-center text-sm text-muted-foreground">
+                    {norma.nro_boletin ? (
+                      <span className="truncate">
+                        B.O. {norma.nro_boletin}{norma.pag_boletin ? ` • pág. ${norma.pag_boletin}` : ''}
+                      </span>
+                    ) : (
+                      <span className="text-xs">-</span>
+                    )}
+                  </div>
+
+                  {/* Actions Column */}
+                  <div className="col-span-1 flex items-center justify-end gap-1">
                     <Button
-                      variant="default"
+                      variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
                         window.location.href = `/normas/${norma.infoleg_id}`;
                       }}
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver Detalle
+                      <Eye className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
                         window.open(`https://www.argentina.gob.ar/normativa/nacional/${norma.infoleg_id}`, '_blank');
@@ -165,73 +348,19 @@ export function NormasList() {
                     </Button>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-                {/* Badges */}
-                <div className="flex flex-wrap gap-2">
-                  {norma.tipo_norma && (
-                    <Badge className={getTypeColor(norma.tipo_norma)}>
-                      <Tag className="h-3 w-3 mr-1" />
-                      {norma.tipo_norma}
-                    </Badge>
-                  )}
-                  {norma.clase_norma && norma.clase_norma.trim() && (
-                    <Badge variant="outline">
-                      {norma.clase_norma}
-                    </Badge>
-                  )}
-                  {norma.estado && (
-                    <Badge className={getStatusColor(norma.estado)}>
-                      {norma.estado}
-                    </Badge>
-                  )}
-                  {norma.jurisdiccion && (
-                    <Badge variant="secondary">
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {norma.jurisdiccion}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Sanción:</span>
-                    <span>{formatDate(norma.sancion)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Publicación:</span>
-                    <span>{formatDate(norma.publicacion)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Infoleg ID:</span>
-                    <span className="font-mono">{norma.infoleg_id}</span>
-                  </div>
-                </div>
-
-                {/* Observations */}
-                {norma.observaciones && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {norma.observaciones}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Pagination */}
+      {/* Pagination - Fixed at bottom */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3 border-t bg-background">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onPageChange(Math.max(0, (data.offset || 0) - (data.limit || 50)))}
+            onClick={() => onPageChange(Math.max(0, (data.offset || 0) - (data.limit || 12)))}
             disabled={!hasPrevPage}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -248,7 +377,7 @@ export function NormasList() {
                   key={pageNum}
                   variant={pageNum === currentPage ? "default" : "outline"}
                   size="sm"
-                  onClick={() => onPageChange((pageNum - 1) * (data.limit || 50))}
+                  onClick={() => onPageChange((pageNum - 1) * (data.limit || 12))}
                   className="w-8 h-8 p-0"
                 >
                   {pageNum}
@@ -260,7 +389,7 @@ export function NormasList() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onPageChange((data.offset || 0) + (data.limit || 50))}
+            onClick={() => onPageChange((data.offset || 0) + (data.limit || 12))}
             disabled={!hasNextPage}
           >
             Siguiente

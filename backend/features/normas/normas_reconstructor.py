@@ -272,7 +272,7 @@ class NormaReconstructor:
                         SELECT 
                             id, infoleg_id, jurisdiccion, clase_norma, tipo_norma,
                             sancion, publicacion, titulo_sumario, titulo_resumido,
-                            observaciones, nro_boletin, pag_boletin, estado,
+                            texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
                             created_at, updated_at
                         FROM norma_structured 
                         WHERE id = %s
@@ -299,7 +299,7 @@ class NormaReconstructor:
                         SELECT 
                             id, infoleg_id, jurisdiccion, clase_norma, tipo_norma,
                             sancion, publicacion, titulo_sumario, titulo_resumido,
-                            observaciones, nro_boletin, pag_boletin, estado,
+                            texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
                             created_at, updated_at
                         FROM norma_structured 
                         WHERE infoleg_id = %s
@@ -404,7 +404,7 @@ class NormaReconstructor:
                         SELECT 
                             id, infoleg_id, jurisdiccion, clase_norma, tipo_norma,
                             sancion, publicacion, titulo_sumario, titulo_resumido,
-                            observaciones, nro_boletin, pag_boletin, estado,
+                            texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
                             created_at, updated_at
                         FROM norma_structured 
                         WHERE {where_sql}

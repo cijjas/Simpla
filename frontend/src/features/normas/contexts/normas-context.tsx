@@ -63,7 +63,7 @@ const initialState: NormasState = {
   searchLoading: false,
   searchError: null,
   filters: {
-    limit: 50,
+    limit: 12,
     offset: 0,
   },
   filterOptions: null,
@@ -214,7 +214,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
   }, [state.filters]);
 
   const resetFilters = useCallback(() => {
-    dispatch({ type: 'SET_FILTERS', payload: { limit: 50, offset: 0 } });
+    dispatch({ type: 'SET_FILTERS', payload: { limit: 12, offset: 0 } });
   }, []);
 
   // Filter options actions

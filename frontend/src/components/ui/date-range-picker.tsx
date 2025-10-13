@@ -36,6 +36,8 @@ export interface DateRangePickerProps {
   /** Placeholder text for the date range picker */
   placeholder?: string;
   error?: string;
+  /** Optional className for the trigger button */
+  className?: string;
 }
 
 const getDateAdjustedForTimezone = (
@@ -107,7 +109,7 @@ export const DateRangePicker = forwardRef<
   DateRangePickerProps
 >(
   (
-    { initialDateFrom, initialDateTo, placeholder, error, onUpdate, ...props },
+    { initialDateFrom, initialDateTo, placeholder, error, onUpdate, className, ...props },
     ref,
   ) => {
     /* ---------------------------------------------------------------------
@@ -327,6 +329,7 @@ export const DateRangePicker = forwardRef<
             variant='outline'
             className={cn(
               'bg-card hover:bg-card cursor-pointer w-full max-w-full justify-between overflow-hidden text-ellipsis',
+              className,
             )}
           >
             <div className='flex flex-col text-left w-full overflow-hidden p-0 m-0'>
