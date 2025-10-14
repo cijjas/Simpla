@@ -15,7 +15,7 @@ import {
   Share2,
   Check,
   Link as LinkIcon,
-  Star,
+  Bookmark,
   FolderPlus,
 } from 'lucide-react';
 import { SiX, SiWhatsapp } from 'react-icons/si';
@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useFavoriteToggle } from '@/features/favorites';
+import { useBookmarkToggle } from '@/features/bookmark';
 import { AddToFolderDialog } from '@/features/folders';
 import { NormaDetallada } from '../utils/types';
 
@@ -34,14 +34,19 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [isAddToFolderOpen, setIsAddToFolderOpen] = useState(false);
 
-  // Favorites functionality
+  // Bookmark functionality
   const {
-    isFavorite,
-    loading: favoriteLoading,
-    toggleFavorite,
-  } = useFavoriteToggle(norma?.id || 0);
+    isBookmarked,
+    loading: bookmarkLoading,
+    toggleBookmark,
+  } = useBookmarkToggle(norma?.id || 0);
 
-  console.log('[NormaActions] norma.id:', norma?.id, 'isFavorite:', isFavorite);
+  console.log(
+    '[NormaActions] norma.id:',
+    norma?.id,
+    'isBookmarked:',
+    isBookmarked,
+  );
 
   /* ───────── Copy ───────── */
   const handleCopy = async () => {
@@ -308,24 +313,24 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
           <TooltipContent>Copiar norma</TooltipContent>
         </Tooltip>
 
-        {/* Favorite */}
+        {/* Bookmark */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               size='icon'
               variant='outline'
-              onClick={toggleFavorite}
-              disabled={favoriteLoading || !norma?.id}
+              onClick={toggleBookmark}
+              disabled={bookmarkLoading || !norma?.id}
             >
-              <Star
+              <Bookmark
                 className={`h-4 w-4 ${
-                  isFavorite ? 'fill-yellow-400 text-yellow-400' : ''
+                  isBookmarked ? 'fill-yellow-400 text-yellow-400' : ''
                 }`}
               />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+            {isBookmarked ? 'Quitar de guardados' : 'Agregar a guardados'}
           </TooltipContent>
         </Tooltip>
 

@@ -5,7 +5,7 @@ import { CalendarIcon, FileTextIcon, Bookmark } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDatePretty } from '@/lib/utils';
-import { useFavoriteToggle } from '@/features/favorites';
+import { useBookmarkToggle } from '@/features/bookmark';
 import type { NormaSummary } from '../api/normas-api';
 
 interface NormaCardProps {
@@ -13,12 +13,12 @@ interface NormaCardProps {
 }
 
 export function NormaCard({ norma }: NormaCardProps) {
-  // Check if this norma is favorited
-  const { isFavorite, toggleFavorite } = useFavoriteToggle(norma.infoleg_id);
+  // Check if this norma is bookmarked
+  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.infoleg_id);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toggleFavorite();
+    toggleBookmark();
   };
 
   // Generate display name from tipo_norma
@@ -34,12 +34,12 @@ export function NormaCard({ norma }: NormaCardProps) {
       href={`/normas/${norma.infoleg_id}`}
       className='group block h-full rounded-xl border bg-card transition hover:bg-accent hover:shadow-md relative'
     >
-      {/* Favorite bookmark (only show if favorited) */}
-      {isFavorite && (
+      {/* Bookmark indicator (only show if bookmarked) */}
+      {isBookmarked && (
         <div className='absolute top-4.5 right-3 z-10'>
-          <Bookmark 
-            className='h-6 w-6 text-primary fill-primary dark:text-foreground dark:fill-foreground cursor-pointer drop-shadow-sm' 
-            onClick={handleFavoriteClick}
+          <Bookmark
+            className='h-6 w-6 text-primary fill-primary dark:text-foreground dark:fill-foreground cursor-pointer drop-shadow-sm'
+            onClick={handleBookmarkClick}
           />
         </div>
       )}
@@ -50,7 +50,9 @@ export function NormaCard({ norma }: NormaCardProps) {
           {/* ---------- TOP SECTION : title & subtitle (fixed height) ---------- */}
           <div className='flex flex-col gap-2 flex-shrink-0'>
             {/* Title - fixed 2 lines */}
-            <h3 className={`text-base font-extrabold font-serif leading-snug line-clamp-2 h-[2.8rem] ${isFavorite ? 'pr-8' : ''}`}>
+            <h3
+              className={`text-base font-extrabold font-serif leading-snug line-clamp-2 h-[2.8rem] ${isBookmarked ? 'pr-8' : ''}`}
+            >
               {norma.titulo_resumido || 'Sin título'}
             </h3>
 
@@ -115,5 +117,3 @@ export function NormaCard({ norma }: NormaCardProps) {
     </Link>
   );
 }
-
-

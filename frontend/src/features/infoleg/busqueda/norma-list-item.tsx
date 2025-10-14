@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarIcon, FileTextIcon, Star } from 'lucide-react';
+import { CalendarIcon, FileTextIcon, Bookmark } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { formatDatePretty } from '@/lib/utils';
 
 import { JSX } from 'react';
-import { useFavoriteToggle } from '@/features/favorites';
+import { useBookmarkToggle } from '@/features/bookmark';
 import { NormaItem } from '../utils/types';
 
 export default function NormaListItem({
@@ -15,12 +15,12 @@ export default function NormaListItem({
 }: {
   norma: NormaItem;
 }): JSX.Element {
-  // Check if this norma is favorited
-  const { isFavorite, toggleFavorite } = useFavoriteToggle(norma.id);
+  // Check if this norma is bookmarked
+  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.id);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toggleFavorite();
+    toggleBookmark();
   };
 
   const tituloVisible =
@@ -33,12 +33,12 @@ export default function NormaListItem({
       href={`/norma/${norma.id}`}
       className='group relative block rounded-xl border bg-card transition hover:bg-accent hover:shadow-md'
     >
-      {/* Favorite star (only show if favorited) */}
-      {isFavorite && (
+      {/* Bookmark indicator (only show if bookmarked) */}
+      {isBookmarked && (
         <div className='absolute top-3 right-3 z-10'>
-          <Star 
-            className='h-5 w-5 text-yellow-400 fill-yellow-400 cursor-pointer drop-shadow-sm' 
-            onClick={handleFavoriteClick}
+          <Bookmark
+            className='h-5 w-5 text-yellow-400 fill-yellow-400 cursor-pointer drop-shadow-sm'
+            onClick={handleBookmarkClick}
           />
         </div>
       )}

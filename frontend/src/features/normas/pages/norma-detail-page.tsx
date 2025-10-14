@@ -297,7 +297,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
       <div key={article.id} className='relative'>
         {level > 0 && (
           <div
-            className='absolute top-0 bottom-0 w-px bg-gradient-to-b from-border/30 to-transparent'
+            className='absolute top-0 bottom-0 w-px bg-border'
             style={{ left: `${indent - 12}px` }}
           />
         )}
@@ -330,7 +330,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
               </span>
             )}
             <div
-              className='inline text-[15px] text-muted-foreground leading-[1.8] tracking-wide prose prose-sm max-w-none norma-html'
+              className='inline text-[15px] text-muted-foreground leading-[1.8] tracking-wide prose prose-sm max-w-none norma-html text-justify'
               dangerouslySetInnerHTML={{ __html: cleanBody }}
             />
           </div>
@@ -442,7 +442,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
 
               {cleanBody && (
                 <div
-                  className='mt-2 text-[15px] text-muted-foreground leading-[1.8] tracking-wide prose prose-sm max-w-none norma-html'
+                  className='mt-2 text-[15px] text-muted-foreground leading-[1.8] tracking-wide prose prose-sm max-w-none norma-html text-justify'
                   dangerouslySetInnerHTML={{ __html: cleanBody }}
                 />
               )}
@@ -459,7 +459,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
             )}
 
             {division.child_divisions.length > 0 && (
-              <div className='ml-6 border-l border-border/20 pl-6 space-y-6'>
+              <div className='ml-6 border-l border-border pl-6 space-y-6'>
                 {division.child_divisions.map(child =>
                   renderDivision(child, level + 1),
                 )}
@@ -473,14 +473,14 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
 
   if (loading) {
     return (
-      <div className='container mx-auto p-6'>
-        <div className='flex justify-center'>
-          <div className='flex gap-8 items-start max-w-[1200px] w-full'>
-            {/* Sidebar skeleton */}
-            <aside className='w-64 flex-shrink-0 space-y-4'>
+      <div className='min-h-screen'>
+        <div className='flex'>
+          {/* Sidebar skeleton */}
+          <aside className='w-72 flex-shrink-0 border-r border-border bg-muted/30'>
+            <div className='sticky top-0 p-6 space-y-6'>
               {/* Back button skeleton */}
               <Skeleton className='h-10 w-28' />
-              
+
               {/* Navigation skeleton */}
               <div className='space-y-3'>
                 <Skeleton className='h-5 w-24' />
@@ -491,10 +491,12 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
                   <Skeleton className='h-10 w-full' />
                 </div>
               </div>
-            </aside>
+            </div>
+          </aside>
 
-            {/* Main content skeleton */}
-            <section className='flex-1 max-w-3xl space-y-6'>
+          {/* Main content skeleton */}
+          <main className='flex-1 flex justify-center'>
+            <section className='w-full max-w-4xl px-8 py-12 space-y-6'>
               <div className='space-y-4'>
                 <Skeleton className='h-10 w-3/4' />
                 <div className='flex gap-2'>
@@ -510,7 +512,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
                 <Skeleton className='h-24 w-full' />
               </div>
             </section>
-          </div>
+          </main>
         </div>
       </div>
     );
@@ -518,45 +520,49 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
 
   if (error) {
     return (
-      <div className='container mx-auto p-6'>
-        <div className='flex items-center gap-4 mb-6'>
-          <Button variant='ghost' onClick={() => router.back()}>
-            <ArrowLeft className='h-4 w-4 mr-2' />
-            Volver
-          </Button>
-        </div>
-        <Alert variant='destructive'>
-          <AlertCircle className='h-4 w-4' />
-          <AlertDescription className='flex items-center justify-between'>
-            <span>{error}</span>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={retry}
-              className='ml-4'
-            >
-              Reintentar
+      <div className='min-h-screen p-8'>
+        <div className='max-w-4xl mx-auto'>
+          <div className='flex items-center gap-4 mb-6'>
+            <Button variant='ghost' onClick={() => router.back()}>
+              <ArrowLeft className='h-4 w-4 mr-2' />
+              Volver
             </Button>
-          </AlertDescription>
-        </Alert>
+          </div>
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertDescription className='flex items-center justify-between'>
+              <span>{error}</span>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={retry}
+                className='ml-4'
+              >
+                Reintentar
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
   if (!norma) {
     return (
-      <div className='container mx-auto p-6'>
-        <div className='flex items-center gap-4 mb-6'>
-          <Button variant='ghost' onClick={() => router.back()}>
-            <ArrowLeft className='h-4 w-4 mr-2' />
-            Volver
-          </Button>
-        </div>
-        <div className='text-center py-12'>
-          <h3 className='text-lg font-semibold mb-2'>Norma no encontrada</h3>
-          <p className='text-muted-foreground'>
-            La norma solicitada no existe o no está disponible.
-          </p>
+      <div className='min-h-screen p-8'>
+        <div className='max-w-4xl mx-auto'>
+          <div className='flex items-center gap-4 mb-6'>
+            <Button variant='ghost' onClick={() => router.back()}>
+              <ArrowLeft className='h-4 w-4 mr-2' />
+              Volver
+            </Button>
+          </div>
+          <div className='text-center py-12'>
+            <h3 className='text-lg font-semibold mb-2'>Norma no encontrada</h3>
+            <p className='text-muted-foreground'>
+              La norma solicitada no existe o no está disponible.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -565,226 +571,232 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
   const hasDivisions = norma.divisions && norma.divisions.length > 0;
 
   return (
-    <div className='container mx-auto p-6'>
-      {/* Back button when sidebar is not visible */}
-      {(!hasDivisions || showOriginal) && (
-        <div className='mb-6'>
-          <Button variant='ghost' onClick={() => router.back()}>
-            <ArrowLeft className='h-4 w-4 mr-2' />
-            Volver
-          </Button>
-        </div>
-      )}
-
-      {/* Main layout with sidebar */}
-      <div className='flex justify-center'>
-        <div className='flex gap-8 items-start min-h-screen max-w-[1200px] w-full'>
-          {/* Sticky Sidebar - only show if there are divisions and not showing original text */}
-          {hasDivisions && !showOriginal && (
-            <aside className='w-64 flex-shrink-0 sticky top-20 self-start h-fit'>
-              <div className='space-y-4'>
-                {/* Back button - always visible */}
-                <div className='flex items-center gap-4'>
-                  <Button variant='ghost' onClick={() => router.back()}>
-                    <ArrowLeft className='h-4 w-4 mr-2' />
-                    Volver
-                  </Button>
-                </div>
-                
-                {/* Navigation */}
-                <ScrollArea className='h-[calc(100vh-10rem)]'>
-                  <nav className='space-y-1 pr-4'>
-                    <h2 className='font-semibold text-md text-muted-foreground mb-3 px-3 '>
-                      Contenido
-                    </h2>
-                    <div className='border-b border-border/30' />
-                    {norma.divisions.map(division => (
-                      <button
-                        key={division.id}
-                        onClick={() => scrollToDivision(division.id)}
-                        className={cn(
-                          'w-full text-left px-3 py-2 rounded-md text-sm font-serif transition-colors',
-                          activeDivisionId === division.id
-                            ? 'bg-accent text-accent-foreground font-medium'
-                            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                        )}
-                      >
-                        <span className='line-clamp-2'>
-                          {division.ordinal && (
-                            <span className='font-medium mr-1.5'>
-                              {division.ordinal}
-                            </span>
-                          )}
-                          {division.name || division.title || 'División sin título'}
-                        </span>
-                      </button>
-                    ))}
-                  </nav>
-                </ScrollArea>
+    <div className='min-h-screen'>
+      {/* Layout with sidebar pushed to the edge */}
+      <div className='flex'>
+        {/* Sticky Sidebar - only show if there are divisions and not showing original text */}
+        {hasDivisions && !showOriginal && (
+          <aside className='w-72 flex-shrink-0 border-r border-border bg-muted/30 h-screen sticky top-0'>
+            <div className='p-6 space-y-6 flex flex-col h-full'>
+              {/* Back button - always visible */}
+              <div className='flex-shrink-0'>
+                <Button variant='ghost' onClick={() => router.back()}>
+                  <ArrowLeft className='h-4 w-4 mr-2' />
+                  Volver
+                </Button>
               </div>
-            </aside>
-          )}
 
-          {/* Main content */}
+              {/* Navigation */}
+              <ScrollArea className='flex-1'>
+                <nav className='space-y-1 pr-2'>
+                  <h2 className='font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-4 px-3'>
+                    Contenido
+                  </h2>
+                  {norma.divisions.map(division => (
+                    <button
+                      key={division.id}
+                      onClick={() => scrollToDivision(division.id)}
+                      className={cn(
+                        'w-full text-left px-3 py-2.5 rounded-md text-sm font-serif transition-all',
+                        activeDivisionId === division.id
+                          ? 'bg-accent text-foreground font-semibold border-l-2 border-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      )}
+                    >
+                      <span className='line-clamp-2'>
+                        {division.ordinal && (
+                          <span className='font-medium mr-1.5'>
+                            {division.ordinal}
+                          </span>
+                        )}
+                        {division.name ||
+                          division.title ||
+                          'División sin título'}
+                      </span>
+                    </button>
+                  ))}
+                </nav>
+              </ScrollArea>
+            </div>
+          </aside>
+        )}
+
+        {/* Main content area - centered with max width */}
+        <main className='flex-1 flex justify-center'>
           <section
             className={cn(
-              'flex-1 space-y-10',
-              hasDivisions && !showOriginal ? 'max-w-3xl' : 'max-w-5xl mx-auto',
+              'w-full space-y-10',
+              hasDivisions && !showOriginal
+                ? 'max-w-4xl px-8 py-12'
+                : 'max-w-5xl px-12 py-12',
             )}
           >
-          {/* Header Section */}
-          <header className='space-y-6'>
-            <div className='flex items-center justify-between gap-4 flex-wrap'>
-              <h1 className='text-3xl font-bold font-serif leading-tight break-words'>
-                {norma.titulo_sumario || norma.titulo_resumido || 'Sin título'}
-              </h1>
-              <div className='flex items-center gap-2'>
-                {legacyNorma && <NormaActions norma={legacyNorma} />}
+            {/* Back button when sidebar is not visible */}
+            {(!hasDivisions || showOriginal) && (
+              <div className='mb-6'>
+                <Button variant='ghost' onClick={() => router.back()}>
+                  <ArrowLeft className='h-4 w-4 mr-2' />
+                  Volver
+                </Button>
               </div>
-            </div>
-
-            <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
-              {norma.tipo_norma?.trim() && <Badge>{norma.tipo_norma}</Badge>}
-              {norma.clase_norma?.trim() && (
-                <Badge variant='secondary'>{norma.clase_norma}</Badge>
-              )}
-              {norma.estado?.trim() && (
-                <Badge variant='outline'>{norma.estado}</Badge>
-              )}
-
-              <div className='h-4 border-l border-border/30 mx-1' />
-
-              {norma.publicacion && (
-                <span>Publicación: {formatDateSlash(norma.publicacion)}</span>
-              )}
-
-              {norma.nro_boletin && (
-                <span>
-                  Boletín Oficial&nbsp;{norma.nro_boletin}
-                  {norma.pag_boletin && ` • pág ${norma.pag_boletin}`}
-                </span>
-              )}
-
-              <div className='h-4 border-l border-border/30 mx-1' />
-
-              {norma.sancion && (
-                <span>Sanción: {formatDateSlash(norma.sancion)}</span>
-              )}
-              {norma.jurisdiccion && (
-                <span>Jurisdicción: {norma.jurisdiccion}</span>
-              )}
-            </div>
-
-            {!!(modificaCount || modificadaCount) && (
-              <Accordion
-                type='multiple'
-                className='w-full'
-                value={open}
-                onValueChange={setOpen}
-              >
-                {modificaCount > 0 && (
-                  <AccordionItem value='modifica'>
-                    <AccordionTrigger>
-                      Modifica ({modificaCount})
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {modifica === null ? (
-                        <Progress value={modificaProgress} />
-                      ) : (
-                        <ul className='flex flex-col gap-2'>
-                          {modifica.map(n => (
-                            <NormaListItem key={n.id} data={n} />
-                          ))}
-                        </ul>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
-
-                {modificadaCount > 0 && (
-                  <AccordionItem value='modificada'>
-                    <AccordionTrigger>
-                      Modificada por ({modificadaCount})
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {modificadaPor === null ? (
-                        <Progress value={modificadaProgress} />
-                      ) : (
-                        <ul className='flex flex-col gap-2'>
-                          {modificadaPor.map(n => (
-                            <NormaListItem key={n.id} data={n} secondary />
-                          ))}
-                        </ul>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
-              </Accordion>
             )}
-
-            {norma.observaciones && (
-              <blockquote className='border-l-4 border-primary pl-4 italic text-muted-foreground'>
-                {norma.observaciones}
-              </blockquote>
-            )}
-          </header>
-
-          {/* Body Section */}
-          <div className='space-y-6'>
-            {!norma.divisions.length &&
-            !norma.texto_norma &&
-            !norma.texto_norma_actualizado ? (
-              <Alert variant='default' className='my-6'>
-                <Info className='h-4 w-4' />
-                <AlertTitle>Sin contenido estructurado</AlertTitle>
-                <AlertDescription>
-                  Esta norma no contiene divisiones o artículos estructurados.
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <>
-                {/* Controls */}
-                <div className='flex items-center gap-2 flex-wrap'>
-                  <Button variant='outline' size='sm' onClick={expandAll}>
-                    Expandir todo
-                  </Button>
-                  <Button variant='outline' size='sm' onClick={collapseAll}>
-                    Contraer todo
-                  </Button>
-                  {(norma.texto_norma || norma.texto_norma_actualizado) && (
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setShowOriginal(!showOriginal)}
-                    >
-                      {showOriginal ? 'Ver estructura' : 'Ver texto original'}
-                    </Button>
-                  )}
+            {/* Header Section */}
+            <header className='space-y-6'>
+              <div className='flex items-center justify-between gap-4 flex-wrap'>
+                <h1 className='text-3xl font-bold font-serif leading-tight break-words'>
+                  {norma.titulo_sumario ||
+                    norma.titulo_resumido ||
+                    'Sin título'}
+                </h1>
+                <div className='flex items-center gap-2'>
+                  {legacyNorma && <NormaActions norma={legacyNorma} />}
                 </div>
+              </div>
 
-                {/* Content */}
-                {showOriginal &&
-                (norma.texto_norma || norma.texto_norma_actualizado) ? (
-                  <div
-                    className='prose max-w-none text-gray-700 dark:text-slate-300 norma-html font-serif'
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(
-                        norma.texto_norma ||
-                          norma.texto_norma_actualizado ||
-                          '',
-                      ),
-                    }}
-                  />
-                ) : (
-                  <div className='space-y-8'>
-                    {norma.divisions.map(division => renderDivision(division))}
-                  </div>
+              <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
+                {norma.tipo_norma?.trim() && <Badge>{norma.tipo_norma}</Badge>}
+                {norma.clase_norma?.trim() && (
+                  <Badge variant='secondary'>{norma.clase_norma}</Badge>
                 )}
-              </>
-            )}
-          </div>
-        </section>
-        </div>
+                {norma.estado?.trim() && (
+                  <Badge variant='outline'>{norma.estado}</Badge>
+                )}
+
+                <div className='h-4 border-l border-border/30 mx-1' />
+
+                {norma.publicacion && (
+                  <span>Publicación: {formatDateSlash(norma.publicacion)}</span>
+                )}
+
+                {norma.nro_boletin && (
+                  <span>
+                    Boletín Oficial&nbsp;{norma.nro_boletin}
+                    {norma.pag_boletin && ` • pág ${norma.pag_boletin}`}
+                  </span>
+                )}
+
+                <div className='h-4 border-l border-border/30 mx-1' />
+
+                {norma.sancion && (
+                  <span>Sanción: {formatDateSlash(norma.sancion)}</span>
+                )}
+                {norma.jurisdiccion && (
+                  <span>Jurisdicción: {norma.jurisdiccion}</span>
+                )}
+              </div>
+
+              {!!(modificaCount || modificadaCount) && (
+                <Accordion
+                  type='multiple'
+                  className='w-full'
+                  value={open}
+                  onValueChange={setOpen}
+                >
+                  {modificaCount > 0 && (
+                    <AccordionItem value='modifica'>
+                      <AccordionTrigger>
+                        Modifica ({modificaCount})
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {modifica === null ? (
+                          <Progress value={modificaProgress} />
+                        ) : (
+                          <ul className='flex flex-col gap-2'>
+                            {modifica.map(n => (
+                              <NormaListItem key={n.id} data={n} />
+                            ))}
+                          </ul>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+
+                  {modificadaCount > 0 && (
+                    <AccordionItem value='modificada'>
+                      <AccordionTrigger>
+                        Modificada por ({modificadaCount})
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {modificadaPor === null ? (
+                          <Progress value={modificadaProgress} />
+                        ) : (
+                          <ul className='flex flex-col gap-2'>
+                            {modificadaPor.map(n => (
+                              <NormaListItem key={n.id} data={n} secondary />
+                            ))}
+                          </ul>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+                </Accordion>
+              )}
+
+              {norma.observaciones && (
+                <blockquote className='border-l-4 border-primary pl-4 italic text-muted-foreground text-justify'>
+                  {norma.observaciones}
+                </blockquote>
+              )}
+            </header>
+
+            {/* Body Section */}
+            <div className='space-y-6'>
+              {!norma.divisions.length &&
+              !norma.texto_norma &&
+              !norma.texto_norma_actualizado ? (
+                <Alert variant='default' className='my-6'>
+                  <Info className='h-4 w-4' />
+                  <AlertTitle>Sin contenido estructurado</AlertTitle>
+                  <AlertDescription>
+                    Esta norma no contiene divisiones o artículos estructurados.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  {/* Controls */}
+                  <div className='flex items-center gap-2 flex-wrap'>
+                    <Button variant='outline' size='sm' onClick={expandAll}>
+                      Expandir todo
+                    </Button>
+                    <Button variant='outline' size='sm' onClick={collapseAll}>
+                      Contraer todo
+                    </Button>
+                    {(norma.texto_norma || norma.texto_norma_actualizado) && (
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => setShowOriginal(!showOriginal)}
+                      >
+                        {showOriginal ? 'Ver estructura' : 'Ver texto original'}
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  {showOriginal &&
+                  (norma.texto_norma || norma.texto_norma_actualizado) ? (
+                    <div
+                      className='prose max-w-none text-gray-700 dark:text-slate-300 norma-html font-serif text-justify'
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(
+                          norma.texto_norma ||
+                            norma.texto_norma_actualizado ||
+                            '',
+                        ),
+                      }}
+                    />
+                  ) : (
+                    <div className='space-y-8'>
+                      {norma.divisions.map(division =>
+                        renderDivision(division),
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        </main>
       </div>
 
       {/* Add to Folder Dialog */}

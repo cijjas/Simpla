@@ -4,11 +4,12 @@ import { useCallback, useEffect } from 'react';
 import { useNormas } from '../contexts/normas-context';
 
 export function useNormasFilters() {
-  const { 
-    state, 
-    loadFilterOptions, 
-    updateFilters, 
-    resetFilters 
+  const {
+    state,
+    loadFilterOptions,
+    updateFilters,
+    resetFilters,
+    searchNormas,
   } = useNormas();
 
   // Load filter options on mount
@@ -16,29 +17,54 @@ export function useNormasFilters() {
     loadFilterOptions();
   }, [loadFilterOptions]);
 
-  const handleFilterChange = useCallback((key: string, value: any) => {
-    updateFilters({ [key]: value, offset: 0 }); // Reset offset when filters change
-  }, [updateFilters]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleFilterChange = useCallback(
+    (key: string, value: any) => {
+      const newFilters = { [key]: value, offset: 0 };
+      updateFilters(newFilters);
+      // Trigger search with updated filters
+      searchNormas({ ...state.filters, ...newFilters });
+    },
+    [updateFilters, searchNormas, state.filters],
+  );
 
-  const handleDateRangeChange = useCallback((key: string, value: string | undefined) => {
-    updateFilters({ [key]: value, offset: 0 });
-  }, [updateFilters]);
+  const handleDateRangeChange = useCallback(
+    (key: string, value: string | undefined) => {
+      const newFilters = { [key]: value, offset: 0 };
+      updateFilters(newFilters);
+      // Trigger search with updated filters
+      searchNormas({ ...state.filters, ...newFilters });
+    },
+    [updateFilters, searchNormas, state.filters],
+  );
 
-  const handleSearchTermChange = useCallback((searchTerm: string) => {
-    updateFilters({ search_term: searchTerm || undefined, offset: 0 });
-  }, [updateFilters]);
+  const handleSearchTermChange = useCallback(
+    (searchTerm: string) => {
+      const newFilters = { search_term: searchTerm || undefined, offset: 0 };
+      updateFilters(newFilters);
+      // Trigger search with updated filters
+      searchNormas({ ...state.filters, ...newFilters });
+    },
+    [updateFilters, searchNormas, state.filters],
+  );
 
-  const handlePaginationChange = useCallback((limit: number, offset: number) => {
-    updateFilters({ limit, offset });
-  }, [updateFilters]);
+  const handlePaginationChange = useCallback(
+    (limit: number, offset: number) => {
+      updateFilters({ limit, offset });
+    },
+    [updateFilters],
+  );
 
   const clearAllFilters = useCallback(() => {
     resetFilters();
   }, [resetFilters]);
 
-  const clearSpecificFilter = useCallback((key: string) => {
-    updateFilters({ [key]: undefined, offset: 0 });
-  }, [updateFilters]);
+  const clearSpecificFilter = useCallback(
+    (key: string) => {
+      updateFilters({ [key]: undefined, offset: 0 });
+    },
+    [updateFilters],
+  );
 
   return {
     // State
@@ -46,7 +72,7 @@ export function useNormasFilters() {
     filterOptionsLoading: state.filterOptionsLoading,
     filterOptionsError: state.filterOptionsError,
     currentFilters: state.filters,
-    
+
     // Actions
     handleFilterChange,
     handleDateRangeChange,
@@ -55,13 +81,21 @@ export function useNormasFilters() {
     clearAllFilters,
     clearSpecificFilter,
     resetFilters,
-    
+
     // Computed values
-    hasActiveFilters: Object.entries(state.filters).some(([key, value]) => 
-      key !== 'limit' && key !== 'offset' && value !== undefined && value !== ''
+    hasActiveFilters: Object.entries(state.filters).some(
+      ([key, value]) =>
+        key !== 'limit' &&
+        key !== 'offset' &&
+        value !== undefined &&
+        value !== '',
     ),
-    activeFilterCount: Object.entries(state.filters).filter(([key, value]) => 
-      key !== 'limit' && key !== 'offset' && value !== undefined && value !== ''
+    activeFilterCount: Object.entries(state.filters).filter(
+      ([key, value]) =>
+        key !== 'limit' &&
+        key !== 'offset' &&
+        value !== undefined &&
+        value !== '',
     ).length,
   };
 }

@@ -4,29 +4,29 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useApi } from '@/features/auth/hooks/use-api';
 
-interface UseFavoriteToggleResult {
-  isFavorite: boolean;
+interface UseBookmarkToggleResult {
+  isBookmarked: boolean;
   loading: boolean;
   error: string | null;
-  toggleFavorite: () => Promise<void>;
+  toggleBookmark: () => Promise<void>;
 }
 
 // Global cache to prevent duplicate API calls
-const favoriteCache = new Map<number, boolean>();
+const bookmarkCache = new Map<number, boolean>();
 const pendingChecks = new Set<number>();
 
-export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
+export function useBookmarkToggle(normaId: number): UseBookmarkToggleResult {
   const { isAuthenticated } = useAuth();
   const api = useApi();
-  const [isFavorite, setIsFavorite] = useState(
-    favoriteCache.get(normaId) || false,
+  const [isBookmarked, setIsBookmarked] = useState(
+    bookmarkCache.get(normaId) || false,
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasChecked = useRef(false);
 
-  // Check if norma is favorited
-  const checkFavoriteStatus = useCallback(async () => {
+  // Check if norma is bookmarked
+  const checkBookmarkStatus = useCallback(async () => {
     if (
       !isAuthenticated ||
       !normaId ||
@@ -37,8 +37,8 @@ export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
     }
 
     // Check cache first
-    if (favoriteCache.has(normaId)) {
-      setIsFavorite(favoriteCache.get(normaId) || false);
+    if (bookmarkCache.has(normaId)) {
+      setIsBookmarked(bookmarkCache.get(normaId) || false);
       hasChecked.current = true;
       return;
     }
@@ -52,27 +52,27 @@ export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
       );
 
       console.log(
-        '[useFavoriteToggle] Check response for normaId',
+        '[useBookmarkToggle] Check response for normaId',
         normaId,
         ':',
         response,
       );
 
       // Update cache and state
-      favoriteCache.set(normaId, response.is_favorite);
-      setIsFavorite(response.is_favorite);
+      bookmarkCache.set(normaId, response.is_favorite);
+      setIsBookmarked(response.is_favorite);
       hasChecked.current = true;
     } catch (err) {
-      console.error('Error checking favorite status:', err);
+      console.error('Error checking bookmark status:', err);
       setError('Error al verificar guardados');
-      setIsFavorite(false);
+      setIsBookmarked(false);
     } finally {
       pendingChecks.delete(normaId);
     }
   }, [api, isAuthenticated, normaId]);
 
-  // Toggle favorite status
-  const toggleFavorite = useCallback(async () => {
+  // Toggle bookmark status
+  const toggleBookmark = useCallback(async () => {
     if (!isAuthenticated) {
       setError('Debes iniciar sesión para guardar');
       return;
@@ -87,42 +87,49 @@ export function useFavoriteToggle(normaId: number): UseFavoriteToggleResult {
       await api.post('/api/favorites/toggle', { norma_id: normaId });
 
       // Update cache and state immediately for better UX
-      const newFavoriteStatus = !isFavorite;
-      favoriteCache.set(normaId, newFavoriteStatus);
-      setIsFavorite(newFavoriteStatus);
+      const newBookmarkStatus = !isBookmarked;
+      bookmarkCache.set(normaId, newBookmarkStatus);
+      setIsBookmarked(newBookmarkStatus);
     } catch (err) {
-      console.error('Error toggling favorite:', err);
+      console.error('Error toggling bookmark:', err);
       setError('Error al actualizar guardados');
       // Revert optimistic update on error
-      await checkFavoriteStatus();
+      await checkBookmarkStatus();
     } finally {
       setLoading(false);
     }
-  }, [api, isAuthenticated, normaId, loading, isFavorite, checkFavoriteStatus]);
+  }, [
+    api,
+    isAuthenticated,
+    normaId,
+    loading,
+    isBookmarked,
+    checkBookmarkStatus,
+  ]);
 
-  // Check favorite status on mount and when normaId/auth changes
+  // Check bookmark status on mount and when normaId/auth changes
   useEffect(() => {
     if (isAuthenticated && normaId) {
-      checkFavoriteStatus();
+      checkBookmarkStatus();
     } else {
-      setIsFavorite(false);
+      setIsBookmarked(false);
       hasChecked.current = false;
     }
-  }, [isAuthenticated, normaId, checkFavoriteStatus]);
+  }, [isAuthenticated, normaId, checkBookmarkStatus]);
 
   // Reset when auth changes
   useEffect(() => {
     if (!isAuthenticated) {
-      favoriteCache.clear();
+      bookmarkCache.clear();
       pendingChecks.clear();
       hasChecked.current = false;
     }
   }, [isAuthenticated]);
 
   return {
-    isFavorite,
+    isBookmarked,
     loading,
     error,
-    toggleFavorite,
+    toggleBookmark,
   };
 }

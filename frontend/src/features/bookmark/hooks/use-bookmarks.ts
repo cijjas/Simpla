@@ -6,7 +6,7 @@ import { useApi } from '@/features/auth/hooks/use-api';
 import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
 import type { NormaItem } from '@/features/infoleg/utils/types';
 
-interface FavoriteResponse {
+interface BookmarkResponse {
   id: string;
   user_id: string;
   norma_id: number;
@@ -16,16 +16,16 @@ interface FavoriteResponse {
   deleted_at?: string;
 }
 
-export function useFavorites() {
+export function useBookmarks() {
   const { isAuthenticated } = useAuth();
   const api = useApi();
-  const [favorites, setFavorites] = useState<NormaItem[]>([]);
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const [bookmarks, setBookmarks] = useState<NormaItem[]>([]);
+  const [bookmarkIds, setBookmarkIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchingRef = useRef(false);
 
-  const fetchFavorites = useCallback(async () => {
+  const fetchBookmarks = useCallback(async () => {
     if (!isAuthenticated || fetchingRef.current) {
       return;
     }
@@ -35,12 +35,12 @@ export function useFavorites() {
       setLoading(true);
       setError(null);
 
-      console.log('Fetching favorites from API...');
-      const data = await api.get<FavoriteResponse[]>('/api/favorites/');
-      console.log('Favorites API response:', data);
+      console.log('Fetching bookmarks from API...');
+      const data = await api.get<BookmarkResponse[]>('/api/favorites/');
+      console.log('Bookmarks API response:', data);
 
-      const normaIds = data.map(favorite => favorite.norma_id);
-      setFavoriteIds(normaIds);
+      const normaIds = data.map(bookmark => bookmark.norma_id);
+      setBookmarkIds(normaIds);
 
       // Now fetch the actual norma data for each ID using the infoleg API
       if (normaIds.length > 0) {
@@ -63,9 +63,9 @@ export function useFavorites() {
         );
 
         console.log('Fetched normas:', validNormas);
-        setFavorites(validNormas);
+        setBookmarks(validNormas);
       } else {
-        setFavorites([]);
+        setBookmarks([]);
       }
     } catch (err: unknown) {
       console.error('Favorites API error:', err);
@@ -85,16 +85,16 @@ export function useFavorites() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchFavorites();
+      fetchBookmarks();
     } else {
-      // Clear favorites when not authenticated
-      setFavorites([]);
-      setFavoriteIds([]);
+      // Clear bookmarks when not authenticated
+      setBookmarks([]);
+      setBookmarkIds([]);
       setLoading(false);
     }
-  }, [fetchFavorites, isAuthenticated]);
+  }, [fetchBookmarks, isAuthenticated]);
 
-  const addToFavorites = useCallback(
+  const addToBookmarks = useCallback(
     async (norma: NormaItem) => {
       if (!isAuthenticated) {
         setError('Debes iniciar sesión para guardar');
@@ -104,17 +104,17 @@ export function useFavorites() {
       try {
         setError(null);
         await api.post('/api/favorites/toggle', { norma_id: norma.id });
-        // Refresh favorites list
-        await fetchFavorites();
+        // Refresh bookmarks list
+        await fetchBookmarks();
       } catch (err) {
         setError('Error al guardar');
-        console.error('Error adding to favorites:', err);
+        console.error('Error adding to bookmarks:', err);
       }
     },
-    [api, isAuthenticated, fetchFavorites],
+    [api, isAuthenticated, fetchBookmarks],
   );
 
-  const removeFromFavorites = useCallback(
+  const removeFromBookmarks = useCallback(
     async (normaId: number) => {
       if (!isAuthenticated) {
         setError('Debes iniciar sesión para quitar guardados');
@@ -124,29 +124,29 @@ export function useFavorites() {
       try {
         setError(null);
         await api.post('/api/favorites/toggle', { norma_id: normaId });
-        // Refresh favorites list
-        await fetchFavorites();
+        // Refresh bookmarks list
+        await fetchBookmarks();
       } catch (err) {
         setError('Error al quitar de guardados');
-        console.error('Error removing from favorites:', err);
+        console.error('Error removing from bookmarks:', err);
       }
     },
-    [api, isAuthenticated, fetchFavorites],
+    [api, isAuthenticated, fetchBookmarks],
   );
 
-  const isFavorite = useCallback(
+  const isBookmarked = useCallback(
     (normaId: number) => {
-      return favoriteIds.includes(normaId);
+      return bookmarkIds.includes(normaId);
     },
-    [favoriteIds],
+    [bookmarkIds],
   );
 
   return {
-    favorites,
+    bookmarks,
     loading,
     error,
-    addToFavorites,
-    removeFromFavorites,
-    isFavorite,
+    addToBookmarks,
+    removeFromBookmarks,
+    isBookmarked,
   };
 }

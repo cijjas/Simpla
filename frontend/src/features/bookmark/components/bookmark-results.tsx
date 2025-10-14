@@ -9,21 +9,21 @@ import ResultCard from '@/features/infoleg/busqueda/norma-card';
 import ResultListItem from '@/features/infoleg/busqueda/norma-list-item';
 import type { NormaItem } from '@/features/infoleg/utils/types';
 
-interface FavoritesResultsProps {
-  favorites: NormaItem[];
+interface BookmarkResultsProps {
+  bookmarks: NormaItem[];
   view: 'list' | 'grid';
   onViewChange: (view: 'list' | 'grid') => void;
   loading?: boolean;
   error?: string | null;
 }
 
-export function FavoritesResults({
-  favorites,
+export function BookmarkResults({
+  bookmarks,
   view,
   onViewChange,
   loading,
   error,
-}: FavoritesResultsProps) {
+}: BookmarkResultsProps) {
   // Loading state
   if (loading) {
     return (
@@ -51,7 +51,7 @@ export function FavoritesResults({
   }
 
   // Empty state
-  if (favorites.length === 0) {
+  if (bookmarks.length === 0) {
     return (
       <Card className='border-dashed'>
         <CardContent className='flex flex-col items-center justify-center py-12 text-center'>
@@ -80,8 +80,8 @@ export function FavoritesResults({
       {/* Header with count and view toggle */}
       <div className='flex justify-between items-center'>
         <p className='text-sm text-muted-foreground'>
-          {favorites.length}{' '}
-          {favorites.length === 1 ? 'norma guardada' : 'normas guardadas'}
+          {bookmarks.length}{' '}
+          {bookmarks.length === 1 ? 'norma guardada' : 'normas guardadas'}
         </p>
 
         <ToggleGroup
@@ -104,13 +104,13 @@ export function FavoritesResults({
       {/* Results */}
       {view === 'grid' ? (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {favorites.map(norma => (
+          {bookmarks.map(norma => (
             <ResultCard key={norma.id} norma={norma} />
           ))}
         </div>
       ) : (
         <div className='space-y-2'>
-          {favorites.map(norma => (
+          {bookmarks.map(norma => (
             <ResultListItem key={norma.id} norma={norma} />
           ))}
         </div>

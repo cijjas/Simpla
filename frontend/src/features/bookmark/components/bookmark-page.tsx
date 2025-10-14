@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { Bookmark } from 'lucide-react';
-import { useFavorites } from '../hooks/use-favorites';
-import { FavoritesResults } from './favorites-results';
+import { useBookmarks } from '../hooks/use-bookmarks';
+import { BookmarkResults } from './bookmark-results';
 
-export function FavoritesPage() {
-  const { favorites, loading, error } = useFavorites();
+export function BookmarkPage() {
+  const { bookmarks, loading, error } = useBookmarks();
   const [view, setView] = useState<'list' | 'grid'>('grid');
 
   // Load view preference from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('favoritesViewPreference');
+    const saved = localStorage.getItem('bookmarkViewPreference');
     if (saved === 'list' || saved === 'grid') {
       setView(saved);
     }
@@ -20,7 +20,7 @@ export function FavoritesPage() {
   // Save view preference to localStorage
   const handleViewChange = (newView: 'list' | 'grid') => {
     setView(newView);
-    localStorage.setItem('favoritesViewPreference', newView);
+    localStorage.setItem('bookmarkViewPreference', newView);
   };
 
   return (
@@ -40,8 +40,8 @@ export function FavoritesPage() {
 
       {/* Results */}
       <div className='flex-1 min-h-0'>
-        <FavoritesResults
-          favorites={favorites}
+        <BookmarkResults
+          bookmarks={bookmarks}
           view={view}
           onViewChange={handleViewChange}
           loading={loading}
