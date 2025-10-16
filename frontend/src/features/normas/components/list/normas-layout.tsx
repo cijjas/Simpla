@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { NormasProvider } from '../contexts/normas-context';
+import { NormasProvider } from '../../contexts/normas-context';
 
 interface NormasLayoutProps {
   children: ReactNode;

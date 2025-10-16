@@ -3,8 +3,8 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
-import { NormasFilter } from '../components/normas-filter';
-import { NormasList } from '../components/normas-list';
+import { NormasFilter } from '../components/list/normas-filter';
+import { NormasList } from '../components/list/normas-list';
 import { useNormasSearch } from '../hooks/use-normas-search';
 
 export function NormasPage() {

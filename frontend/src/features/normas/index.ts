@@ -6,10 +6,8 @@ export { NormasProvider, useNormas } from './contexts/normas-context';
 export type { NormasContextType, NormasState } from './contexts/normas-context';
 
 // Components
-export { NormasFilter } from './components/normas-filter';
-export { NormasList } from './components/normas-list';
-export { NormasStats } from './components/normas-stats';
-export { NormasLayout } from './components/normas-layout';
+export { NormasFilter, NormasList, NormasLayout, NormaCard } from './components';
+export * from './components/detail';
 export { NormaDetailPage } from './pages/norma-detail-page';
 
 // Hooks

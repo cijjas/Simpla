@@ -302,3 +302,15 @@ body {
     @apply bg-muted font-semibold;
   }
 }
+
+
+
+::-moz-selection { /* Code for Firefox */
+  color: rgba(4, 75, 206, 0.923);
+  background:rgb(231, 231, 231) ;
+}
+
+::selection {
+  color: rgba(4, 75, 206, 0.923);
+  background:rgb(231, 231, 231) ;
+}

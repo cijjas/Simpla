@@ -14,8 +14,8 @@ import { Label } from '@/components/ui/label';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Search } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNormasFilters } from '../hooks/use-normas-filters';
-import { NormaFilters } from '../api/normas-api';
+import { useNormasFilters } from '../../hooks/use-normas-filters';
+import { NormaFilters } from '../../api/normas-api';
 
 interface NormasFilterProps {
   loading?: boolean;
