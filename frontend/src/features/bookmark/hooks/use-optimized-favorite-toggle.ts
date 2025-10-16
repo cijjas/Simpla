@@ -5,7 +5,7 @@
  */
 
 import { useEffect } from 'react';
-import { useFavoritesContext } from '../context/favorites-context';
+import { useFavoritesContext } from '../context/bookmark-context';
 
 interface UseOptimizedFavoriteToggleResult {
   isFavorite: boolean;

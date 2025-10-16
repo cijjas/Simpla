@@ -17,9 +17,8 @@ export function useNormasFilters() {
     loadFilterOptions();
   }, [loadFilterOptions]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFilterChange = useCallback(
-    (key: string, value: any) => {
+    (key: string, value: unknown) => {
       const newFilters = { [key]: value, offset: 0 };
       updateFilters(newFilters);
       // Trigger search with updated filters

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -24,7 +24,7 @@ export function BentoGridSection({
   subtitle = 'Comprehensive solutions for your business needs',
   cards = [],
 }: BentoGridSectionProps) {
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -34,14 +34,14 @@ export function BentoGridSection({
     },
   };
 
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
         duration: 0.5,
-        ease: 'easeOut',
+        ease: [0.0, 0.0, 0.2, 1.0],
       },
     },
   };

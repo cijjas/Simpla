@@ -8,7 +8,7 @@
 
 import React, { createContext, useEffect, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Command, CommandContext, CommandExecutionResult } from '../types';
+import { Command, CommandContext } from '../types';
 import { commands as defaultCommands, commandCenterConfig } from '../config';
 import { findMatchingCommand, isInputElement } from '../utils';
 

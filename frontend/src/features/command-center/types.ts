@@ -16,7 +16,7 @@ export type CommandAction =
   | { type: 'navigate'; route: string }
   | { type: 'modal'; modalId: string }
   | { type: 'function'; handler: () => void | Promise<void> }
-  | { type: 'custom'; handler: (context?: any) => void | Promise<void> };
+  | { type: 'custom'; handler: (context?: unknown) => void | Promise<void> };
 
 /**
  * Command definition

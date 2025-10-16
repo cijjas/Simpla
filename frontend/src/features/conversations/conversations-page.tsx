@@ -22,7 +22,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
 import SvgEstampa from '@/components/icons/Estampa';
 import ReactMarkdown from 'react-markdown';
-import TextareaAutosize from 'react-textarea-autosize';
 import { LoadingMessage } from '@/features/conversations/components/loading-message';
 import { 
   useConversations,
@@ -45,7 +44,6 @@ export default function ConversacionesPage() {
     startRenameConversation,
     saveRenameConversation,
     cancelRenameConversation,
-    setChatType,
     setTone,
     setTempTitle,
     submitFeedback,
@@ -62,7 +60,6 @@ export default function ConversacionesPage() {
   const {
     conversations,
     messages,
-    chatType,
     tone,
     isLoading,
     isStreaming,
