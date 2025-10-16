@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useApi } from '@/features/auth/hooks/use-api';
-import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
-import type { NormaItem } from '@/features/infoleg/utils/types';
+import { normasAPI, type NormaSummary } from '@/features/normas/api/normas-api';
 
 interface BookmarkResponse {
   id: string;
@@ -19,7 +18,7 @@ interface BookmarkResponse {
 export function useBookmarks() {
   const { isAuthenticated } = useAuth();
   const api = useApi();
-  const [bookmarks, setBookmarks] = useState<NormaItem[]>([]);
+  const [bookmarks, setBookmarks] = useState<NormaSummary[]>([]);
   const [bookmarkIds, setBookmarkIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +41,13 @@ export function useBookmarks() {
       const normaIds = data.map(bookmark => bookmark.norma_id);
       setBookmarkIds(normaIds);
 
-      // Now fetch the actual norma data for each ID using the infoleg API
+      // Now fetch the actual norma data for each ID using the normas API
       if (normaIds.length > 0) {
         console.log('Fetching norma data for IDs:', normaIds);
 
         const normaPromises = normaIds.map(async normaId => {
           try {
-            const normaData = await getNormaDetalladaResumen(normaId);
+            const normaData = await normasAPI.getNormaSummary(normaId);
             return normaData;
           } catch (error) {
             console.error(`Error fetching norma ${normaId}:`, error);
@@ -59,7 +58,7 @@ export function useBookmarks() {
         const normaResults = await Promise.all(normaPromises);
         // Filter out null results (failed fetches)
         const validNormas = normaResults.filter(
-          (norma): norma is NormaItem => norma !== null,
+          (norma): norma is NormaSummary => norma !== null,
         );
 
         console.log('Fetched normas:', validNormas);
@@ -95,7 +94,7 @@ export function useBookmarks() {
   }, [fetchBookmarks, isAuthenticated]);
 
   const addToBookmarks = useCallback(
-    async (norma: NormaItem) => {
+    async (norma: NormaSummary) => {
       if (!isAuthenticated) {
         setError('Debes iniciar sesión para guardar');
         return;
@@ -103,7 +102,7 @@ export function useBookmarks() {
 
       try {
         setError(null);
-        await api.post('/api/favorites/toggle', { norma_id: norma.id });
+        await api.post('/api/favorites/toggle', { norma_id: norma.infoleg_id });
         // Refresh bookmarks list
         await fetchBookmarks();
       } catch (err) {

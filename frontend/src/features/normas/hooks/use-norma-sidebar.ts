@@ -34,7 +34,7 @@ export function useNormaSidebar(hasDivisions: boolean) {
   const scrollToDivision = (divisionId: number) => {
     const element = divisionRefs.current.get(divisionId);
     if (element) {
-      const offset = 80;
+      const offset = 150;
       const elementPosition =
         element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({

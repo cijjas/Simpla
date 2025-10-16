@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ChevronDown, Check } from 'lucide-react';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectGroup, 
+  SelectLabel, 
+} from '@/components/ui/select';
 import type { ToneType } from '../types';
 
 interface ToneSelectorProps {
@@ -41,37 +41,44 @@ const toneOptions: { value: ToneType; label: string; description: string }[] = [
 ];
 
 export function ToneSelector({ selectedTone, onToneChange, disabled = false }: ToneSelectorProps) {
-  const selectedOption = toneOptions.find(option => option.value === selectedTone) || toneOptions[0];
+  // Find the full object for the currently selected tone.
+  const selectedOption = toneOptions.find(option => option.value === selectedTone);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          disabled={disabled}
-          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-        >
-          {selectedOption.label}
-          <ChevronDown className="h-3 w-3" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40">
-        {toneOptions.map((option) => (
-          <DropdownMenuItem
-            key={option.value}
-            onClick={() => onToneChange(option.value)}
-            className="flex items-center gap-3 py-2 hover:bg-accent hover:text-accent-foreground"
-          >
-            <div className="w-4 h-4 flex items-center justify-center">
-              {option.value === selectedTone && (
-                <Check className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-              )}
-            </div>
-            <span className="font-medium text-sm">{option.label}</span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Select 
+      value={selectedTone}
+      onValueChange={(value) => onToneChange(value as ToneType)}
+      disabled={disabled}
+    >
+      <SelectTrigger 
+        className="rounded-3xl bg-secondary/50 " 
+        aria-label="Select writing tone"
+      >
+        {/*
+          MODIFICATION:
+          Instead of using <SelectValue />, we manually render the label of the
+          selected option. If nothing is selected, we show a placeholder.
+        */}
+        {selectedOption ? selectedOption.label : 'Select a tone'}
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Opciones de Tono</SelectLabel>
+          {/* This part remains unchanged, as it correctly renders the dropdown items */}
+          {toneOptions.map((option) => (
+            <SelectItem 
+              key={option.value} 
+              value={option.value} 
+              className="py-2 h-auto" 
+            >
+              <div className="flex flex-col items-start leading-none">
+                <span className="font-medium text-sm">{option.label}</span>
+                <p className="text-xs text-muted-foreground">{option.description}</p>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   );
 }

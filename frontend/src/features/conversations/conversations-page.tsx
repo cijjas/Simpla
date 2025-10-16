@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupTextarea,
 } from '@/components/ui/input-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -176,34 +176,21 @@ export default function ConversacionesPage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)] bg-background">
       {/* Sidebar */}
-      <div className="w-80 border-r bg-background flex flex-col h-full">
+      <div className="w-80 border-r  flex flex-col h-full">
         {/* Fixed Header */}
-        <div className="p-4 border-b bg-background flex-shrink-0">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground mb-3">Conversaciones</h2>
-            <Button 
+        <div className="p-4 border-b flex-shrink-0 ">
+            <h2 className="text-2xl md:text-3xl font-bold font-serif text-foreground  ">Conversaciones</h2>
+        </div>
+        <div className="p-4 border-b bg-muted">
+        <Button 
               onClick={handleNewConversation} 
               size="sm" 
               disabled={isLoading}
-              className="w-full rounded-md bg-primary hover:bg-primary/90 shadow-sm"
+              className="w-full "
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="size-4 mr-2" />
               Nueva conversación
             </Button>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Tipo de chat</label>
-            <Select value={chatType} onValueChange={(value: 'normativa_nacional' | 'constituciones') => setChatType(value)}>
-              <SelectTrigger className="rounded-lg border-border/50 bg-background/50">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-lg">
-                <SelectItem value="normativa_nacional">Normativa Nacional</SelectItem>
-                <SelectItem value="constituciones">Constituciones</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         {/* Scrollable Conversations List */}
@@ -340,11 +327,11 @@ export default function ConversacionesPage() {
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="max-w-md space-y-4">
                 <div className="flex justify-center">
-                  <SvgEstampa className="h-24 w-24 text-primary" />
+                  <SvgEstampa className="h-24 w-24 text-primary dark:text-foreground" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground">
-                    ¡Hola! ¿En qué puedo ayudarte?
+                  <h3 className="font-serif text-3xl font-bold text-foreground">
+                    Bienvenido
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Puedes preguntarme sobre normativa nacional o constituciones. 
@@ -485,18 +472,18 @@ export default function ConversacionesPage() {
         {/* Input Area - always visible */}
         <div className="p-4  flex-shrink-0">
           <div className="max-w-4xl mx-auto">
-            <InputGroup className="rounded-3xl pl-3 pt-2 bg-gray-50 border border-gray-200 dark:border-gray-700">
-              <TextareaAutosize
-                ref={textareaRef}
-                data-slot="input-group-control"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Escribe tu mensaje..."
-                className="flex field-sizing-content min-h-[60px] max-h-[220px] w-full resize-none rounded-xl bg-transparent px-3 py-2.5 text-md transition-[color,box-shadow] outline-none placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                disabled={isStreaming}
-                maxRows={3}
-              />
+            <InputGroup className="rounded-3xl  bg-card border border-border focus-visible:ring-transparent">
+                <InputGroupTextarea
+                  ref={textareaRef}
+                  data-slot="input-group-control"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Escribe tu mensaje..."
+                  className="p-4 max-h-[220px]   "
+                  disabled={isStreaming}
+                />
+              
               <InputGroupAddon align="block-end">
                 <div className="flex items-center justify-between w-full">
                   <ToneSelector

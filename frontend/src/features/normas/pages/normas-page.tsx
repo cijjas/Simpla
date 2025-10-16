@@ -22,7 +22,6 @@ export function NormasPage() {
             Busca y explora la base de datos de normas legales argentinas
           </p>
         </div>
-
         {/* Error Alert */}
         {error && (
           <Alert variant='destructive' className='mt-3'>

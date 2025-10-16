@@ -22,11 +22,11 @@ export function NormaControls({
       <ButtonGroup>
         <Button variant="outline" onClick={onExpandAll}>
           <Maximize2 className="h-4 w-4" />
-          Expandir todo
+          Expandir
         </Button>
         <Button variant="outline" onClick={onCollapseAll}>
           <Minimize2 className="h-4 w-4" />
-          Contraer todo
+          Contraer
         </Button>
       </ButtonGroup>
       {hasOriginalText && (
@@ -40,7 +40,7 @@ export function NormaControls({
             ) : (
               <>
                 <FileText className="h-4 w-4" />
-                Ver texto original
+                Ver original
               </>
             )}
           </Button>

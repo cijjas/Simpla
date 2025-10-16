@@ -5,12 +5,9 @@ import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
   Search,
   Folder,
-  BookOpen,
   Bookmark,
   Compass,
-  Scale,
   MessageSquare,
-  FileText,
 } from 'lucide-react';
 import SvgEstampa from '@/components/icons/Estampa';
 import { forwardRef } from 'react';
@@ -61,9 +58,10 @@ const data = {
       icon: Search,
     },
     {
-      title: 'Normas',
-      url: '/normas',
-      icon: FileText,
+      title: "Normas",
+      url: "/normas",
+      icon: Search,
+      commandId: "search-normas", // Will automatically show ⌘K on Mac, Ctrl+K on Windows
     },
   ],
   copiloto: [
