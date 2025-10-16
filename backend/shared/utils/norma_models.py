@@ -1,4 +1,4 @@
-"""Pydantic models for normas, divisions, and articles."""
+"""Shared Pydantic models for normas, divisions, and articles."""
 
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any

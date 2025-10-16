@@ -25,7 +25,7 @@ export interface Message {
 export interface Conversation {
   id: string;
   title: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
+  chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
   snippet: string;
   create_time: string;
   update_time: string;
@@ -50,14 +50,14 @@ export interface ConversationListResponse {
 
 export interface CreateConversationRequest {
   title?: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
+  chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
   system_prompt?: string;
 }
 
 export interface SendMessageRequest {
   content: string;
   session_id?: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
+  chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
   tone?: ToneType;
 }
 
@@ -74,6 +74,6 @@ export interface FeedbackCreateRequest {
   feedback_type: FeedbackType;
 }
 
-export type ChatType = 'normativa_nacional' | 'constituciones';
+export type ChatType = 'normativa_nacional' | 'constituciones' | 'norma_chat';
 
 export type ToneType = 'default' | 'formal' | 'academico' | 'conciso';

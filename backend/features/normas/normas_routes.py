@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, status, Query
 from core.utils.logging_config import get_logger
 
-from .normas_reconstructor import NormaReconstructor
+from shared.utils.norma_reconstruction import get_norma_reconstructor
 from .normas_schemas import (
     NormaSummaryResponse,
     NormaDetailResponse,
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 # Initialize the reconstructor
-reconstructor = NormaReconstructor()
+reconstructor = get_norma_reconstructor()
 
 
 @router.get("/normas/", response_model=NormaSearchResponse)

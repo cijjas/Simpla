@@ -200,7 +200,9 @@ export default function ConversacionesPage() {
                   <p className="text-sm text-muted-foreground">Cargando conversaciones...</p>
                 </div>
               ) : (
-                conversations.map((conv) => (
+                conversations
+                  .filter((conv) => conv.chat_type !== 'norma_chat')
+                  .map((conv) => (
                 <div
                   key={conv.id}
                   className={`cursor-pointer transition-colors duration-150 border-b border-border/60 last:border-b-0 ${
@@ -237,12 +239,12 @@ export default function ConversacionesPage() {
                               {conv.title}
                             </h3>
                           )}
-                          <Badge 
+                          {/* <Badge 
                             variant="outline" 
                             className="text-xs px-2 py-0.5 h-5 shrink-0"
                           >
                             {conv.chat_type === 'normativa_nacional' ? 'Normativa' : 'Constituciones'}
-                          </Badge>
+                          </Badge> */}
                         </div>
                         <span className="text-xs text-muted-foreground/70">
                           {formatDate(conv.update_time || (conv as Conversation & { updated_at?: string }).updated_at || '')}

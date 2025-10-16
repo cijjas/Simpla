@@ -1,4 +1,4 @@
-"""NormaReconstructor class for reconstructing complete normas from database."""
+"""Shared norma reconstruction utilities for consistent norma processing across the application."""
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from datetime import date
 from contextlib import contextmanager
 
-from .normas_models import NormaStructuredModel, DivisionModel, ArticleModel
+from .norma_models import NormaStructuredModel, DivisionModel, ArticleModel
 from core.config.config import settings
 from core.utils.logging_config import get_logger
 
@@ -474,3 +474,89 @@ class NormaReconstructor:
         except Exception as e:
             logger.error(f"Unexpected error in get_filter_options: {str(e)}")
             raise
+
+
+# Convenience functions for quick access without needing to instantiate the class
+_reconstructor_instance = None
+
+def get_norma_reconstructor() -> NormaReconstructor:
+    """Get a singleton instance of the NormaReconstructor."""
+    global _reconstructor_instance
+    if _reconstructor_instance is None:
+        _reconstructor_instance = NormaReconstructor()
+    return _reconstructor_instance
+
+
+def reconstruct_norma_by_infoleg_id(infoleg_id: int) -> Optional[Dict[str, Any]]:
+    """Convenience function to reconstruct a norma by infoleg_id and return as dict."""
+    reconstructor = get_norma_reconstructor()
+    norma_model = reconstructor.reconstruct_norma_by_infoleg_id(infoleg_id)
+    if norma_model:
+        return norma_model.model_dump()
+    return None
+
+
+def build_norma_text_context(norma_data: Dict[str, Any]) -> str:
+    """Build comprehensive text context from norma data for AI processing."""
+    context_parts = []
+    
+    # Add basic norma info
+    if norma_data.get('titulo_resumido'):
+        context_parts.append(f"Título: {norma_data['titulo_resumido']}")
+    elif norma_data.get('titulo_sumario'):
+        context_parts.append(f"Título: {norma_data['titulo_sumario']}")
+    
+    if norma_data.get('tipo_norma'):
+        context_parts.append(f"Tipo: {norma_data['tipo_norma']}")
+    
+    if norma_data.get('sancion'):
+        context_parts.append(f"Sanción: {norma_data['sancion']}")
+        
+    if norma_data.get('publicacion'):
+        context_parts.append(f"Publicación: {norma_data['publicacion']}")
+    
+    # Add text content - prefer updated text over original
+    if norma_data.get('texto_norma_actualizado'):
+        context_parts.append(f"\nTexto actualizado de la norma:\n{norma_data['texto_norma_actualizado']}")
+    elif norma_data.get('texto_norma'):
+        context_parts.append(f"\nTexto de la norma:\n{norma_data['texto_norma']}")
+    
+    # Add structured divisions if available
+    if norma_data.get('divisions'):
+        context_parts.append("\nEstructura de la norma:")
+        for division in norma_data['divisions']:
+            _add_division_to_context(context_parts, division, level=1)
+    
+    return "\n".join(context_parts)
+
+
+def _add_division_to_context(context_parts: List[str], division: Dict[str, Any], level: int):
+    """Recursively add division content to context."""
+    indent = "  " * level
+    
+    # Add division header
+    div_header = f"{indent}- "
+    if division.get('ordinal'):
+        div_header += f"{division['ordinal']} "
+    if division.get('name'):
+        div_header += f"{division['name']}"
+    if division.get('title'):
+        div_header += f": {division['title']}"
+    
+    context_parts.append(div_header)
+    
+    # Add division body if available
+    if division.get('body'):
+        context_parts.append(f"{indent}  {division['body']}")
+    
+    # Add articles
+    for article in division.get('articles', []):
+        art_text = f"{indent}  • "
+        if article.get('ordinal'):
+            art_text += f"Art. {article['ordinal']}: "
+        art_text += article.get('body', '')
+        context_parts.append(art_text)
+    
+    # Add child divisions recursively
+    for child_division in division.get('child_divisions', []):
+        _add_division_to_context(context_parts, child_division, level + 1)

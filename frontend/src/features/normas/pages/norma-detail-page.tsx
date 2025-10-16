@@ -10,7 +10,7 @@ import { useNormaDetail } from '../hooks/use-norma-detail';
 import { useRelatedNormas } from '../hooks/use-related-normas';
 import { useNormaExpansion } from '../hooks/use-norma-expansion';
 import { useNormaSidebar } from '../hooks/use-norma-sidebar';
-import { NormaHeader, NormaSidebar, NormaBody, NormaControls, NormaActions } from '../components/detail';
+import { NormaHeader, NormaSidebar, NormaBody, NormaControls, NormaActions, NormasAIChat } from '../components';
 
 interface NormaDetailPageProps {
   infolegId: number;
@@ -286,6 +286,12 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
           </section>
         </div>
       </main>
+
+      {/* AI Chat Component */}
+      <NormasAIChat 
+        normaId={norma.id} 
+        infolegId={norma.infoleg_id} 
+      />
       </div>
   );
 }

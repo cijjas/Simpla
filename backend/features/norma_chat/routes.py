@@ -7,18 +7,19 @@ This module provides endpoints for AI chat functionality specific to individual 
 from core.utils.jwt_utils import verify_token
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 import json
 
 from core.database.base import get_db
-from core.clients.relational import fetch_norm_by_id
+from core.config.config import settings
 from features.conversations.answer_generation.utils import build_enhanced_prompt
 from features.conversations.ai_services.gemini_service import GeminiAIService
 from features.conversations.ai_services.base import Message
 from features.conversations.service import ConversationService
 from features.subscription.rate_limit_service import RateLimitService
 from core.utils.logging_config import get_logger
+from shared.utils.norma_reconstruction import reconstruct_norma_by_infoleg_id, build_norma_text_context
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -46,12 +47,14 @@ class NormaChatRequest(BaseModel):
     """Request model for norma-specific chat."""
     norma_id: int = Field(..., description="ID of the norma to ask about")
     question: str = Field(..., min_length=1, description="User's question about the norma")
+    session_id: Optional[str] = Field(None, description="Session ID for conversation continuity")
 
 
 class NormaChatResponse(BaseModel):
     """Response model for norma-specific chat."""
     answer: str = Field(..., description="AI answer specific to the norma")
     norma_id: int = Field(..., description="ID of the norma that was queried")
+    session_id: str = Field(..., description="Session ID for conversation continuity")
 
 
 @router.post("/norma-chat", response_model=NormaChatResponse)
@@ -85,45 +88,24 @@ async def norma_chat(
                 detail=f"Rate limit exceeded: {rate_limit_check.message}. Current usage: {rate_limit_check.current_usage}/{rate_limit_check.limit}. Resets at: {rate_limit_check.reset_at.isoformat()}"
             )
         
-        # Attempt to fetch the complete norma content from relational service
+        # Attempt to fetch the complete norma content using direct database reconstruction
         norma_context = None
         norma_available = False
         
         try:
-            norma_result = fetch_norm_by_id(request.norma_id)
+            # Use our working norma reconstruction logic
+            norm_info = reconstruct_norma_by_infoleg_id(request.norma_id)
             
-            if norma_result.get("success"):
-                # Parse the norma JSON content
-                norma_content = norma_result.get("norma_json", "")
-                if norma_content:
-                    try:
-                        norma_data = json.loads(norma_content)
-                        # Extract text content from the norma data
-                        texto_norma = norma_data.get("textoNorma", "")
-                        titulo = norma_data.get("tituloResumido", "") or norma_data.get("tituloSumario", "")
-                        
-                        if texto_norma or titulo:
-                            # Build a focused context with the norma's complete content
-                            norma_context = f"""
-                                Título: {titulo}
-                                Contenido completo de la norma:
-                                {texto_norma}
-                                """.strip()
-                            norma_available = True
-                            logger.info(f"Successfully fetched norma content for norma_id: {request.norma_id}")
-                        
-                    except json.JSONDecodeError:
-                        # If JSON parsing fails, try to use the raw content
-                        if norma_content:
-                            norma_context = norma_content
-                            norma_available = True
-                            logger.warning(f"Could not parse norma JSON for norma_id: {request.norma_id}, using raw content")
-            
-            if not norma_available:
-                logger.warning(f"Failed to fetch or parse norma {request.norma_id}: {norma_result.get('message', 'Unknown error')}")
+            if norm_info:
+                # Build comprehensive context from the reconstructed norma
+                norma_context = build_norma_text_context(norm_info)
+                norma_available = True
+                logger.info(f"Successfully reconstructed norma content for norma_id: {request.norma_id}")
+            else:
+                logger.warning(f"Failed to reconstruct norma {request.norma_id}: not found in database")
                 
         except Exception as fetch_error:
-            logger.warning(f"Error fetching norma {request.norma_id}: {str(fetch_error)}")
+            logger.warning(f"Error reconstructing norma {request.norma_id}: {str(fetch_error)}")
         
         # Create appropriate enhanced prompt based on whether norma content is available
         if norma_available and norma_context:
@@ -143,6 +125,9 @@ async def norma_chat(
                 - Sé preciso y cita artículos específicos cuando sea relevante
                 - Responde en español neutro
                 - Mantén un tono profesional pero accesible
+                - Responde de manera concisa y clara
+                - Si la pregunta no está relacionada con la legislación Argentina, informa al usuario que eres un asistente legal y solo puedes responder preguntas sobre esta norma específica
+                - Si la pregunta requiere de información externa a esta norma, indíque que debe consultar en la página de conversaciones
 
                 RESPUESTA:
                 """
@@ -154,11 +139,14 @@ async def norma_chat(
                 PREGUNTA DEL USUARIO: {request.question}
 
                 INSTRUCCIONES:
-                - Informa al usuario que no tienes acceso al contenido específico de la norma {request.norma_id}
+                - Informa al usuario que no tienes acceso al contenido específico de la norma.
                 - Proporciona información general útil sobre el tema de la pregunta basándote en tu conocimiento de la legislación argentina
                 - Sé breve y claro
                 - Responde en español neutro
                 - Mantén un tono profesional pero accesible
+                - Responde de manera concisa y clara
+                - Si la pregunta no está relacionada con la legislación Argentina, informa al usuario que eres un asistente legal y solo puedes responder preguntas sobre esta norma específica
+                - Si la pregunta requiere de información externa a esta norma, indíque que debe consultar en la página de conversaciones
 
                 RESPUESTA:
                 """
@@ -174,7 +162,7 @@ async def norma_chat(
         async for chunk in conversation_service.stream_message_response(
             user_id=user_id,
             content=request.question,  # Store original question in DB
-            session_id=None,  # Always create new conversation for norma chats
+            session_id=request.session_id,  # Use existing session ID or create new one
             chat_type="norma_chat",  # New chat type for norma-specific conversations
             norma_ids=[request.norma_id],  # Track which norma this is about
             enhanced_prompt=enhanced_prompt  # Use enhanced prompt for AI generation
@@ -201,7 +189,8 @@ async def norma_chat(
         
         return NormaChatResponse(
             answer=ai_response_content.strip(),
-            norma_id=request.norma_id
+            norma_id=request.norma_id,
+            session_id=session_id or "unknown"  # Ensure we always return a session_id
         )
         
     except HTTPException:
