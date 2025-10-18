@@ -7,23 +7,20 @@ from core.config.config import settings
 
 def fetch_norm_by_infoleg_id(
     infoleg_id: int,
-    api_host: Optional[str] = None,
-    api_port: Optional[int] = None
+    api_base_url: Optional[str] = None
 ) -> dict:
     """
     Fetch norm data from the relational microservice via REST API.
 
     Args:
         infoleg_id: The infoleg ID to fetch
-        api_host: The API server host (default: from settings.RELATIONAL_API_HOST)
-        api_port: The API server port (default: from settings.RELATIONAL_API_PORT)
+        api_base_url: The API base URL (default: from settings.RELATIONAL_API_HOST)
 
     Returns:
         dict with keys: success (bool), message (str), norma_json (str)
     """
-    host = api_host or settings.RELATIONAL_API_HOST
-    port = api_port or settings.RELATIONAL_API_PORT
-    url = f"http://{host}:{port}/api/v1/relational/reconstruct"
+    base_url = (api_base_url or settings.RELATIONAL_API_HOST).rstrip('/')
+    url = f"{base_url}/api/v1/relational/reconstruct"
     params = {"infoleg_id": infoleg_id}
 
     try:
@@ -52,23 +49,20 @@ def fetch_norm_by_infoleg_id(
 
 def fetch_norm_by_id(
     norm_id: int,
-    api_host: Optional[str] = None,
-    api_port: Optional[int] = None
+    api_base_url: Optional[str] = None
 ) -> dict:
     """
     Fetch norm data from the relational microservice via REST API by database ID.
 
     Args:
         norm_id: The database ID to fetch
-        api_host: The API server host (default: from settings.RELATIONAL_API_HOST)
-        api_port: The API server port (default: from settings.RELATIONAL_API_PORT)
+        api_base_url: The API base URL (default: from settings.RELATIONAL_API_HOST)
 
     Returns:
         dict with keys: success (bool), message (str), norma_json (str)
     """
-    host = api_host or settings.RELATIONAL_API_HOST
-    port = api_port or settings.RELATIONAL_API_PORT
-    url = f"http://{host}:{port}/api/v1/relational/reconstruct/{norm_id}"
+    base_url = (api_base_url or settings.RELATIONAL_API_HOST).rstrip('/')
+    url = f"{base_url}/api/v1/relational/reconstruct/{norm_id}"
 
     try:
         response = requests.get(url, timeout=30)
@@ -96,8 +90,7 @@ def fetch_norm_by_id(
 
 def fetch_batch_entities(
     search_results: List[Dict],
-    api_host: Optional[str] = None,
-    api_port: Optional[int] = None
+    api_base_url: Optional[str] = None
 ) -> dict:
     """
     Fetch batch entities (articles and divisions) from the relational microservice via REST API.
@@ -106,16 +99,14 @@ def fetch_batch_entities(
         search_results: List of search result dicts with 'document_id' and 'metadata' fields
                        document_id format: "n{source_id}_{type_prefix}{id}" (e.g., "n183532_a4", "n183532_d1")
                        metadata must contain 'document_type' field ("article" or "division")
-        api_host: The API server host (default: from settings.RELATIONAL_API_HOST)
-        api_port: The API server port (default: from settings.RELATIONAL_API_PORT)
+        api_base_url: The API base URL (default: from settings.RELATIONAL_API_HOST)
 
     Returns:
         dict with keys: success (bool), message (str), normas_json (str)
     """
     entity_pairs = _parse_entity_pairs_from_search_results(search_results)
-    host = api_host or settings.RELATIONAL_API_HOST
-    port = api_port or settings.RELATIONAL_API_PORT
-    url = f"http://{host}:{port}/api/v1/relational/batch"
+    base_url = (api_base_url or settings.RELATIONAL_API_HOST).rstrip('/')
+    url = f"{base_url}/api/v1/relational/batch"
 
     payload = {
         "entities": entity_pairs

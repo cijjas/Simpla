@@ -9,8 +9,7 @@ def search_vectors(
     embedding: List[float],
     filters: Optional[Dict[str, str]] = None,
     limit: int = 10,
-    api_host: Optional[str] = None,
-    api_port: Optional[int] = None
+    api_base_url: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Search for similar vectors in the vectorial microservice via REST API.
@@ -19,15 +18,13 @@ def search_vectors(
         embedding: The embedding vector to search with
         filters: Optional metadata filters
         limit: Maximum number of results to return (default: 10)
-        api_host: The API server host (default: from settings.VECTORIAL_API_HOST)
-        api_port: The API server port (default: from settings.VECTORIAL_API_PORT)
+        api_base_url: The API base URL (default: from settings.VECTORIAL_API_HOST)
 
     Returns:
         dict with keys: success (bool), message (str), results (list)
     """
-    host = api_host or settings.VECTORIAL_API_HOST
-    port = api_port or settings.VECTORIAL_API_PORT
-    url = f"http://{host}:{port}/api/v1/vectorial/search"
+    base_url = (api_base_url or settings.VECTORIAL_API_HOST).rstrip('/')
+    url = f"{base_url}/api/v1/vectorial/search"
 
     # Build the request payload
     payload = {
