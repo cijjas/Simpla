@@ -2,38 +2,39 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { ConversationsAPI, type Message, type Conversation, type ConversationDetail, type ChatType, type FeedbackType, type ToneType } from '../index';
+import { ConversationsAPI, type Message, type Conversation, type ChatType, type FeedbackType, type ToneType } from '../index';
 
 // State interface
 interface ConversationsState {
   conversations: Conversation[];
-  currentConversation: ConversationDetail | null;
+  // currentConversation removed - was duplicating messages array
   messages: Message[];
   // currentSessionId removed - use URL as single source of truth
   chatType: ChatType;
   tone: ToneType;
   isLoading: boolean;
-  isStreaming: boolean;
+  // isStreaming removed - derived from streamingMessage !== ''
   streamingMessage: string;
   isLoadingConversations: boolean;
-  editingConversationId: string | null;
-  tempTitle: string;
+  // editingConversationId removed - moved to local state in conversations-page
+  // tempTitle removed - moved to local state in conversations-page
+}
+
+// Derived state - computed from base state
+interface ConversationsDerivedState extends ConversationsState {
+  isStreaming: boolean; // Derived from streamingMessage !== ''
 }
 
 // Action types
 type ConversationsAction =
   | { type: 'SET_CONVERSATIONS'; payload: Conversation[] }
-  | { type: 'SET_CURRENT_CONVERSATION'; payload: ConversationDetail | null }
   | { type: 'SET_MESSAGES'; payload: Message[] }
   | { type: 'ADD_MESSAGE'; payload: Message }
   | { type: 'SET_CHAT_TYPE'; payload: ChatType }
   | { type: 'SET_TONE'; payload: ToneType }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_STREAMING'; payload: boolean }
   | { type: 'SET_STREAMING_MESSAGE'; payload: string }
   | { type: 'SET_LOADING_CONVERSATIONS'; payload: boolean }
-  | { type: 'SET_EDITING_CONVERSATION_ID'; payload: string | null }
-  | { type: 'SET_TEMP_TITLE'; payload: string }
   | { type: 'UPDATE_CONVERSATION_TITLE'; payload: { id: string; title: string } }
   | { type: 'REMOVE_CONVERSATION'; payload: string }
   | { type: 'ADD_CONVERSATION'; payload: Conversation }
@@ -42,16 +43,12 @@ type ConversationsAction =
 // Initial state
 const initialState: ConversationsState = {
   conversations: [],
-  currentConversation: null,
   messages: [],
   chatType: 'normativa_nacional',
   tone: 'default',
   isLoading: false,
-  isStreaming: false,
   streamingMessage: '',
   isLoadingConversations: true,
-  editingConversationId: null,
-  tempTitle: '',
 };
 
 // Reducer
@@ -59,10 +56,7 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
   switch (action.type) {
     case 'SET_CONVERSATIONS':
       return { ...state, conversations: action.payload };
-    
-    case 'SET_CURRENT_CONVERSATION':
-      return { ...state, currentConversation: action.payload };
-    
+
     case 'SET_MESSAGES':
       return { ...state, messages: action.payload };
     
@@ -77,22 +71,13 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
     
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
-    
-    case 'SET_STREAMING':
-      return { ...state, isStreaming: action.payload };
-    
+
     case 'SET_STREAMING_MESSAGE':
       return { ...state, streamingMessage: action.payload };
     
     case 'SET_LOADING_CONVERSATIONS':
       return { ...state, isLoadingConversations: action.payload };
-    
-    case 'SET_EDITING_CONVERSATION_ID':
-      return { ...state, editingConversationId: action.payload };
-    
-    case 'SET_TEMP_TITLE':
-      return { ...state, tempTitle: action.payload };
-    
+
     case 'UPDATE_CONVERSATION_TITLE':
       return {
         ...state,
@@ -101,18 +86,15 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
             ? { ...conv, title: action.payload.title }
             : conv
         ),
-        currentConversation: state.currentConversation?.id === action.payload.id
-          ? { ...state.currentConversation, title: action.payload.title }
-          : state.currentConversation,
+        // currentConversation removed - no need to update duplicate
       };
     
     case 'REMOVE_CONVERSATION':
       return {
         ...state,
         conversations: state.conversations.filter(conv => conv.id !== action.payload),
-        currentConversation: state.currentConversation?.id === action.payload ? null : state.currentConversation,
-        // Note: Messages clearing now handled by URL navigation in the page component
-        messages: state.currentConversation?.id === action.payload ? [] : state.messages,
+        // Clear messages - URL navigation will reload if needed
+        messages: [],
       };
     
     case 'ADD_CONVERSATION':
@@ -129,16 +111,7 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
             ? { ...msg, feedback: action.payload.feedback }
             : msg
         ),
-        currentConversation: state.currentConversation
-          ? {
-              ...state.currentConversation,
-              messages: state.currentConversation.messages.map(msg =>
-                msg.id === action.payload.messageId
-                  ? { ...msg, feedback: action.payload.feedback }
-                  : msg
-              ),
-            }
-          : null,
+        // currentConversation removed - no duplicate to update ✅
       };
     
     default:
@@ -148,7 +121,7 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
 
 // Context interface
 interface ConversationsContextType {
-  state: ConversationsState;
+  state: ConversationsDerivedState;
 
   // Actions
   loadConversations: () => Promise<void>;
@@ -157,12 +130,9 @@ interface ConversationsContextType {
   sendMessage: (content: string, currentConversationId: string | null, onNewConversation?: (sessionId: string) => void) => Promise<void>;
   archiveConversation: (conversation: Conversation) => Promise<void>;
   deleteConversation: (conversation: Conversation) => Promise<void>;
-  startRenameConversation: (conversation: Conversation) => void;
-  saveRenameConversation: (conversationId: string) => Promise<void>;
-  cancelRenameConversation: () => void;
+  updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
   setChatType: (chatType: ChatType) => void;
   setTone: (tone: ToneType) => void;
-  setTempTitle: (title: string) => void;
   submitFeedback: (messageId: string, feedbackType: FeedbackType) => Promise<void>;
   removeFeedback: (messageId: string) => Promise<void>;
 }
@@ -223,10 +193,9 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
         };
       });
 
-      dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversation });
       dispatch({ type: 'SET_MESSAGES', payload: processedMessages });
-      // currentSessionId removed - URL is the source of truth
       dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
+      // currentConversation removed - messages is the single source
     } catch (error) {
       toast.error('Error loading conversation');
       console.error(error);
@@ -237,9 +206,8 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
   // Select empty conversation (new conversation state)
   const selectEmptyConversation = useCallback(() => {
-    dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: null });
     dispatch({ type: 'SET_MESSAGES', payload: [] });
-    // currentSessionId removed - URL navigation handles this
+    // currentConversation removed - messages is the single source
   }, []);
 
         // Send message
@@ -248,7 +216,8 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     currentConversationId: string | null,
     onNewConversation?: (sessionId: string) => void
   ) => {
-    if (!content.trim() || state.isStreaming) return;
+    // Prevent sending if already streaming (derived from streamingMessage)
+    if (!content.trim() || state.streamingMessage !== '') return;
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
@@ -260,8 +229,9 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
     // Add user message immediately
     dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
-    dispatch({ type: 'SET_STREAMING', payload: true });
-    dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
+    // Start streaming by setting streamingMessage to empty string (not empty)
+    // This will make isStreaming = true (derived from streamingMessage !== '')
+    dispatch({ type: 'SET_STREAMING_MESSAGE', payload: ' ' });
     streamingContentRef.current = '';
 
     // Determine session_id: use currentConversationId if it's not 'new', otherwise undefined
@@ -298,7 +268,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             relevant_docs: normaIdsRef.current, // Include relevant_docs in the message
           }});
 
-          dispatch({ type: 'SET_STREAMING', payload: false });
+          // End streaming by clearing streamingMessage (makes isStreaming = false)
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
           normaIdsRef.current = undefined; // Clear relevant_docs for next message
@@ -317,30 +287,9 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
               total_tokens: 0, // This will be updated when we get the actual conversation details
             };
 
-            // Create a conversation detail object for the current conversation
-            const newConversationDetail: ConversationDetail = {
-              ...newConversation,
-              messages: [...state.messages, {
-                id: `temp-${Date.now()}`,
-                role: 'user' as const,
-                content: content.trim(),
-                tokens_used: 0,
-                created_at: new Date().toISOString(),
-              }, {
-                id: `assistant-${Date.now()}`,
-                role: 'assistant' as const,
-                content: streamingContentRef.current,
-                tokens_used: 0,
-                created_at: new Date().toISOString(),
-              }],
-              system_prompt: '',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
-
-            // Add the new conversation to the list and set it as current
+            // Add the new conversation to the list
+            // Messages are already in state.messages, no need for ConversationDetail
             dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
-            dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: newConversationDetail });
 
             // Call navigation callback to update URL
             if (onNewConversation) {
@@ -351,7 +300,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
         (error) => {
           toast.error('Error sending message');
           console.error(error);
-          dispatch({ type: 'SET_STREAMING', payload: false });
+          // End streaming by clearing streamingMessage (makes isStreaming = false)
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
         }
@@ -359,11 +308,11 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     } catch (error) {
       toast.error('Error sending message');
       console.error(error);
-      dispatch({ type: 'SET_STREAMING', payload: false });
+      // End streaming by clearing streamingMessage (makes isStreaming = false)
       dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
       streamingContentRef.current = '';
     }
-  }, [state.chatType, state.isStreaming, state.messages]);
+  }, [state.chatType, state.streamingMessage]);
 
   // Archive conversation
   const archiveConversation = useCallback(async (conversation: Conversation) => {
@@ -389,37 +338,16 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
-  // Start renaming conversation
-  const startRenameConversation = useCallback((conversation: Conversation) => {
-    dispatch({ type: 'SET_EDITING_CONVERSATION_ID', payload: conversation.id });
-    dispatch({ type: 'SET_TEMP_TITLE', payload: conversation.title });
-  }, []);
-
-  // Save renamed conversation
-  const saveRenameConversation = useCallback(async (conversationId: string) => {
-    if (!state.tempTitle.trim()) {
-      dispatch({ type: 'SET_EDITING_CONVERSATION_ID', payload: null });
-      dispatch({ type: 'SET_TEMP_TITLE', payload: '' });
-      return;
-    }
-
+  // Update conversation title (simplified - UI state handled in component)
+  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
     try {
-      await ConversationsAPI.updateConversation(conversationId, { title: state.tempTitle.trim() });
-      dispatch({ type: 'UPDATE_CONVERSATION_TITLE', payload: { id: conversationId, title: state.tempTitle.trim() } });
+      await ConversationsAPI.updateConversation(conversationId, { title: title.trim() });
+      dispatch({ type: 'UPDATE_CONVERSATION_TITLE', payload: { id: conversationId, title: title.trim() } });
       toast.success('Título actualizado');
     } catch (error) {
       toast.error('Error updating title');
       console.error(error);
-    } finally {
-      dispatch({ type: 'SET_EDITING_CONVERSATION_ID', payload: null });
-      dispatch({ type: 'SET_TEMP_TITLE', payload: '' });
     }
-  }, [state.tempTitle]);
-
-  // Cancel renaming conversation
-  const cancelRenameConversation = useCallback(() => {
-    dispatch({ type: 'SET_EDITING_CONVERSATION_ID', payload: null });
-    dispatch({ type: 'SET_TEMP_TITLE', payload: '' });
   }, []);
 
   // Set chat type
@@ -431,11 +359,6 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const setTone = useCallback((tone: ToneType) => {
     currentToneRef.current = tone; // Update ref immediately
     dispatch({ type: 'SET_TONE', payload: tone });
-  }, []);
-
-  // Set temp title
-  const setTempTitle = useCallback((title: string) => {
-    dispatch({ type: 'SET_TEMP_TITLE', payload: title });
   }, []);
 
   // Submit feedback (optimistic update)
@@ -470,20 +393,23 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     }
   }, [loadConversations]);
 
+  // Derive isStreaming from streamingMessage
+  const derivedState: ConversationsDerivedState = {
+    ...state,
+    isStreaming: state.streamingMessage !== '',
+  };
+
   const value: ConversationsContextType = {
-    state,
+    state: derivedState,
     loadConversations,
     loadConversation,
     selectEmptyConversation,
     sendMessage,
     archiveConversation,
     deleteConversation,
-    startRenameConversation,
-    saveRenameConversation,
-    cancelRenameConversation,
+    updateConversationTitle,
     setChatType,
     setTone,
-    setTempTitle,
     submitFeedback,
     removeFeedback,
   };

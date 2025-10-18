@@ -42,11 +42,8 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
     sendMessage,
     archiveConversation,
     deleteConversation,
-    startRenameConversation,
-    saveRenameConversation,
-    cancelRenameConversation,
+    updateConversationTitle,
     setTone,
-    setTempTitle,
     submitFeedback,
     removeFeedback,
   } = useConversations();
@@ -57,6 +54,10 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
+  // Local state for editing conversation title (moved from Context)
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [tempTitle, setTempTitle] = useState('');
+
   // Destructure state for easier access
   const {
     conversations,
@@ -66,8 +67,6 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
     isStreaming,
     streamingMessage,
     isLoadingConversations,
-    editingConversationId,
-    tempTitle,
   } = state;
 
   // Refs
@@ -100,6 +99,29 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
+  };
+
+  // Handle renaming conversation (local state management)
+  const handleStartRename = (conv: Conversation) => {
+    setEditingConversationId(conv.id);
+    setTempTitle(conv.title);
+  };
+
+  const handleSaveRename = async (conversationId: string) => {
+    if (!tempTitle.trim()) {
+      setEditingConversationId(null);
+      setTempTitle('');
+      return;
+    }
+
+    await updateConversationTitle(conversationId, tempTitle.trim());
+    setEditingConversationId(null);
+    setTempTitle('');
+  };
+
+  const handleCancelRename = () => {
+    setEditingConversationId(null);
+    setTempTitle('');
   };
 
   const confirmDeleteConversation = async () => {
@@ -231,12 +253,12 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                               type="text"
                               value={tempTitle}
                               onChange={(e) => setTempTitle(e.target.value)}
-                              onBlur={() => saveRenameConversation(conv.id)}
+                              onBlur={() => handleSaveRename(conv.id)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  saveRenameConversation(conv.id);
+                                  handleSaveRename(conv.id);
                                 } else if (e.key === 'Escape') {
-                                  cancelRenameConversation();
+                                  handleCancelRename();
                                 }
                               }}
                               className="w-full border-none bg-transparent p-0 text-sm font-medium text-foreground focus:ring-0 focus:outline-none"
@@ -275,7 +297,7 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              startRenameConversation(conv);
+                              handleStartRename(conv);
                             }}
                           >
                             <Pencil className="h-4 w-4 mr-2" />
