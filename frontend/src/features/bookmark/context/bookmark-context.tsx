@@ -1,39 +1,39 @@
 'use client';
 
 /**
- * Favorites Context and Provider
- * Manages favorite states efficiently with bulk loading and caching
+ * Bookmarks Context and Provider
+ * Manages bookmark states efficiently with bulk loading and caching
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useApi } from '@/features/auth/hooks/use-api';
 
-interface FavoritesContextValue {
-  favoriteNormas: Set<number>;
+interface BookmarksContextValue {
+  bookmarkedNormas: Set<number>;
   loading: boolean;
   error: string | null;
-  checkFavorites: (normaIds: number[]) => Promise<void>;
-  toggleFavorite: (normaId: number) => Promise<void>;
-  isFavorite: (normaId: number) => boolean;
+  checkBookmarks: (normaIds: number[]) => Promise<void>;
+  toggleBookmark: (normaId: number) => Promise<void>;
+  isBookmarked: (normaId: number) => boolean;
 }
 
-const FavoritesContext = createContext<FavoritesContextValue | undefined>(undefined);
+const BookmarksContext = createContext<BookmarksContextValue | undefined>(undefined);
 
-interface FavoritesProviderProps {
+interface BookmarksProviderProps {
   children: ReactNode;
 }
 
-export function FavoritesProvider({ children }: FavoritesProviderProps) {
+export function BookmarksProvider({ children }: BookmarksProviderProps) {
   const { isAuthenticated } = useAuth();
   const api = useApi();
-  const [favoriteNormas, setFavoriteNormas] = useState<Set<number>>(new Set());
+  const [bookmarkedNormas, setBookmarkedNormas] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkedNormas, setCheckedNormas] = useState<Set<number>>(new Set());
 
-  // Batch check favorites for multiple normas
-  const checkFavorites = useCallback(async (normaIds: number[]) => {
+  // Batch check bookmarks for multiple normas
+  const checkBookmarks = useCallback(async (normaIds: number[]) => {
     if (!isAuthenticated || normaIds.length === 0) {
       return;
     }
@@ -52,26 +52,26 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
       const checks = await Promise.all(
         uncheckedNormas.map(async (normaId) => {
           try {
-            const response = await api.get<{ is_favorite: boolean }>(`/api/favorites/check/${normaId}`);
-            return { normaId, isFavorite: response.is_favorite };
+            const response = await api.get<{ is_bookmarked: boolean }>(`/api/bookmarks/check/${normaId}`);
+            return { normaId, isBookmarked: response.is_bookmarked };
           } catch (err) {
-            console.error(`Error checking favorite status for norma ${normaId}:`, err);
-            return { normaId, isFavorite: false };
+            console.error(`Error checking bookmark status for norma ${normaId}:`, err);
+            return { normaId, isBookmarked: false };
           }
         })
       );
 
       // Update state with results
-      setFavoriteNormas(prev => {
-        const newFavorites = new Set(prev);
-        checks.forEach(({ normaId, isFavorite }) => {
-          if (isFavorite) {
-            newFavorites.add(normaId);
+      setBookmarkedNormas(prev => {
+        const newBookmarks = new Set(prev);
+        checks.forEach(({ normaId, isBookmarked }) => {
+          if (isBookmarked) {
+            newBookmarks.add(normaId);
           } else {
-            newFavorites.delete(normaId);
+            newBookmarks.delete(normaId);
           }
         });
-        return newFavorites;
+        return newBookmarks;
       });
 
       // Mark these normas as checked
@@ -82,15 +82,15 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
       });
 
     } catch (err) {
-      console.error('Error checking favorites:', err);
+      console.error('Error checking bookmarks:', err);
       setError('Error al verificar guardados');
     } finally {
       setLoading(false);
     }
   }, [api, isAuthenticated, checkedNormas]);
 
-  // Toggle favorite status
-  const toggleFavorite = useCallback(async (normaId: number) => {
+  // Toggle bookmark status
+  const toggleBookmark = useCallback(async (normaId: number) => {
     if (!isAuthenticated) {
       setError('Debes iniciar sesión para guardar');
       return;
@@ -100,64 +100,64 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
       setLoading(true);
       setError(null);
 
-      await api.post('/api/favorites/toggle', { norma_id: normaId });
+      await api.post('/api/bookmarks/toggle', { norma_id: normaId });
       
       // Update local state immediately for better UX
-      setFavoriteNormas(prev => {
-        const newFavorites = new Set(prev);
-        if (newFavorites.has(normaId)) {
-          newFavorites.delete(normaId);
+      setBookmarkedNormas(prev => {
+        const newBookmarks = new Set(prev);
+        if (newBookmarks.has(normaId)) {
+          newBookmarks.delete(normaId);
         } else {
-          newFavorites.add(normaId);
+          newBookmarks.add(normaId);
         }
-        return newFavorites;
+        return newBookmarks;
       });
 
     } catch (err) {
-      console.error('Error toggling favorite:', err);
+      console.error('Error toggling bookmark:', err);
       setError('Error al actualizar guardados');
       
       // Refresh the specific norma's status on error
-      await checkFavorites([normaId]);
+      await checkBookmarks([normaId]);
     } finally {
       setLoading(false);
     }
-  }, [api, isAuthenticated, checkFavorites]);
+  }, [api, isAuthenticated, checkBookmarks]);
 
-  // Check if a norma is favorite
-  const isFavorite = useCallback((normaId: number): boolean => {
-    return favoriteNormas.has(normaId);
-  }, [favoriteNormas]);
+  // Check if a norma is bookmarked
+  const isBookmarked = useCallback((normaId: number): boolean => {
+    return bookmarkedNormas.has(normaId);
+  }, [bookmarkedNormas]);
 
   // Clear cache when authentication status changes
   useEffect(() => {
     if (!isAuthenticated) {
-      setFavoriteNormas(new Set());
+      setBookmarkedNormas(new Set());
       setCheckedNormas(new Set());
       setError(null);
     }
   }, [isAuthenticated]);
 
-  const value: FavoritesContextValue = {
-    favoriteNormas,
+  const value: BookmarksContextValue = {
+    bookmarkedNormas,
     loading,
     error,
-    checkFavorites,
-    toggleFavorite,
-    isFavorite,
+    checkBookmarks,
+    toggleBookmark,
+    isBookmarked,
   };
 
   return (
-    <FavoritesContext.Provider value={value}>
+    <BookmarksContext.Provider value={value}>
       {children}
-    </FavoritesContext.Provider>
+    </BookmarksContext.Provider>
   );
 }
 
-export function useFavoritesContext(): FavoritesContextValue {
-  const context = useContext(FavoritesContext);
+export function useBookmarksContext(): BookmarksContextValue {
+  const context = useContext(BookmarksContext);
   if (context === undefined) {
-    throw new Error('useFavoritesContext must be used within a FavoritesProvider');
+    throw new Error('useBookmarksContext must be used within a BookmarksProvider');
   }
   return context;
 }

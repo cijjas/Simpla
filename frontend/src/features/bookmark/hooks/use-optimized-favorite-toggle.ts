@@ -1,37 +1,37 @@
 'use client';
 
 /**
- * Optimized favorite toggle hook using context
+ * Optimized bookmark toggle hook using context
  */
 
 import { useEffect } from 'react';
-import { useFavoritesContext } from '../context/bookmark-context';
+import { useBookmarksContext } from '../context/bookmark-context';
 
-interface UseOptimizedFavoriteToggleResult {
-  isFavorite: boolean;
+interface UseOptimizedBookmarkToggleResult {
+  isBookmarked: boolean;
   loading: boolean;
   error: string | null;
-  toggleFavorite: () => Promise<void>;
+  toggleBookmark: () => Promise<void>;
 }
 
-export function useOptimizedFavoriteToggle(normaId: number): UseOptimizedFavoriteToggleResult {
-  const { checkFavorites, toggleFavorite: contextToggle, isFavorite: contextIsFavorite, loading, error } = useFavoritesContext();
+export function useOptimizedBookmarkToggle(normaId: number): UseOptimizedBookmarkToggleResult {
+  const { checkBookmarks, toggleBookmark: contextToggle, isBookmarked: contextIsBookmarked, loading, error } = useBookmarksContext();
 
-  // Check this norma's favorite status when the hook is used
+  // Check this norma's bookmark status when the hook is used
   useEffect(() => {
     if (normaId) {
-      checkFavorites([normaId]);
+      checkBookmarks([normaId]);
     }
-  }, [normaId, checkFavorites]);
+  }, [normaId, checkBookmarks]);
 
-  const toggleFavorite = async () => {
+  const toggleBookmark = async () => {
     await contextToggle(normaId);
   };
 
   return {
-    isFavorite: contextIsFavorite(normaId),
+    isBookmarked: contextIsBookmarked(normaId),
     loading,
     error,
-    toggleFavorite,
+    toggleBookmark,
   };
 }

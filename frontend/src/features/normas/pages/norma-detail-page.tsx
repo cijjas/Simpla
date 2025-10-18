@@ -226,6 +226,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
                   jurisdiccion: norma.jurisdiccion ?? null,
                   observaciones: norma.observaciones ?? null,
                   texto_norma: norma.texto_norma ?? null,
+                  texto_resumido: norma.texto_resumido ?? null,
                 }}
                 open={open}
                 onOpenChange={setOpen}

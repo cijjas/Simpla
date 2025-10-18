@@ -11,11 +11,19 @@ interface NormaListItemProps {
 export function NormaListItem({ data, secondary = false }: NormaListItemProps) {
   const displayDate = data.publicacion || data.sancion;
 
+  // Get norma name with numero if available
+  const getNormaName = () => {
+    if (data.tipo_norma && data.referencia?.numero) {
+      return `${data.tipo_norma} ${data.referencia.numero}`;
+    }
+    return data.tipo_norma;
+  };
+
   return (
     <li className='flex flex-wrap items-baseline gap-2'>
       {data.tipo_norma && (
         <Badge variant={secondary ? 'secondary' : 'default'}>
-          {data.tipo_norma}
+          {getNormaName()}
         </Badge>
       )}
       <Link

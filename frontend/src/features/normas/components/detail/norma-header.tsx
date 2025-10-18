@@ -17,7 +17,7 @@ interface NormaHeaderProps {
     id: number;
     infoleg_id: number;
     titulo_sumario: string | null;
-    titulo_resumido: string | null;
+    titulo_resumido: string | null; 
     tipo_norma: string | null;
     clase_norma: string | null;
     estado: string | null;
@@ -28,6 +28,15 @@ interface NormaHeaderProps {
     jurisdiccion: string | null;
     observaciones: string | null;
     texto_norma: string | null;
+    texto_resumido: string | null;
+    referencia?: {
+      id: number;
+      norma_id: number;
+      numero: number;
+      dependencia?: string;
+      rama_digesto?: string;
+      created_at: string;
+    };
   };
   open: string[];
   onOpenChange: (value: string[]) => void;
@@ -59,7 +68,14 @@ export function NormaHeader({
       </div>
 
       <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
-        {norma.tipo_norma?.trim() && <Badge>{norma.tipo_norma}</Badge>}
+        {norma.tipo_norma?.trim() && (
+          <Badge>
+            {norma.referencia?.numero 
+              ? `${norma.tipo_norma} ${norma.referencia.numero}`
+              : norma.tipo_norma
+            }
+          </Badge>
+        )}
         {norma.clase_norma?.trim() && (
           <Badge variant='secondary'>{norma.clase_norma}</Badge>
         )}
@@ -70,20 +86,29 @@ export function NormaHeader({
         <div className='h-4 border-l border-border/30 mx-1' />
 
         {norma.publicacion && (
-          <span>Publicación: {formatDateSlash(norma.publicacion)}</span>
+          <span>
+            Publicada el {formatDateSlash(norma.publicacion)}
+            {norma.nro_boletin && (
+              <>
+                {' '}en el Boletín Oficial N°&nbsp;{norma.nro_boletin}
+                {norma.pag_boletin && `, pág. ${norma.pag_boletin}`}
+              </>
+            )}
+          </span>
         )}
 
-        {norma.nro_boletin && (
+        {/* Show bulletin info separately only if no publicacion date */}
+        {!norma.publicacion && norma.nro_boletin && (
           <span>
-            Boletín Oficial&nbsp;{norma.nro_boletin}
-            {norma.pag_boletin && ` • pág ${norma.pag_boletin}`}
+            Boletín Oficial N°&nbsp;{norma.nro_boletin}
+            {norma.pag_boletin && `, pág. ${norma.pag_boletin}`}
           </span>
         )}
 
         <div className='h-4 border-l border-border/30 mx-1' />
 
         {norma.sancion && (
-          <span>Sanción: {formatDateSlash(norma.sancion)}</span>
+          <span>Sancionada el {formatDateSlash(norma.sancion)}</span>
         )}
         {norma.jurisdiccion && <span>Jurisdicción: {norma.jurisdiccion}</span>}
       </div>
@@ -133,9 +158,9 @@ export function NormaHeader({
         </Accordion>
       )}
 
-      {norma.observaciones && (
+      {norma.texto_resumido && (
         <blockquote className='border-l-4 border-primary pl-4 italic text-muted-foreground text-justify'>
-          {norma.observaciones}
+          {norma.texto_resumido}
         </blockquote>
       )}
     </header>

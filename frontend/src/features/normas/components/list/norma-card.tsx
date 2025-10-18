@@ -10,21 +10,30 @@ import type { NormaSummary } from '@/features/normas/api/normas-api';
 
 interface NormaCardProps {
   norma: NormaSummary;
+  /** If provided, skip the API check and use this value directly (optimization for bookmark page) */
+  isBookmarked?: boolean;
 }
 
-export function NormaCard({ norma }: NormaCardProps) {
-  // Check if this norma is bookmarked
-  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.infoleg_id);
+export function NormaCard({ norma, isBookmarked: initialBookmarked }: NormaCardProps) {
+  // Check if this norma is bookmarked (or use provided value)
+  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.infoleg_id, {
+    initialBookmarkedState: initialBookmarked,
+  });
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
     toggleBookmark();
   };
 
-  // Generate display name from tipo_norma
+  // Generate display name from tipo_norma and referencia.numero
   const getNombreNorma = () => {
+    if (norma.tipo_norma && norma.referencia?.numero) {
+      // get the year from the norma.sancion in format 'YYYY-MM-DD'
+      const year = norma.sancion?.split('-')[0];
+      return `${norma.tipo_norma} ${norma.referencia.numero}/${year}`;
+    }
     if (norma.tipo_norma) {
-      return norma.tipo_norma.toUpperCase();
+      return norma.tipo_norma;
     }
     return 'NORMA';
   };

@@ -2,6 +2,15 @@
  * API service for normas functionality
  */
 
+export interface NormaReferencia {
+  id: number;
+  norma_id: number;
+  numero: number;
+  dependencia?: string;
+  rama_digesto?: string;
+  created_at: string;
+}
+
 export interface NormaSummary {
   id: number;
   infoleg_id: number;
@@ -19,6 +28,7 @@ export interface NormaSummary {
   estado?: string;
   created_at: string;
   updated_at: string;
+  referencia?: NormaReferencia;
 }
 
 export interface NormaDetail extends NormaSummary {
@@ -40,6 +50,7 @@ export interface NormaDetail extends NormaSummary {
   llm_similarity_score?: number;
   inserted_at: string;
   divisions: Division[];
+  referencia?: NormaReferencia;
 }
 
 export interface Division {
@@ -85,6 +96,15 @@ export interface NormaStats {
   normas_by_jurisdiction: Record<string, number>;
   normas_by_type: Record<string, number>;
   normas_by_status: Record<string, number>;
+}
+
+export interface NormaBatchRequest {
+  infoleg_ids: number[];
+}
+
+export interface NormaBatchResponse {
+  normas: NormaSummary[];
+  not_found_ids: number[];
 }
 
 export interface NormaFilters {
@@ -171,6 +191,16 @@ class NormasAPI {
    */
   async getStats(): Promise<NormaStats> {
     return this.request<NormaStats>('/normas/stats/');
+  }
+
+  /**
+   * Get multiple norma summaries in a single batch request
+   */
+  async getNormasBatch(infolegIds: number[]): Promise<NormaBatchResponse> {
+    return this.request<NormaBatchResponse>('/normas/batch/', {
+      method: 'POST',
+      body: JSON.stringify({ infoleg_ids: infolegIds }),
+    });
   }
 }
 

@@ -47,7 +47,7 @@ export function NormaBody({
     <>
       {showOriginal && hasOriginalText ? (
         <div
-          className='prose max-w-none text-gray-700 dark:text-slate-300 norma-html font-serif text-justify'
+          className='prose max-w-none text-muted-foreground norma-html font-serif text-justify'
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize(
               textoNorma || textoNormaActualizado || '',

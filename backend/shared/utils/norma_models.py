@@ -5,6 +5,16 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 
 
+class NormaReferenciaModel(BaseModel):
+    """Model for norma reference information (numero, dependencia, etc)."""
+    id: int
+    norma_id: int
+    numero: int
+    dependencia: Optional[str] = None
+    rama_digesto: Optional[str] = None
+    created_at: datetime
+
+
 class ArticleModel(BaseModel):
     """Model for a legal article within a division."""
     id: int
@@ -64,6 +74,7 @@ class NormaStructuredModel(BaseModel):
     created_at: datetime
     updated_at: datetime
     divisions: List[DivisionModel] = []
+    referencia: Optional[NormaReferenciaModel] = None
 
 
 # Update forward references

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from datetime import date
 from contextlib import contextmanager
 
-from .norma_models import NormaStructuredModel, DivisionModel, ArticleModel
+from .norma_models import NormaStructuredModel, DivisionModel, ArticleModel, NormaReferenciaModel
 from core.config.config import settings
 from core.utils.logging_config import get_logger
 
@@ -45,9 +45,9 @@ class NormaReconstructor:
                 with conn.cursor() as cur:
                     # Check for critical indexes
                     critical_indexes = [
-                        'idx_norma_structured_infoleg_id',
-                        'idx_norma_divisions_norma_id',
-                        'idx_norma_articles_division_id'
+                        'idx_normas_infoleg',
+                        'idx_divisions_norma_id',
+                        'idx_articles_division'
                     ]
                     
                     missing_indexes = []
@@ -91,7 +91,7 @@ class NormaReconstructor:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Get the main norma
                 cur.execute("""
-                    SELECT * FROM norma_structured 
+                    SELECT * FROM normas_structured 
                     WHERE id = %s
                 """, (norma_id,))
                 
@@ -114,6 +114,10 @@ class NormaReconstructor:
                 divisions = self._get_divisions_tree(cur, norma_id)
                 norma_data['divisions'] = divisions
                 
+                # Get referencia
+                referencia = self._get_norma_referencia(cur, norma_id)
+                norma_data['referencia'] = referencia
+                
                 return NormaStructuredModel(**norma_data)
     
     def reconstruct_norma_by_infoleg_id(self, infoleg_id: int) -> Optional[NormaStructuredModel]:
@@ -123,7 +127,7 @@ class NormaReconstructor:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # Get the main norma by infoleg_id
                 cur.execute("""
-                    SELECT * FROM norma_structured 
+                    SELECT * FROM normas_structured 
                     WHERE infoleg_id = %s
                 """, (infoleg_id,))
                 
@@ -147,6 +151,10 @@ class NormaReconstructor:
                 divisions = self._get_divisions_tree(cur, norma_id)
                 norma_data['divisions'] = divisions
                 
+                # Get referencia
+                referencia = self._get_norma_referencia(cur, norma_id)
+                norma_data['referencia'] = referencia
+                
                 return NormaStructuredModel(**norma_data)
     
     def _get_divisions_tree(self, cur, norma_id: int) -> list[DivisionModel]:
@@ -154,7 +162,7 @@ class NormaReconstructor:
         
         # Get all divisions for this norma
         cur.execute("""
-            SELECT * FROM norma_divisions 
+            SELECT * FROM divisions 
             WHERE norma_id = %s 
             ORDER BY order_index NULLS LAST
         """, (norma_id,))
@@ -206,7 +214,7 @@ class NormaReconstructor:
         placeholders = ','.join(['%s'] * len(division_ids))
         
         cur.execute(f"""
-            SELECT * FROM norma_articles 
+            SELECT * FROM articles 
             WHERE division_id IN ({placeholders})
             ORDER BY division_id, order_index NULLS LAST
         """, division_ids)
@@ -263,6 +271,19 @@ class NormaReconstructor:
         articles_by_division = self._get_all_articles_for_divisions(cur, [division_id])
         return articles_by_division.get(division_id, [])
     
+    def _get_norma_referencia(self, cur, norma_id: int) -> Optional[NormaReferenciaModel]:
+        """Get norma referencia for a single norma."""
+        cur.execute("""
+            SELECT * FROM normas_referencias
+            WHERE norma_id = %s
+            LIMIT 1
+        """, (norma_id,))
+        
+        ref_row = cur.fetchone()
+        if ref_row:
+            return NormaReferenciaModel(**dict(ref_row))
+        return None
+    
     def get_norma_summary(self, norma_id: int) -> Optional[dict]:
         """Get a summary of a norma without the full hierarchical structure."""
         try:
@@ -274,7 +295,7 @@ class NormaReconstructor:
                             sancion, publicacion, titulo_sumario, titulo_resumido,
                             texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
                             created_at, updated_at
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE id = %s
                     """, (norma_id,))
                     
@@ -282,7 +303,16 @@ class NormaReconstructor:
                     if not norma_row:
                         return None
                     
-                    return dict(norma_row)
+                    norma_data = dict(norma_row)
+                    
+                    # Get referencia
+                    referencia = self._get_norma_referencia(cur, norma_id)
+                    if referencia:
+                        norma_data['referencia'] = referencia.model_dump()
+                    else:
+                        norma_data['referencia'] = None
+                    
+                    return norma_data
         except psycopg2.Error as e:
             logger.error(f"Database error in get_norma_summary: {str(e)}")
             raise
@@ -301,7 +331,7 @@ class NormaReconstructor:
                             sancion, publicacion, titulo_sumario, titulo_resumido,
                             texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
                             created_at, updated_at
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE infoleg_id = %s
                     """, (infoleg_id,))
                     
@@ -309,12 +339,92 @@ class NormaReconstructor:
                     if not norma_row:
                         return None
                     
-                    return dict(norma_row)
+                    norma_data = dict(norma_row)
+                    norma_id = norma_data['id']
+                    
+                    # Get referencia
+                    referencia = self._get_norma_referencia(cur, norma_id)
+                    if referencia:
+                        norma_data['referencia'] = referencia.model_dump()
+                    else:
+                        norma_data['referencia'] = None
+                    
+                    return norma_data
         except psycopg2.Error as e:
             logger.error(f"Database error in get_norma_summary_by_infoleg_id: {str(e)}")
             raise
         except Exception as e:
             logger.error(f"Unexpected error in get_norma_summary_by_infoleg_id: {str(e)}")
+            raise
+    
+    def get_normas_summaries_batch(self, infoleg_ids: List[int]) -> List[dict]:
+        """
+        Get multiple norma summaries in a single database query.
+        Returns a list of norma dictionaries. Missing normas are not included in the result.
+        """
+        if not infoleg_ids:
+            return []
+        
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # Fetch all normas in a single query using IN clause
+                    cur.execute("""
+                        SELECT 
+                            id, infoleg_id, jurisdiccion, clase_norma, tipo_norma,
+                            sancion, publicacion, titulo_sumario, titulo_resumido,
+                            texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
+                            created_at, updated_at
+                        FROM normas_structured 
+                        WHERE infoleg_id = ANY(%s)
+                    """, (infoleg_ids,))
+                    
+                    norma_rows = cur.fetchall()
+                    if not norma_rows:
+                        return []
+                    
+                    # Convert to dict and collect norma IDs for referencia lookup
+                    normas_data = []
+                    norma_ids = []
+                    normas_by_id = {}
+                    
+                    for norma_row in norma_rows:
+                        norma_data = dict(norma_row)
+                        norma_id = norma_data['id']
+                        normas_data.append(norma_data)
+                        norma_ids.append(norma_id)
+                        normas_by_id[norma_id] = norma_data
+                    
+                    # Fetch all referencias in a single query
+                    if norma_ids:
+                        cur.execute("""
+                            SELECT 
+                                id, norma_id, numero, dependencia, rama_digesto, created_at
+                            FROM normas_referencias
+                            WHERE norma_id = ANY(%s)
+                        """, (norma_ids,))
+                        
+                        ref_rows = cur.fetchall()
+                        
+                        # Map referencias to their normas
+                        for ref_row in ref_rows:
+                            ref_dict = dict(ref_row)
+                            norma_id = ref_dict['norma_id']
+                            if norma_id in normas_by_id:
+                                normas_by_id[norma_id]['referencia'] = ref_dict
+                    
+                    # Add None referencia for normas without one
+                    for norma_data in normas_data:
+                        if 'referencia' not in norma_data:
+                            norma_data['referencia'] = None
+                    
+                    return normas_data
+                    
+        except psycopg2.Error as e:
+            logger.error(f"Database error in get_normas_summaries_batch: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in get_normas_summaries_batch: {str(e)}")
             raise
     
     def search_normas(
@@ -394,7 +504,7 @@ class NormaReconstructor:
                     where_sql = " AND ".join(where_clauses) if where_clauses else "TRUE"
                     
                     # Get total count
-                    count_query = f"SELECT COUNT(*) FROM norma_structured WHERE {where_sql}"
+                    count_query = f"SELECT COUNT(*) FROM normas_structured WHERE {where_sql}"
                     cur.execute(count_query, params)
                     total_count = cur.fetchone()['count']
                     
@@ -406,7 +516,7 @@ class NormaReconstructor:
                             sancion, publicacion, titulo_sumario, titulo_resumido,
                             texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
                             created_at, updated_at
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE {where_sql}
                         ORDER BY created_at DESC
                         LIMIT %s OFFSET %s
@@ -414,6 +524,23 @@ class NormaReconstructor:
                     cur.execute(query, results_params)
                     
                     results = [dict(row) for row in cur.fetchall()]
+                    
+                    # Batch fetch referencias for all normas
+                    if results:
+                        norma_ids = [row['id'] for row in results]
+                        placeholders = ','.join(['%s'] * len(norma_ids))
+                        cur.execute(f"""
+                            SELECT * FROM normas_referencias
+                            WHERE norma_id IN ({placeholders})
+                        """, norma_ids)
+                        
+                        referencias_rows = cur.fetchall()
+                        referencias_by_norma = {ref['norma_id']: dict(ref) for ref in referencias_rows}
+                        
+                        # Add referencia to each result
+                        for result in results:
+                            result['referencia'] = referencias_by_norma.get(result['id'])
+                    
                     return results, total_count
         
         except psycopg2.Error as e:
@@ -433,7 +560,7 @@ class NormaReconstructor:
                     # Get unique jurisdictions
                     cur.execute("""
                         SELECT DISTINCT jurisdiccion 
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE jurisdiccion IS NOT NULL 
                         ORDER BY jurisdiccion
                     """)
@@ -442,7 +569,7 @@ class NormaReconstructor:
                     # Get unique tipo_norma
                     cur.execute("""
                         SELECT DISTINCT tipo_norma 
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE tipo_norma IS NOT NULL 
                         ORDER BY tipo_norma
                     """)
@@ -451,7 +578,7 @@ class NormaReconstructor:
                     # Get unique clase_norma
                     cur.execute("""
                         SELECT DISTINCT clase_norma 
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE clase_norma IS NOT NULL 
                         ORDER BY clase_norma
                     """)
@@ -460,7 +587,7 @@ class NormaReconstructor:
                     # Get unique estados
                     cur.execute("""
                         SELECT DISTINCT estado 
-                        FROM norma_structured 
+                        FROM normas_structured 
                         WHERE estado IS NOT NULL 
                         ORDER BY estado
                     """)

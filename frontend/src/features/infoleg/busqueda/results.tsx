@@ -270,6 +270,7 @@ export default function Results({
         )}
         <ToggleGroup
           type='single'
+          variant='outline'
           value={view}
           onValueChange={val => val && handleViewChange(val as 'list' | 'grid')}
         >

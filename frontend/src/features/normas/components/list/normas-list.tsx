@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
-  FileText,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -20,6 +19,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNormasSearch } from '../../hooks/use-normas-search';
 import { NormaCard } from './norma-card';
+import SvgSearch from '@/components/icons/Search';
 
 export function NormasList() {
   const {
@@ -158,18 +158,57 @@ export function NormasList() {
   // Empty state
   if (!data || data.normas.length === 0) {
     return (
-      <Card>
-        <CardContent className='p-12 text-center'>
-          <FileText className='h-12 w-12 mx-auto text-muted-foreground mb-4' />
-          <h3 className='text-lg font-semibold mb-2'>
-            No se encontraron normas
-          </h3>
-          <p className='text-muted-foreground'>
-            Intenta ajustar los filtros de búsqueda para encontrar más
-            resultados.
-          </p>
-        </CardContent>
-      </Card>
+      <section className='relative flex flex-col items-center justify-center h-full overflow-hidden px-4 md:px-6 py-4'>
+        {/* Background grid cards - realistic layout */}
+        <div className='absolute inset-0 px-4 md:px-6 py-4 pointer-events-none'>
+          <div 
+            className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 h-full'
+            style={{
+              WebkitMaskImage:
+                'radial-gradient(ellipse at center, transparent 20%, black 50%, transparent 80%)',
+              maskImage:
+                'radial-gradient(ellipse at center, transparent 20%, black 50%, transparent 80%)',
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Card
+                key={i}
+                className='flex h-full flex-col bg-card rounded-xl shadow-none border '
+              >
+                <CardContent className='flex grow flex-col gap-3 p-4'>
+                  <div className='h-32 w-full bg-muted/0 rounded-lg' />
+                  <div className='space-y-2'>
+                    <div className='h-4 w-3/4 bg-muted/00 rounded' />
+                    <div className='h-3 w-1/2 bg-muted/00 rounded' />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className='relative z-10 w-full max-w-xl mx-auto'>
+          <div className='flex flex-col items-center text-center space-y-6 bg-background/95 backdrop-blur-sm rounded-2xl p-8 border shadow-lg'>
+            {/* Icon */}
+            <SvgSearch className='size-56 text-muted-foreground/60' />
+            {/* Text Content */}
+            <div className='space-y-3 max-w-md'>
+              <h2 className='text-2xl sm:text-3xl font-serif font-bold tracking-tight'>
+                No se encontraron normas
+              </h2>
+              
+              <p className='text-sm sm:text-base leading-relaxed text-muted-foreground'>
+                Intenta ajustar los filtros de búsqueda para encontrar más resultados.
+              </p>
+
+              <p className='text-sm leading-relaxed text-muted-foreground pt-2'>
+                Modifica los filtros en la barra lateral o limpia todos los filtros para ver todas las normas disponibles.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     );
   }
 
@@ -195,6 +234,7 @@ export function NormasList() {
             {/* View Toggle - Mobile */}
             <ToggleGroup
               type='single'
+              variant='outline'
               value={view}
               onValueChange={value => {
                 if (value) handleViewChange(value as 'list' | 'grid');
@@ -340,16 +380,17 @@ export function NormasList() {
             {/* View Toggle - Desktop */}
             <ToggleGroup
               type='single'
+              variant='outline'
               value={view}
               onValueChange={value => {
                 if (value) handleViewChange(value as 'list' | 'grid');
               }}
             >
               <ToggleGroupItem value='grid' aria-label='Vista en cuadrícula'>
-                <LayoutGrid className='h-4 w-4' />
+                <LayoutGrid className='size-4' />
               </ToggleGroupItem>
               <ToggleGroupItem value='list' aria-label='Vista en lista'>
-                <List className='h-4 w-4' />
+                <List className='size-4' />
               </ToggleGroupItem>
             </ToggleGroup>
           </div>

@@ -12,7 +12,8 @@ from .normas_schemas import (
     NormaSearchResponse,
     NormaStatsResponse,
     NormaFilterOptionsResponse,
-    ErrorResponse
+    NormaBatchRequest,
+    NormaBatchResponse
 )
 
 logger = get_logger(__name__)
@@ -109,19 +110,19 @@ async def get_normas_stats():
         with reconstructor.get_connection() as conn:
             with conn.cursor() as cur:
                 # Get total counts
-                cur.execute("SELECT COUNT(*) FROM norma_structured")
+                cur.execute("SELECT COUNT(*) FROM normas_structured")
                 total_normas = cur.fetchone()[0]
                 
-                cur.execute("SELECT COUNT(*) FROM norma_divisions")
+                cur.execute("SELECT COUNT(*) FROM divisions")
                 total_divisions = cur.fetchone()[0]
                 
-                cur.execute("SELECT COUNT(*) FROM norma_articles")
+                cur.execute("SELECT COUNT(*) FROM articles")
                 total_articles = cur.fetchone()[0]
                 
                 # Get normas by jurisdiction
                 cur.execute("""
                     SELECT jurisdiccion, COUNT(*) 
-                    FROM norma_structured 
+                    FROM normas_structured 
                     WHERE jurisdiccion IS NOT NULL 
                     GROUP BY jurisdiccion 
                     ORDER BY COUNT(*) DESC
@@ -131,7 +132,7 @@ async def get_normas_stats():
                 # Get normas by type
                 cur.execute("""
                     SELECT tipo_norma, COUNT(*) 
-                    FROM norma_structured 
+                    FROM normas_structured 
                     WHERE tipo_norma IS NOT NULL 
                     GROUP BY tipo_norma 
                     ORDER BY COUNT(*) DESC
@@ -141,7 +142,7 @@ async def get_normas_stats():
                 # Get normas by status
                 cur.execute("""
                     SELECT estado, COUNT(*) 
-                    FROM norma_structured 
+                    FROM normas_structured 
                     WHERE estado IS NOT NULL 
                     GROUP BY estado 
                     ORDER BY COUNT(*) DESC
@@ -191,6 +192,41 @@ async def get_norma_summary(infoleg_id: int):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching norma summary: {str(e)}"
+        )
+
+
+@router.post("/normas/batch/", response_model=NormaBatchResponse)
+async def get_normas_batch(request: NormaBatchRequest):
+    """
+    Get multiple norma summaries in a single request by their infoleg_ids.
+    This endpoint is optimized for bulk operations and returns only summaries.
+    Uses a single SQL query for efficient batch fetching.
+    IDs that are not found will be returned in the not_found_ids list.
+    """
+    logger.info(f"Fetching batch of {len(request.infoleg_ids)} norma summaries")
+    
+    try:
+        # Fetch all normas in a single database query
+        normas_data = reconstructor.get_normas_summaries_batch(request.infoleg_ids)
+        
+        # Convert to response models
+        normas = [NormaSummaryResponse(**norma_data) for norma_data in normas_data]
+        
+        # Determine which IDs were not found
+        found_ids = {norma.infoleg_id for norma in normas}
+        not_found_ids = [
+            infoleg_id for infoleg_id in request.infoleg_ids 
+            if infoleg_id not in found_ids
+        ]
+        
+        logger.info(f"Successfully fetched {len(normas)} normas, {len(not_found_ids)} not found")
+        return NormaBatchResponse(normas=normas, not_found_ids=not_found_ids)
+        
+    except Exception as e:
+        logger.error(f"Error fetching batch normas: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching batch normas: {str(e)}"
         )
 
 

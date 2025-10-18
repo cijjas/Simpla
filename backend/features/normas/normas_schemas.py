@@ -5,6 +5,16 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
+class NormaReferenciaResponse(BaseModel):
+    """Schema for norma reference information."""
+    id: int
+    norma_id: int
+    numero: int
+    dependencia: Optional[str] = None
+    rama_digesto: Optional[str] = None
+    created_at: datetime
+
+
 class NormaSummaryResponse(BaseModel):
     """Schema for norma summary (without full structure)."""
     id: int
@@ -23,6 +33,7 @@ class NormaSummaryResponse(BaseModel):
     estado: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    referencia: Optional[NormaReferenciaResponse] = None
 
 
 class NormaFilterRequest(BaseModel):
@@ -47,6 +58,17 @@ class NormaSearchResponse(BaseModel):
     has_more: bool = False
     limit: int
     offset: int
+
+
+class NormaBatchRequest(BaseModel):
+    """Schema for batch norma request."""
+    infoleg_ids: List[int] = Field(..., description="List of infoleg IDs to fetch")
+
+
+class NormaBatchResponse(BaseModel):
+    """Schema for batch norma response."""
+    normas: List[NormaSummaryResponse]
+    not_found_ids: List[int] = Field(default_factory=list, description="IDs that were not found")
 
 
 class NormaFilterOptionsResponse(BaseModel):
@@ -93,6 +115,7 @@ class NormaDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     divisions: List["DivisionResponse"] = []
+    referencia: Optional[NormaReferenciaResponse] = None
 
 
 class ArticleResponse(BaseModel):

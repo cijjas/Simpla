@@ -2,35 +2,35 @@
 
 /**
  * Hook for components that display multiple normas
- * Efficiently batch-checks favorite status for all normas
+ * Efficiently batch-checks bookmark status for all normas
  */
 
 import { useEffect } from 'react';
-import { useFavoritesContext } from '../context/bookmark-context';
+import { useBookmarksContext } from '../context/bookmark-context';
 import { NormaItem } from '@/features/infoleg/utils/types';
 
-interface UseBatchFavoritesResult {
-  isFavorite: (normaId: number) => boolean;
+interface UseBatchBookmarksResult {
+  isBookmarked: (normaId: number) => boolean;
   loading: boolean;
   error: string | null;
-  toggleFavorite: (normaId: number) => Promise<void>;
+  toggleBookmark: (normaId: number) => Promise<void>;
 }
 
-export function useBatchFavorites(normas: NormaItem[]): UseBatchFavoritesResult {
-  const { checkFavorites, toggleFavorite, isFavorite, loading, error } = useFavoritesContext();
+export function useBatchBookmarks(normas: NormaItem[]): UseBatchBookmarksResult {
+  const { checkBookmarks, toggleBookmark, isBookmarked, loading, error } = useBookmarksContext();
 
   // Batch check all normas when they change
   useEffect(() => {
     if (normas.length > 0) {
       const normaIds = normas.map(norma => norma.id);
-      checkFavorites(normaIds);
+      checkBookmarks(normaIds);
     }
-  }, [normas, checkFavorites]);
+  }, [normas, checkBookmarks]);
 
   return {
-    isFavorite,
+    isBookmarked,
     loading,
     error,
-    toggleFavorite,
+    toggleBookmark,
   };
 }

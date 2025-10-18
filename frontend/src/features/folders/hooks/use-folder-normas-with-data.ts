@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
-import type { NormaItem } from '@/features/infoleg/utils/types';
+import { normasAPI, type NormaSummary } from '@/features/normas/api/normas-api';
 import { useFolderNormas } from './use-folders';
+import { FolderNormaUpdate, FolderWithNormasResponse } from '../types';
 
 interface UseFolderNormasWithDataResult {
-  normas: NormaItem[];
+  normas: NormaSummary[];
+  folderWithNormas: FolderWithNormasResponse | null; // Add this to return the folder-norma relationships
   loading: boolean;
   error: string | null;
   addNormaToFolder: (normaId: number, notes?: string) => Promise<void>;
   removeNormaFromFolder: (normaId: number) => Promise<void>;
+  updateFolderNorma: (normaId: number, updateData: FolderNormaUpdate) => Promise<void>; // Add this too
 }
 
 export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDataResult {
-  const { folderWithNormas, loading: folderLoading, error: folderError, addNormaToFolder: addToFolder, removeNormaFromFolder: removeFromFolder } = useFolderNormas(folderId);
-  const [normas, setNormas] = useState<NormaItem[]>([]);
+  const { folderWithNormas, loading: folderLoading, error: folderError, addNormaToFolder: addToFolder, removeNormaFromFolder: removeFromFolder, updateFolderNorma } = useFolderNormas(folderId);
+  const [normas, setNormas] = useState<NormaSummary[]>([]);
   const [normasLoading, setNormasLoading] = useState(false);
   const [normasError, setNormasError] = useState<string | null>(null);
 
@@ -33,7 +35,7 @@ export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDa
         
         const normaPromises = folderWithNormas.normas.map(async (folderNorma) => {
           try {
-            const normaData = await getNormaDetalladaResumen(folderNorma.norma.id);
+            const normaData = await normasAPI.getNormaSummary(folderNorma.norma.id);
             return normaData;
           } catch (error) {
             console.error(`Error fetching norma ${folderNorma.norma.id}:`, error);
@@ -43,7 +45,7 @@ export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDa
 
         const normaResults = await Promise.all(normaPromises);
         // Filter out null results (failed fetches)
-        const validNormas = normaResults.filter((norma): norma is NormaItem => norma !== null);
+        const validNormas = normaResults.filter((norma): norma is NormaSummary => norma !== null);
         
         console.log('Fetched normas:', validNormas);
         setNormas(validNormas);
@@ -66,11 +68,17 @@ export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDa
     await removeFromFolder(normaId);
   }, [removeFromFolder]);
 
+  const updateFolderNormaCallback = useCallback(async (normaId: number, updateData: FolderNormaUpdate) => {
+    await updateFolderNorma(normaId, updateData);
+  }, [updateFolderNorma]);
+
   return {
     normas,
+    folderWithNormas,
     loading: folderLoading || normasLoading,
     error: folderError || normasError,
     addNormaToFolder,
-    removeNormaFromFolder
+    removeNormaFromFolder,
+    updateFolderNorma: updateFolderNormaCallback
   };
 }

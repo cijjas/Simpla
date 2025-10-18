@@ -21,6 +21,16 @@ export const commands: Command[] = [
     category: 'navigation',
   },
   
+  {
+    id: 'toggle-norma-chat',
+    key: 'i',
+    modifiers: ['cmd', 'ctrl'],
+    action: { type: 'custom', handler: () => {} }, // Handler will be set by the chat component
+    description: 'Abrir/cerrar chat de IA',
+    enabled: true,
+    category: 'chat',
+  },
+  
   // Example commands (disabled by default - uncomment to enable):
   
   // {

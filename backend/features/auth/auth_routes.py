@@ -782,9 +782,9 @@ async def delete_account(
         # Then delete conversations
         db.query(Conversation).filter(Conversation.user_id == user_id).delete()
         
-        # Delete favorites
-        from features.favorites.favorites_models import Favorite
-        db.query(Favorite).filter(Favorite.user_id == user_id).delete()
+        # Delete bookmarks
+        from features.bookmarks.bookmarks_models import Bookmark
+        db.query(Bookmark).filter(Bookmark.user_id == user_id).delete()
         
         # Finally, delete the user
         db.delete(current_user)
