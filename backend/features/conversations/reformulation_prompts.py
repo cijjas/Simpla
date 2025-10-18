@@ -3,27 +3,60 @@
 # Available reformulation prompts
 REFORMULATION_PROMPTS = {
     "default": """
-Reformula la siguiente consulta del usuario para que use lenguaje jurídico y técnico argentino, pero sin extender su significado ni agregar explicaciones.
-La salida debe ser una sola oración concisa, similar a una búsqueda textual que podría usarse para localizar una norma en una base de datos legal.
+IMPORTANTE: Debes clasificar la pregunta del usuario en 3 categorías: NON-LEGAL, VAGA (necesita clarificación), o CLARA (puede reformularse).
 
-Objetivos:
-- Sustituye términos coloquiales por vocabulario jurídico o administrativo.
-- Agrega sinónimos relevantes del ámbito legal argentino (por ejemplo: "ley", "decreto", "normativa", "reglamentación", "disposición").
-- No incluyas listas, análisis ni referencias a leyes específicas a menos que el usuario las mencione.
-- Devuelve solo la oración reformulada, sin comentarios ni explicaciones.
-- **Si la consulta del usuario es puramente social, conversacional o irrelevante para temas públicos, cívicos o normativos de la Argentina (por ejemplo, saludos, chistes, opiniones personales, clima, deportes), responde exactamente con: NON-LEGAL**
-- **Si la consulta se relaciona aunque sea indirectamente con instituciones, símbolos nacionales, políticas públicas, derechos, deberes o cualquier tema que pudiera estar regulado por normas argentinas, trátala como LEGAL y reformúlala.**
+**REGLA CRÍTICA PARA DETECTAR PREGUNTAS VAGAS:**
+Si la pregunta menciona un tema legal GENÉRICO sin especificar el tipo específico, subtipo o contexto → ES VAGA.
 
-Ejemplo:
-- Usuario: "qué dice la ley sobre el maltrato animal?"
-- Reformulación: "normativa argentina vigente sobre la protección y el maltrato de los animales domésticos y silvestres."
-- Usuario: "contame sobre la bandera argentina"
-- Reformulación: "normativa argentina sobre los símbolos nacionales y la Bandera Nacional Argentina."
-- Usuario: "hola, cómo estás?"
-- Respuesta: NON-LEGAL
+**PREGUNTAS VAGAS (retornar CLARIFICATION:)**
 
-Ahora reformula esta consulta del usuario:
+Estas preguntas SON VAGAS porque no especifican el tipo/contexto:
+- "háblame de contratos" → VAGA (falta tipo: ¿laborales? ¿civiles? ¿comerciales?)
+- "contratos" → VAGA
+- "información sobre contratos" → VAGA
+- "¿qué dice el artículo 5?" → VAGA (falta norma)
+- "requisitos para registro" → VAGA (falta tipo de registro)
+- "licencias" → VAGA (falta tipo)
+- "derecho laboral" → VAGA (demasiado general)
+
+Para preguntas VAGAS, responde:
+CLARIFICATION: [una pregunta concisa ofreciendo opciones específicas]
+
+**PREGUNTAS CLARAS (reformular)**
+
+Estas preguntas SON CLARAS porque especifican tipo/contexto:
+- "contratos laborales" → CLARA (especifica tipo)
+- "contratos de locación urbana" → CLARA
+- "Ley 20.744 artículo 245" → CLARA (referencia completa)
+- "despido sin justa causa" → CLARA (concepto específico)
+- "plazo de prescripción en acciones laborales" → CLARA
+
+Para preguntas CLARAS, reformula usando lenguaje jurídico argentino.
+
+**EJEMPLOS EXACTOS:**
+
+Input: "hola, cómo estás?"
+Output: NON-LEGAL
+
+Input: "háblame de contratos"
+Output: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
+
+Input: "¿qué dice el artículo 5?"
+Output: CLARIFICATION: ¿De qué ley o norma necesitas información sobre el artículo 5?
+
+Input: "contratos laborales"
+Output: régimen de contratos de trabajo y relaciones laborales en la normativa argentina
+
+Input: "despido sin justa causa según la LCT"
+Output: causales y procedimientos de despido sin justa causa según la Ley de Contrato de Trabajo
+
+Input: "Ley 20.744 artículo 245"
+Output: contenido y alcance del artículo 245 de la Ley de Contrato de Trabajo 20.744
+
+Ahora clasifica y responde para:
 <user_question>{user_question}</user_question>
+
+Respuesta (NON-LEGAL, CLARIFICATION: [...], o reformulación):
     """,
     
     "strict": """

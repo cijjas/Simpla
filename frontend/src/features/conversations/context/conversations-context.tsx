@@ -9,7 +9,7 @@ interface ConversationsState {
   conversations: Conversation[];
   currentConversation: ConversationDetail | null;
   messages: Message[];
-  currentSessionId: string | null;
+  // currentSessionId removed - use URL as single source of truth
   chatType: ChatType;
   tone: ToneType;
   isLoading: boolean;
@@ -26,7 +26,6 @@ type ConversationsAction =
   | { type: 'SET_CURRENT_CONVERSATION'; payload: ConversationDetail | null }
   | { type: 'SET_MESSAGES'; payload: Message[] }
   | { type: 'ADD_MESSAGE'; payload: Message }
-  | { type: 'SET_CURRENT_SESSION_ID'; payload: string | null }
   | { type: 'SET_CHAT_TYPE'; payload: ChatType }
   | { type: 'SET_TONE'; payload: ToneType }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -45,7 +44,6 @@ const initialState: ConversationsState = {
   conversations: [],
   currentConversation: null,
   messages: [],
-  currentSessionId: null,
   chatType: 'normativa_nacional',
   tone: 'default',
   isLoading: false,
@@ -70,10 +68,7 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
     
     case 'ADD_MESSAGE':
       return { ...state, messages: [...state.messages, action.payload] };
-    
-    case 'SET_CURRENT_SESSION_ID':
-      return { ...state, currentSessionId: action.payload };
-    
+
     case 'SET_CHAT_TYPE':
       return { ...state, chatType: action.payload };
     
@@ -116,8 +111,8 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
         ...state,
         conversations: state.conversations.filter(conv => conv.id !== action.payload),
         currentConversation: state.currentConversation?.id === action.payload ? null : state.currentConversation,
-        currentSessionId: state.currentSessionId === action.payload ? null : state.currentSessionId,
-        messages: state.currentSessionId === action.payload ? [] : state.messages,
+        // Note: Messages clearing now handled by URL navigation in the page component
+        messages: state.currentConversation?.id === action.payload ? [] : state.messages,
       };
     
     case 'ADD_CONVERSATION':
@@ -154,12 +149,12 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
 // Context interface
 interface ConversationsContextType {
   state: ConversationsState;
-  
+
   // Actions
   loadConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   selectEmptyConversation: () => void;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, currentConversationId: string | null, onNewConversation?: (sessionId: string) => void) => Promise<void>;
   archiveConversation: (conversation: Conversation) => Promise<void>;
   deleteConversation: (conversation: Conversation) => Promise<void>;
   startRenameConversation: (conversation: Conversation) => void;
@@ -215,9 +210,9 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       // Clear messages first to show empty state while loading
       dispatch({ type: 'SET_MESSAGES', payload: [] });
       dispatch({ type: 'SET_LOADING', payload: true });
-      
+
       const conversation = await ConversationsAPI.getConversation(id);
-      
+
       // Process messages to extract relevant_docs from metadata
       const processedMessages = conversation.messages.map(message => {
         // Extract relevant_docs from metadata if available
@@ -227,10 +222,10 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           relevant_docs: relevant_docs || undefined
         };
       });
-      
+
       dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversation });
       dispatch({ type: 'SET_MESSAGES', payload: processedMessages });
-      dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: id });
+      // currentSessionId removed - URL is the source of truth
       dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
     } catch (error) {
       toast.error('Error loading conversation');
@@ -244,11 +239,15 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const selectEmptyConversation = useCallback(() => {
     dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: null });
     dispatch({ type: 'SET_MESSAGES', payload: [] });
-    dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: null });
+    // currentSessionId removed - URL navigation handles this
   }, []);
 
         // Send message
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (
+    content: string,
+    currentConversationId: string | null,
+    onNewConversation?: (sessionId: string) => void
+  ) => {
     if (!content.trim() || state.isStreaming) return;
 
     const userMessage: Message = {
@@ -265,11 +264,16 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
     streamingContentRef.current = '';
 
+    // Determine session_id: use currentConversationId if it's not 'new', otherwise undefined
+    const sessionId = (currentConversationId && currentConversationId !== 'new')
+      ? currentConversationId
+      : undefined;
+
     try {
       await ConversationsAPI.sendMessage(
         {
           content: content.trim(),
-          session_id: state.currentSessionId || undefined,
+          session_id: sessionId,
           chat_type: state.chatType,
           tone: currentToneRef.current,
         },
@@ -283,7 +287,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             normaIdsRef.current = chunk.norma_ids;
           }
         },
-        (sessionId) => {
+        (newSessionId) => {
           // Add the completed streamed message to the messages array
           dispatch({ type: 'ADD_MESSAGE', payload: {
             id: `assistant-${Date.now()}`,
@@ -293,21 +297,17 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             created_at: new Date().toISOString(),
             relevant_docs: normaIdsRef.current, // Include relevant_docs in the message
           }});
-          
-          // Set the session ID - now it should be a valid UUID from the backend
-          if (sessionId) {
-            dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: sessionId });
-          }
+
           dispatch({ type: 'SET_STREAMING', payload: false });
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
           normaIdsRef.current = undefined; // Clear relevant_docs for next message
-          
-          // If this was a new conversation, create it and add to the list
-          if (!state.currentSessionId && sessionId) {
+
+          // If this was a new conversation, create it, add to list, and notify via callback
+          if (!sessionId && newSessionId) {
             // Create a new conversation object based on the first message
             const newConversation: Conversation = {
-              id: sessionId,
+              id: newSessionId,
               title: content.trim(), // Use full content - truncation handled by Tailwind
               chat_type: state.chatType,
               snippet: content,
@@ -316,7 +316,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
               is_archived: false,
               total_tokens: 0, // This will be updated when we get the actual conversation details
             };
-            
+
             // Create a conversation detail object for the current conversation
             const newConversationDetail: ConversationDetail = {
               ...newConversation,
@@ -337,10 +337,15 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };
-            
+
             // Add the new conversation to the list and set it as current
             dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
             dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: newConversationDetail });
+
+            // Call navigation callback to update URL
+            if (onNewConversation) {
+              onNewConversation(newSessionId);
+            }
           }
         },
         (error) => {
@@ -358,7 +363,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
       streamingContentRef.current = '';
     }
-  }, [state.currentSessionId, state.chatType, state.isStreaming, state.messages]);
+  }, [state.chatType, state.isStreaming, state.messages]);
 
   // Archive conversation
   const archiveConversation = useCallback(async (conversation: Conversation) => {

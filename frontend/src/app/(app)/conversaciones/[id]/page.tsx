@@ -9,25 +9,23 @@ export default function Page() {
   const params = useParams();
   const router = useRouter();
   const conversationId = params?.id as string;
-  const { loadConversation, state, selectEmptyConversation } = useConversations();
+  const { loadConversation, selectEmptyConversation } = useConversations();
 
   useEffect(() => {
     if (conversationId === 'new') {
-      // For new conversations, clear the current state if needed
-      if (state.currentSessionId !== null) {
-        selectEmptyConversation();
-      }
+      // For new conversations, clear the current state
+      selectEmptyConversation();
     } else if (conversationId) {
-      // Load the conversation only if it's different from current
-      if (state.currentSessionId !== conversationId) {
-        loadConversation(conversationId).catch((error) => {
-          console.error('Failed to load conversation:', error);
-          router.push('/conversaciones/new');
-        });
-      }
+      // Load the conversation
+      loadConversation(conversationId).catch((error) => {
+        console.error('Failed to load conversation:', error);
+        router.push('/conversaciones/new');
+      });
     }
-  }, [conversationId, state.currentSessionId, loadConversation, router, selectEmptyConversation]);
+    // Only depend on conversationId changes - functions are stable via useCallback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
-  return <ConversacionesPage />;
+  return <ConversacionesPage conversationId={conversationId} />;
 }
 

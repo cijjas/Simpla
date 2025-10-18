@@ -1,14 +1,13 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
@@ -30,10 +29,12 @@ import {
 } from './index';
 import { ConversationNormasDisplay, ToneSelector } from './components';
 
-export default function ConversacionesPage() {
+interface ConversacionesPageProps {
+  conversationId: string;
+}
+
+export default function ConversacionesPage({ conversationId }: ConversacionesPageProps) {
   const router = useRouter();
-  const params = useParams();
-  const conversationId = params?.id as string;
 
   // Use conversations context
   const {
@@ -72,13 +73,21 @@ export default function ConversacionesPage() {
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastScrollTimeRef = useRef<number>(0);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (throttled during streaming)
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const now = Date.now();
+      // Throttle scroll during streaming to every 100ms, always scroll for new messages
+      const shouldScroll = !isStreaming || (now - lastScrollTimeRef.current > 100);
+
+      if (shouldScroll) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        lastScrollTimeRef.current = now;
+      }
     }
-  }, [messages, streamingMessage]);
+  }, [messages, streamingMessage, isStreaming]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -112,16 +121,17 @@ export default function ConversacionesPage() {
 
     const messageContent = inputMessage;
     setInputMessage('');
-    await sendMessage(messageContent);
-  };
 
-  // Navigate to new conversation ID after it's created
-  useEffect(() => {
-    if (state.currentSessionId && conversationId === 'new' && !isStreaming) {
-      // Navigate to the new conversation URL
-      router.replace(`/conversaciones/${state.currentSessionId}`);
-    }
-  }, [state.currentSessionId, conversationId, isStreaming, router]);
+    // Pass current conversationId and navigation callback
+    await sendMessage(
+      messageContent,
+      conversationId === 'new' ? null : conversationId,
+      (newSessionId) => {
+        // Navigate to new conversation when created
+        router.replace(`/conversaciones/${newSessionId}`);
+      }
+    );
+  };
 
   // Handle conversation selection - navigate to conversation URL
   const handleLoadConversation = (id: string) => {

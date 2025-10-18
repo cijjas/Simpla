@@ -55,14 +55,21 @@ class MessagePipeline:
 
             # Step 2: Question analysis and reformulation
             reformulated_question = await reformulate_user_question(data.content)
-            
+
             # Step 3: Handle non-legal questions
             if reformulated_question == "NON-LEGAL":
                 async for chunk in self._generate_non_legal_response(reformulated_question, data.session_id):
                     yield chunk
                 return
 
-            # Step 4: Legal question processing pipeline
+            # Step 4: Handle clarification requests (vague questions)
+            if reformulated_question.startswith("CLARIFICATION:"):
+                clarification_text = reformulated_question.replace("CLARIFICATION:", "").strip()
+                async for chunk in self._generate_clarification_response(clarification_text, data.session_id):
+                    yield chunk
+                return
+
+            # Step 5: Legal question processing pipeline (only if clear enough)
             async for chunk in self._process_legal_question(
                 user_id, 
                 data, 
@@ -100,29 +107,69 @@ class MessagePipeline:
         yield f"data: {json.dumps(error_data)}\n\n"
 
     async def _generate_non_legal_response(
-        self, 
-        reformulated_question: str, 
+        self,
+        reformulated_question: str,
         session_id: Optional[str]
     ) -> AsyncGenerator[str, None]:
         """Generate response for non-legal questions."""
         non_legal_message = "Soy un asistente legal especializado en normativa argentina, estoy aquí para responder preguntas únicamente sobre la legislación argentina. ¿En qué puedo ayudarte hoy?"
-        
-        actual_session_id = str(session_id) if session_id else "new-session"
-        
+
         try:
             # Stream the message word by word for a natural feel
             words = non_legal_message.split()
             for i, word in enumerate(words):
                 chunk = word + (" " if i < len(words) - 1 else "")
-                yield f"data: {json.dumps({'content': chunk, 'session_id': actual_session_id})}\n\n"
+                # Only include session_id if we have it
+                chunk_data = {'content': chunk}
+                if session_id:
+                    chunk_data['session_id'] = str(session_id)
+                yield f"data: {json.dumps(chunk_data)}\n\n"
                 await asyncio.sleep(0.05)  # Small delay for natural typing effect
-            
-            # Send completion signal
-            yield f"data: {json.dumps({'content': '', 'session_id': actual_session_id, 'done': True})}\n\n"
-            
+
+            # Send completion signal (must have session_id by now, or frontend will handle)
+            completion_data = {'content': '', 'done': True}
+            if session_id:
+                completion_data['session_id'] = str(session_id)
+            yield f"data: {json.dumps(completion_data)}\n\n"
+
         except Exception as e:
             logger.error(f"Error in non-legal streaming: {str(e)}")
-            error_data = {"content": f"Error: {str(e)}", "session_id": actual_session_id, "error": True}
+            error_data = {"content": f"Error: {str(e)}", "error": True}
+            if session_id:
+                error_data["session_id"] = str(session_id)
+            yield f"data: {json.dumps(error_data)}\n\n"
+
+    async def _generate_clarification_response(
+        self,
+        clarification_text: str,
+        session_id: Optional[str]
+    ) -> AsyncGenerator[str, None]:
+        """Generate response for clarification requests (vague questions)."""
+        try:
+            logger.info(f"Generating clarification response: {clarification_text}")
+
+            # Stream the clarification question word by word for a natural feel
+            words = clarification_text.split()
+            for i, word in enumerate(words):
+                chunk = word + (" " if i < len(words) - 1 else "")
+                # Only include session_id if we have it
+                chunk_data = {'content': chunk}
+                if session_id:
+                    chunk_data['session_id'] = str(session_id)
+                yield f"data: {json.dumps(chunk_data)}\n\n"
+                await asyncio.sleep(0.05)  # Small delay for natural typing effect
+
+            # Send completion signal (no norma_ids for clarifications)
+            completion_data = {'content': '', 'done': True}
+            if session_id:
+                completion_data['session_id'] = str(session_id)
+            yield f"data: {json.dumps(completion_data)}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in clarification streaming: {str(e)}")
+            error_data = {"content": f"Error: {str(e)}", "error": True}
+            if session_id:
+                error_data["session_id"] = str(session_id)
             yield f"data: {json.dumps(error_data)}\n\n"
 
     async def _process_legal_question(
@@ -141,10 +188,10 @@ class MessagePipeline:
 
             # Step 2: Build enhanced prompt
             enhanced_prompt = build_enhanced_prompt(data.content, normas_data, data.tone)
-            
+
             # Step 3: Generate AI response
-            actual_session_id = str(data.session_id) if data.session_id else "new-session"
             ai_response_content = ""
+            actual_session_id = str(data.session_id) if data.session_id else None
 
             try:
                 # Stream AI response chunks
@@ -163,7 +210,11 @@ class MessagePipeline:
 
                     # Accumulate and stream content
                     ai_response_content += chunk
-                    yield f"data: {json.dumps({'content': chunk, 'session_id': actual_session_id})}\n\n"
+                    # Only include session_id if we have it
+                    chunk_data = {'content': chunk}
+                    if actual_session_id:
+                        chunk_data['session_id'] = actual_session_id
+                    yield f"data: {json.dumps(chunk_data)}\n\n"
 
                 # Step 4: Record token usage
                 total_tokens = estimated_tokens + max(50, len(ai_response_content) // 4)
@@ -172,16 +223,19 @@ class MessagePipeline:
 
                 # Send completion signal with norma IDs
                 completion_data = {
-                    'content': '', 
-                    'session_id': actual_session_id, 
+                    'content': '',
                     'done': True,
                     'norma_ids': norma_ids
                 }
+                if actual_session_id:
+                    completion_data['session_id'] = actual_session_id
                 yield f"data: {json.dumps(completion_data)}\n\n"
 
             except Exception as e:
                 logger.error(f"Error in AI response streaming: {str(e)}")
-                error_data = {"content": f"Error: {str(e)}", "session_id": actual_session_id, "error": True}
+                error_data = {"content": f"Error: {str(e)}", "error": True}
+                if actual_session_id:
+                    error_data["session_id"] = actual_session_id
                 yield f"data: {json.dumps(error_data)}\n\n"
                 
         except Exception as e:

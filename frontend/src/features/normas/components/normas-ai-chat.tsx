@@ -8,7 +8,7 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, Send, X, User, Loader2, ArrowUp } from 'lucide-react';
+import { MessageCircle, X, User, Loader2, ArrowUp } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
