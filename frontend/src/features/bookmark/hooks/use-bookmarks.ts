@@ -31,7 +31,7 @@ interface UseBookmarksOptions {
 }
 
 export function useBookmarks(options: UseBookmarksOptions = {}) {
-  const { pageSize = 12, skipStatusCheck = false } = options;
+  const { pageSize = 12 } = options;
   const { isAuthenticated } = useAuth();
   const api = useApi();
   const [bookmarks, setBookmarks] = useState<NormaSummary[]>([]);
