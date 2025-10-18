@@ -124,6 +124,27 @@ export interface NormaFilters {
   offset?: number;
 }
 
+export interface NormaRelacionNode {
+  infoleg_id: number;
+  titulo: string | null;
+  titulo_resumido: string | null;
+  tipo_norma: string | null;
+  numero: number | null;
+  sancion: string | null;
+}
+
+export interface NormaRelacionLink {
+  source_infoleg_id: number;
+  target_infoleg_id: number;
+  tipo_relacion: string;
+}
+
+export interface NormaRelacionesResponse {
+  current_norma: NormaRelacionNode;
+  nodes: NormaRelacionNode[];
+  links: NormaRelacionLink[];
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 class NormasAPI {
@@ -201,6 +222,13 @@ class NormasAPI {
       method: 'POST',
       body: JSON.stringify({ infoleg_ids: infolegIds }),
     });
+  }
+
+  /**
+   * Get norma relationships (modifica/modificada_por) as graph data
+   */
+  async getNormaRelaciones(infolegId: number): Promise<NormaRelacionesResponse> {
+    return this.request<NormaRelacionesResponse>(`/normas/${infolegId}/relaciones/`);
   }
 }
 

@@ -13,6 +13,8 @@ export { useNormasStats } from './use-normas-stats';
 export { useRelatedNormas } from './use-related-normas';
 export { useNormaExpansion } from './use-norma-expansion';
 export { useNormaSidebar } from './use-norma-sidebar';
+export { useNormaRelaciones } from './use-norma-relaciones';
 
 // Types
 export type { UseNormaDetailState } from './use-norma-detail';
+export type { UseNormaRelacionesState } from './use-norma-relaciones';

@@ -151,6 +151,30 @@ class NormaStatsResponse(BaseModel):
     normas_by_status: Dict[str, int]
 
 
+class NormaRelacionNode(BaseModel):
+    """Schema for a node in the relationship graph."""
+    infoleg_id: int
+    titulo: Optional[str] = None
+    titulo_resumido: Optional[str] = None
+    tipo_norma: Optional[str] = None
+    numero: Optional[int] = None
+    sancion: Optional[date] = None
+
+
+class NormaRelacionLink(BaseModel):
+    """Schema for a link in the relationship graph."""
+    source_infoleg_id: int
+    target_infoleg_id: int
+    tipo_relacion: str
+
+
+class NormaRelacionesResponse(BaseModel):
+    """Schema for norma relationships graph response."""
+    current_norma: NormaRelacionNode
+    nodes: List[NormaRelacionNode]
+    links: List[NormaRelacionLink]
+
+
 class ErrorResponse(BaseModel):
     """Schema for error responses."""
     error: str

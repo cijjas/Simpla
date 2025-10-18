@@ -10,6 +10,7 @@ import { useNormaDetail } from '../hooks/use-norma-detail';
 import { useRelatedNormas } from '../hooks/use-related-normas';
 import { useNormaExpansion } from '../hooks/use-norma-expansion';
 import { useNormaSidebar } from '../hooks/use-norma-sidebar';
+import { useNormaRelaciones } from '../hooks/use-norma-relaciones';
 import { NormaHeader, NormaSidebar, NormaBody, NormaControls, NormaActions, NormasAIChat } from '../components';
 
 interface NormaDetailPageProps {
@@ -19,6 +20,7 @@ interface NormaDetailPageProps {
 export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
   const router = useRouter();
   const { norma, loading, error, retry } = useNormaDetail(infolegId);
+  const { data: relacionesData, loading: relacionesLoading } = useNormaRelaciones(infolegId);
 
   const [open, setOpen] = useState<string[]>([]);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -181,6 +183,21 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
   const normaTitle = norma.titulo_resumido || norma.titulo_sumario || 'Normativa';
   const hasOriginalText = !!(norma.texto_norma || norma.texto_norma_actualizado);
 
+  // Generate nombre norma (e.g., "Ley 26.994/2014")
+  const getNombreNorma = () => {
+    if (norma.tipo_norma && norma.referencia?.numero) {
+      // get the year from the norma.sancion in format 'YYYY-MM-DD'
+      const year = norma.sancion?.split('-')[0];
+      return `${norma.tipo_norma} ${norma.referencia.numero}/${year}`;
+    }
+    if (norma.tipo_norma) {
+      return norma.tipo_norma;
+    }
+    return 'NORMA';
+  };
+
+  const nombreNorma = getNombreNorma();
+
   return (
     <div className='flex'>
       {hasDivisions ? (
@@ -188,11 +205,15 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
           divisions={norma.divisions}
           activeDivisionId={activeDivisionId}
           normaTitle={normaTitle}
+          nombreNorma={nombreNorma}
+          infolegId={infolegId}
           modifica={modifica ?? undefined}
           modificadaPor={modificadaPor ?? undefined}
           onDivisionClick={scrollToDivision}
-          onBack={() => router.back()}
+          onBack={() => router.push('/normas')}
           showOutline={!showOriginal}
+          relacionesData={relacionesData}
+          relacionesLoading={relacionesLoading}
         />
       ) : (
         <aside className='w-72 flex-shrink-0 border-r border-border bg-muted/30 h-[calc(100vh-3.5rem)] sticky top-14'>

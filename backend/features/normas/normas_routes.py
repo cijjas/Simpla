@@ -13,7 +13,10 @@ from .normas_schemas import (
     NormaStatsResponse,
     NormaFilterOptionsResponse,
     NormaBatchRequest,
-    NormaBatchResponse
+    NormaBatchResponse,
+    NormaRelacionesResponse,
+    NormaRelacionNode,
+    NormaRelacionLink
 )
 
 logger = get_logger(__name__)
@@ -257,4 +260,125 @@ async def get_norma_detail(infoleg_id: int):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching norma details: {str(e)}"
+        )
+
+
+@router.get("/normas/{infoleg_id}/relaciones/", response_model=NormaRelacionesResponse)
+async def get_norma_relaciones(infoleg_id: int):
+    """
+    Get relationships (modifica/modificada_por) for a norma with graph data.
+    Returns nodes and links suitable for D3 force-directed graph visualization.
+    """
+    logger.info(f"Fetching relationships for norma infoleg_id: {infoleg_id}")
+    
+    try:
+        with reconstructor.get_connection() as conn:
+            with conn.cursor() as cur:
+                # First check if the norma exists
+                cur.execute("""
+                    SELECT ns.infoleg_id, ns.titulo_resumido, ns.titulo_sumario, ns.tipo_norma, 
+                           nr.numero, ns.sancion
+                    FROM normas_structured ns
+                    LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                    WHERE ns.infoleg_id = %s
+                """, (infoleg_id,))
+                
+                current_norma_row = cur.fetchone()
+                if not current_norma_row:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Norma with infoleg_id {infoleg_id} not found"
+                    )
+                
+                # Create current norma node
+                current_norma = NormaRelacionNode(
+                    infoleg_id=current_norma_row[0],
+                    titulo=current_norma_row[1] or current_norma_row[2],
+                    titulo_resumido=current_norma_row[1],
+                    tipo_norma=current_norma_row[3],
+                    numero=current_norma_row[4],
+                    sancion=current_norma_row[5]
+                )
+                
+                # Get all relationships where this norma is the origin
+                cur.execute("""
+                    SELECT norma_destino_infoleg_id, tipo_relacion
+                    FROM normas_relaciones
+                    WHERE norma_origen_infoleg_id = %s
+                """, (infoleg_id,))
+                
+                outgoing_relations = cur.fetchall()
+                
+                # Get all relationships where this norma is the destination
+                cur.execute("""
+                    SELECT norma_origen_infoleg_id, tipo_relacion
+                    FROM normas_relaciones
+                    WHERE norma_destino_infoleg_id = %s
+                """, (infoleg_id,))
+                
+                incoming_relations = cur.fetchall()
+                
+                # Collect all related norma IDs
+                related_ids = set()
+                for rel in outgoing_relations:
+                    related_ids.add(rel[0])
+                for rel in incoming_relations:
+                    related_ids.add(rel[0])
+                
+                # Fetch norma details for all related normas
+                nodes = []
+                links = []
+                
+                if related_ids:
+                    placeholders = ','.join(['%s'] * len(related_ids))
+                    cur.execute(f"""
+                        SELECT ns.infoleg_id, ns.titulo_resumido, ns.titulo_sumario, ns.tipo_norma,
+                               nr.numero, ns.sancion
+                        FROM normas_structured ns
+                        LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                        WHERE ns.infoleg_id IN ({placeholders})
+                    """, list(related_ids))
+                    
+                    related_normas = cur.fetchall()
+                    
+                    # Create nodes for related normas
+                    for norma_row in related_normas:
+                        nodes.append(NormaRelacionNode(
+                            infoleg_id=norma_row[0],
+                            titulo=norma_row[1] or norma_row[2],
+                            titulo_resumido=norma_row[1],
+                            tipo_norma=norma_row[3],
+                            numero=norma_row[4],
+                            sancion=norma_row[5]
+                        ))
+                
+                # Create links for outgoing relationships
+                for rel in outgoing_relations:
+                    links.append(NormaRelacionLink(
+                        source_infoleg_id=infoleg_id,
+                        target_infoleg_id=rel[0],
+                        tipo_relacion=rel[1]
+                    ))
+                
+                # Create links for incoming relationships
+                for rel in incoming_relations:
+                    links.append(NormaRelacionLink(
+                        source_infoleg_id=rel[0],
+                        target_infoleg_id=infoleg_id,
+                        tipo_relacion=rel[1]
+                    ))
+                
+                return NormaRelacionesResponse(
+                    current_norma=current_norma,
+                    nodes=nodes,
+                    links=links
+                )
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching relationships for norma {infoleg_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching norma relationships: {str(e)}"
         )
