@@ -211,11 +211,11 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
             <h2 className="text-2xl md:text-3xl font-bold font-serif text-foreground  ">Conversaciones</h2>
         </div>
         <div className="p-4 border-b bg-muted">
-        <Button 
-              onClick={handleNewConversation} 
-              size="sm" 
+        <Button
+              onClick={handleNewConversation}
+              size="sm"
               disabled={isLoading}
-              className="w-full "
+              className="w-full cursor-pointer"
             >
               <Plus className="size-4 mr-2" />
               Nueva conversación
