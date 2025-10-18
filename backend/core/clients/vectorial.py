@@ -1,72 +1,67 @@
-"""Client for communicating with the vectorial microservice via gRPC."""
+"""Client for communicating with the vectorial microservice via REST API."""
 
-import grpc
+import requests
 from typing import List, Dict, Any, Optional
-from core.proto import vectorial_pb2, vectorial_pb2_grpc
 
 
 def search_vectors(
     embedding: List[float],
     filters: Optional[Dict[str, str]] = None,
     limit: int = 10,
-    grpc_host: str = "localhost",
-    grpc_port: int = 50052
+    api_host: str = "localhost",
+    api_port: int = 8080
 ) -> Dict[str, Any]:
     """
-    Search for similar vectors in the vectorial microservice via gRPC.
+    Search for similar vectors in the vectorial microservice via REST API.
 
     Args:
         embedding: The embedding vector to search with
         filters: Optional metadata filters
         limit: Maximum number of results to return (default: 10)
-        grpc_host: The gRPC server host (default: localhost)
-        grpc_port: The gRPC server port (default: 50052)
+        api_host: The API server host (default: localhost)
+        api_port: The API server port (default: 8080)
 
     Returns:
         dict with keys: success (bool), message (str), results (list)
     """
-    channel = grpc.insecure_channel(f"{grpc_host}:{grpc_port}")
-    stub = vectorial_pb2_grpc.VectorialServiceStub(channel)
+    url = f"http://{api_host}:{api_port}/api/v1/vectorial/search"
 
-    # Build the request
-    request = vectorial_pb2.SearchRequest(
-        embedding=embedding,
-        limit=limit
-    )
-
-    # Add filters if provided
-    if filters:
-        for key, value in filters.items():
-            request.filters[key] = value
+    # Build the request payload
+    payload = {
+        "embedding": embedding,
+        "filters": filters if filters else {},
+        "limit": limit
+    }
 
     try:
-        response = stub.Search(request)
+        response = requests.post(url, json=payload, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
 
         print(f"✓ Successfully performed vector search")
-        print(f"Response message: {response.message}")
-        print(f"Found {len(response.results)} results")
+        print(f"Response message: {data.get('message', '')}")
+        print(f"Found {len(data.get('results', []))} results")
 
         # Convert results to dict format
         results = []
-        for result in response.results:
+        for result in data.get("results", []):
             results.append({
-                "document_id": result.document_id,
-                "score": result.score,
-                "metadata": dict(result.metadata)
+                "document_id": result.get("documentId"),
+                "score": result.get("score"),
+                "metadata": result.get("metadata", {})
             })
-            print(f"  - Document: {result.document_id}, Score: {result.score}")
+            print(f"  - Document: {result.get('documentId')}, Score: {result.get('score')}")
 
         return {
-            "success": response.success,
-            "message": response.message,
+            "success": data.get("success", False),
+            "message": data.get("message", ""),
             "results": results
         }
-    except grpc.RpcError as e:
-        print(f"✗ gRPC error during vector search: {e.code()} - {e.details()}")
+    except requests.exceptions.RequestException as e:
+        print(f"✗ HTTP error during vector search: {str(e)}")
         return {
             "success": False,
-            "message": f"gRPC error: {e.code()} - {e.details()}",
+            "message": f"HTTP error: {str(e)}",
             "results": []
         }
-    finally:
-        channel.close()
