@@ -6,3 +6,5 @@ export { NormaArticleComponent } from './norma-article';
 export { NormaControls } from './norma-controls';
 export { NormaListItem } from './norma-list-item';
 export { NormaActions } from './norma-actions';
+export { NormaRelationGraph } from './norma-relation-graph';
+export { NormaRelationGraphDialog } from './norma-relation-graph-dialog';

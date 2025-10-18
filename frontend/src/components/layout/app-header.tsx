@@ -84,7 +84,7 @@ export default function AppHeader() {
 
   return (
     <header 
-      className='sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 px-4 border-b border-border bg-background transition-all duration-200 ease-linear'
+      className='sticky top-0 z-2 flex h-14 shrink-0 items-center gap-2 px-4 border-b border-border bg-background transition-all duration-200 ease-linear'
       data-sidebar-state={state}
     >
       <SidebarTrigger className='-ml-1' />

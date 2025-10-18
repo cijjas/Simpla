@@ -12,11 +12,15 @@ import { NormaItem } from '../utils/types';
 
 export default function NormaListItem({
   norma,
+  isBookmarked: initialBookmarked,
 }: {
   norma: NormaItem;
+  isBookmarked?: boolean;
 }): JSX.Element {
-  // Check if this norma is bookmarked
-  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.id);
+  // Use the provided bookmark status (from batch check) or check individually if not provided
+  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.id, {
+    initialBookmarkedState: initialBookmarked,
+  });
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();

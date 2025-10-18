@@ -2,6 +2,15 @@
  * API service for normas functionality
  */
 
+export interface NormaReferencia {
+  id: number;
+  norma_id: number;
+  numero: number;
+  dependencia?: string;
+  rama_digesto?: string;
+  created_at: string;
+}
+
 export interface NormaSummary {
   id: number;
   infoleg_id: number;
@@ -19,6 +28,7 @@ export interface NormaSummary {
   estado?: string;
   created_at: string;
   updated_at: string;
+  referencia?: NormaReferencia;
 }
 
 export interface NormaDetail extends NormaSummary {
@@ -40,6 +50,7 @@ export interface NormaDetail extends NormaSummary {
   llm_similarity_score?: number;
   inserted_at: string;
   divisions: Division[];
+  referencia?: NormaReferencia;
 }
 
 export interface Division {
@@ -72,10 +83,9 @@ export interface NormaSearchResponse {
 }
 
 export interface NormaFilterOptions {
-  jurisdicciones: string[];
   tipos_norma: string[];
-  clases_norma: string[];
-  estados: string[];
+  dependencias: string[];
+  titulos_sumario: string[];
 }
 
 export interface NormaStats {
@@ -87,21 +97,54 @@ export interface NormaStats {
   normas_by_status: Record<string, number>;
 }
 
+export interface NormaBatchRequest {
+  infoleg_ids: number[];
+}
+
+export interface NormaBatchResponse {
+  normas: NormaSummary[];
+  not_found_ids: number[];
+}
+
 export interface NormaFilters {
   search_term?: string;
   numero?: number;
-  anio?: number;
-  nro_boletin?: string;
+  dependencia?: string;
+  titulo_sumario?: string;
   jurisdiccion?: string;
   tipo_norma?: string;
   clase_norma?: string;
   estado?: string;
+  año_sancion?: number;
   sancion_desde?: string;
   sancion_hasta?: string;
   publicacion_desde?: string;
   publicacion_hasta?: string;
+  nro_boletin?: string;
+  pag_boletin?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface NormaRelacionNode {
+  infoleg_id: number;
+  titulo: string | null;
+  titulo_resumido: string | null;
+  tipo_norma: string | null;
+  numero: number | null;
+  sancion: string | null;
+}
+
+export interface NormaRelacionLink {
+  source_infoleg_id: number;
+  target_infoleg_id: number;
+  tipo_relacion: string;
+}
+
+export interface NormaRelacionesResponse {
+  current_norma: NormaRelacionNode;
+  nodes: NormaRelacionNode[];
+  links: NormaRelacionLink[];
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -171,6 +214,23 @@ class NormasAPI {
    */
   async getStats(): Promise<NormaStats> {
     return this.request<NormaStats>('/normas/stats/');
+  }
+
+  /**
+   * Get multiple norma summaries in a single batch request
+   */
+  async getNormasBatch(infolegIds: number[]): Promise<NormaBatchResponse> {
+    return this.request<NormaBatchResponse>('/normas/batch/', {
+      method: 'POST',
+      body: JSON.stringify({ infoleg_ids: infolegIds }),
+    });
+  }
+
+  /**
+   * Get norma relationships (modifica/modificada_por) as graph data
+   */
+  async getNormaRelaciones(infolegId: number): Promise<NormaRelacionesResponse> {
+    return this.request<NormaRelacionesResponse>(`/normas/${infolegId}/relaciones/`);
   }
 }
 

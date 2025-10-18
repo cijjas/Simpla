@@ -5,6 +5,16 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
+class NormaReferenciaResponse(BaseModel):
+    """Schema for norma reference information."""
+    id: int
+    norma_id: int
+    numero: int
+    dependencia: Optional[str] = None
+    rama_digesto: Optional[str] = None
+    created_at: datetime
+
+
 class NormaSummaryResponse(BaseModel):
     """Schema for norma summary (without full structure)."""
     id: int
@@ -23,19 +33,26 @@ class NormaSummaryResponse(BaseModel):
     estado: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    referencia: Optional[NormaReferenciaResponse] = None
 
 
 class NormaFilterRequest(BaseModel):
     """Schema for norma filtering request."""
-    search_term: Optional[str] = Field(None, description="Search term to filter normas")
+    search_term: Optional[str] = Field(None, description="Search term to filter normas by text")
+    numero: Optional[int] = Field(None, description="Filter by norma number (numero)")
+    dependencia: Optional[str] = Field(None, description="Filter by dependencia")
+    titulo_sumario: Optional[str] = Field(None, description="Filter by titulo_sumario")
     jurisdiccion: Optional[str] = Field(None, description="Filter by jurisdiction")
     tipo_norma: Optional[str] = Field(None, description="Filter by norma type")
     clase_norma: Optional[str] = Field(None, description="Filter by norma class")
     estado: Optional[str] = Field(None, description="Filter by status")
+    año_sancion: Optional[int] = Field(None, description="Filter by year of sanction")
     sancion_desde: Optional[date] = Field(None, description="Filter normas sanctioned from this date")
     sancion_hasta: Optional[date] = Field(None, description="Filter normas sanctioned until this date")
     publicacion_desde: Optional[date] = Field(None, description="Filter normas published from this date")
     publicacion_hasta: Optional[date] = Field(None, description="Filter normas published until this date")
+    nro_boletin: Optional[str] = Field(None, description="Filter by bulletin number")
+    pag_boletin: Optional[str] = Field(None, description="Filter by bulletin page")
     limit: int = Field(50, ge=1, le=100, description="Maximum number of results to return")
     offset: int = Field(0, ge=0, description="Number of results to skip")
 
@@ -49,12 +66,22 @@ class NormaSearchResponse(BaseModel):
     offset: int
 
 
+class NormaBatchRequest(BaseModel):
+    """Schema for batch norma request."""
+    infoleg_ids: List[int] = Field(..., description="List of infoleg IDs to fetch")
+
+
+class NormaBatchResponse(BaseModel):
+    """Schema for batch norma response."""
+    normas: List[NormaSummaryResponse]
+    not_found_ids: List[int] = Field(default_factory=list, description="IDs that were not found")
+
+
 class NormaFilterOptionsResponse(BaseModel):
     """Schema for norma filter options response."""
-    jurisdicciones: List[str]
     tipos_norma: List[str]
-    clases_norma: List[str]
-    estados: List[str]
+    dependencias: List[str]
+    titulos_sumario: List[str]
 
 
 class NormaDetailResponse(BaseModel):
@@ -93,6 +120,7 @@ class NormaDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     divisions: List["DivisionResponse"] = []
+    referencia: Optional[NormaReferenciaResponse] = None
 
 
 class ArticleResponse(BaseModel):
@@ -126,6 +154,30 @@ class NormaStatsResponse(BaseModel):
     normas_by_jurisdiction: Dict[str, int]
     normas_by_type: Dict[str, int]
     normas_by_status: Dict[str, int]
+
+
+class NormaRelacionNode(BaseModel):
+    """Schema for a node in the relationship graph."""
+    infoleg_id: int
+    titulo: Optional[str] = None
+    titulo_resumido: Optional[str] = None
+    tipo_norma: Optional[str] = None
+    numero: Optional[int] = None
+    sancion: Optional[date] = None
+
+
+class NormaRelacionLink(BaseModel):
+    """Schema for a link in the relationship graph."""
+    source_infoleg_id: int
+    target_infoleg_id: int
+    tipo_relacion: str
+
+
+class NormaRelacionesResponse(BaseModel):
+    """Schema for norma relationships graph response."""
+    current_norma: NormaRelacionNode
+    nodes: List[NormaRelacionNode]
+    links: List[NormaRelacionLink]
 
 
 class ErrorResponse(BaseModel):

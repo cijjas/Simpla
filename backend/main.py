@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import all models to ensure they are registered with SQLAlchemy
 from features.auth.auth_models import User, RefreshToken
 from features.folders.folder_models import Folder, FolderNorma
-from features.favorites.favorites_models import Favorite
+from features.bookmarks.bookmarks_models import Bookmark
 # from features.chat.chat_database_models import ChatSession, Message  # Deprecated
 from features.conversations.models import Conversation, Message
 from features.conversations.feedback.feedback_models import MessageFeedback
@@ -18,7 +18,7 @@ from features.auth.auth_routes import router as auth_router
 from features.feedback.feedback_routes import router as feedback_router
 from features.contact.contact_routes import router as contact_router
 from features.folders.folder_routes import router as folder_router
-from features.favorites.favorites_routes import router as favorites_router
+from features.bookmarks.bookmarks_routes import router as bookmarks_router
 from features.conversations.router import router as conversations_router
 from features.conversations.feedback.feedback_routes import router as message_feedback_router
 from features.subscription.subscription_routes import router as subscription_router
@@ -63,7 +63,7 @@ app.include_router(contact_router, prefix="/api")
 app.include_router(folder_router, prefix="/api")
 app.include_router(conversations_router, prefix="/api")
 app.include_router(message_feedback_router, prefix="/api")
-app.include_router(favorites_router, prefix="/api")
+app.include_router(bookmarks_router, prefix="/api")
 app.include_router(subscription_router, prefix="/api")
 app.include_router(normas_router, prefix="/api")
 app.include_router(norma_chat_router, prefix="/api")

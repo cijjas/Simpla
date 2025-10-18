@@ -15,72 +15,126 @@ interface BookmarkResponse {
   deleted_at?: string;
 }
 
-export function useBookmarks() {
+interface BookmarksListResponse {
+  bookmarks: BookmarkResponse[];
+  total_count: number;
+  has_more: boolean;
+  limit: number;
+  offset: number;
+}
+
+interface UseBookmarksOptions {
+  /** Number of items to load per page */
+  pageSize?: number;
+  /** If true, skip the initial bookmark status check (optimization for bookmark page) */
+  skipStatusCheck?: boolean;
+}
+
+export function useBookmarks(options: UseBookmarksOptions = {}) {
+  const { pageSize = 12 } = options;
   const { isAuthenticated } = useAuth();
   const api = useApi();
   const [bookmarks, setBookmarks] = useState<NormaSummary[]>([]);
   const [bookmarkIds, setBookmarkIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const fetchingRef = useRef(false);
+  const offsetRef = useRef(0);
 
-  const fetchBookmarks = useCallback(async () => {
-    if (!isAuthenticated || fetchingRef.current) {
-      return;
-    }
+  const fetchBookmarks = useCallback(
+    async (append: boolean = false) => {
+      if (!isAuthenticated || fetchingRef.current) {
+        return;
+      }
 
-    try {
-      fetchingRef.current = true;
-      setLoading(true);
-      setError(null);
+      try {
+        fetchingRef.current = true;
+        if (append) {
+          setLoadingMore(true);
+        } else {
+          setLoading(true);
+          offsetRef.current = 0;
+        }
+        setError(null);
 
-      console.log('Fetching bookmarks from API...');
-      const data = await api.get<BookmarkResponse[]>('/api/favorites/');
-      console.log('Bookmarks API response:', data);
-
-      const normaIds = data.map(bookmark => bookmark.norma_id);
-      setBookmarkIds(normaIds);
-
-      // Now fetch the actual norma data for each ID using the normas API
-      if (normaIds.length > 0) {
-        console.log('Fetching norma data for IDs:', normaIds);
-
-        const normaPromises = normaIds.map(async normaId => {
-          try {
-            const normaData = await normasAPI.getNormaSummary(normaId);
-            return normaData;
-          } catch (error) {
-            console.error(`Error fetching norma ${normaId}:`, error);
-            return null; // Skip failed normas
-          }
-        });
-
-        const normaResults = await Promise.all(normaPromises);
-        // Filter out null results (failed fetches)
-        const validNormas = normaResults.filter(
-          (norma): norma is NormaSummary => norma !== null,
+        const offset = append ? offsetRef.current : 0;
+        console.log('Fetching bookmarks from API...', { limit: pageSize, offset });
+        
+        const data = await api.get<BookmarksListResponse>(
+          `/api/bookmarks/?limit=${pageSize}&offset=${offset}`
         );
+        
+        console.log('Bookmarks API response:', data);
 
-        console.log('Fetched normas:', validNormas);
-        setBookmarks(validNormas);
-      } else {
-        setBookmarks([]);
-      }
-    } catch (err: unknown) {
-      console.error('Favorites API error:', err);
-      if (err && typeof err === 'object' && 'status' in err) {
-        console.error('Error status:', (err as { status: unknown }).status);
-      }
-      if (err && typeof err === 'object' && 'message' in err) {
-        console.error('Error message:', (err as { message: unknown }).message);
-      }
+        const normaIds = data.bookmarks.map(bookmark => bookmark.norma_id);
+        setHasMore(data.has_more);
+        setTotalCount(data.total_count);
 
-      setError('Error al cargar los guardados');
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
+        // Fetch all norma data in a single batch request
+        if (normaIds.length > 0) {
+          console.log('Fetching norma data batch for IDs:', normaIds);
+
+          try {
+            const batchResponse = await normasAPI.getNormasBatch(normaIds);
+            console.log('Fetched normas batch:', batchResponse);
+
+            if (batchResponse.not_found_ids.length > 0) {
+              console.warn('Some normas were not found:', batchResponse.not_found_ids);
+            }
+
+            // Sort normas to match the order of normaIds (bookmarks are ordered by added_at desc)
+            const normasMap = new Map(
+              batchResponse.normas.map(norma => [norma.infoleg_id, norma])
+            );
+            const orderedNormas = normaIds
+              .map(id => normasMap.get(id))
+              .filter((norma): norma is NormaSummary => norma !== undefined);
+
+            if (append) {
+              setBookmarks(prev => [...prev, ...orderedNormas]);
+              setBookmarkIds(prev => [...prev, ...normaIds]);
+            } else {
+              setBookmarks(orderedNormas);
+              setBookmarkIds(normaIds);
+            }
+
+            // Update offset for next fetch
+            offsetRef.current = offset + orderedNormas.length;
+          } catch (error) {
+            console.error('Error fetching normas batch:', error);
+            setError('Error al cargar las normas');
+          }
+        } else if (!append) {
+          setBookmarks([]);
+          setBookmarkIds([]);
+        }
+      } catch (err: unknown) {
+        console.error('Bookmarks API error:', err);
+        if (err && typeof err === 'object' && 'status' in err) {
+          console.error('Error status:', (err as { status: unknown }).status);
+        }
+        if (err && typeof err === 'object' && 'message' in err) {
+          console.error('Error message:', (err as { message: unknown }).message);
+        }
+
+        setError('Error al cargar los guardados');
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+        fetchingRef.current = false;
+      }
+    },
+    [api, isAuthenticated, pageSize],
+  );
+
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore && !fetchingRef.current) {
+      fetchBookmarks(true);
     }
-  }, [api, isAuthenticated]);
+  }, [loadingMore, hasMore, fetchBookmarks]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -90,8 +144,11 @@ export function useBookmarks() {
       setBookmarks([]);
       setBookmarkIds([]);
       setLoading(false);
+      setHasMore(false);
+      setTotalCount(0);
+      offsetRef.current = 0;
     }
-  }, [fetchBookmarks, isAuthenticated]);
+  }, [isAuthenticated, fetchBookmarks]);
 
   const addToBookmarks = useCallback(
     async (norma: NormaSummary) => {
@@ -102,7 +159,7 @@ export function useBookmarks() {
 
       try {
         setError(null);
-        await api.post('/api/favorites/toggle', { norma_id: norma.infoleg_id });
+        await api.post('/api/bookmarks/toggle', { norma_id: norma.infoleg_id });
         // Refresh bookmarks list
         await fetchBookmarks();
       } catch (err) {
@@ -122,7 +179,7 @@ export function useBookmarks() {
 
       try {
         setError(null);
-        await api.post('/api/favorites/toggle', { norma_id: normaId });
+        await api.post('/api/bookmarks/toggle', { norma_id: normaId });
         // Refresh bookmarks list
         await fetchBookmarks();
       } catch (err) {
@@ -143,9 +200,14 @@ export function useBookmarks() {
   return {
     bookmarks,
     loading,
+    loadingMore,
     error,
+    hasMore,
+    totalCount,
     addToBookmarks,
     removeFromBookmarks,
     isBookmarked,
+    loadMore,
+    refetch: () => fetchBookmarks(false),
   };
 }

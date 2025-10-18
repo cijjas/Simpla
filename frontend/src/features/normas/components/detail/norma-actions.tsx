@@ -55,7 +55,7 @@ export function NormaActions({ norma }: NormaActionsProps) {
     isBookmarked,
     loading: bookmarkLoading,
     toggleBookmark,
-  } = useBookmarkToggle(norma?.id || 0);
+  } = useBookmarkToggle(norma?.infoleg_id || 0);
 
   /* ───────── Copy ───────── */
   const handleCopy = async () => {
@@ -292,11 +292,12 @@ export function NormaActions({ norma }: NormaActionsProps) {
               size='icon'
               variant='outline'
               onClick={toggleBookmark}
-              disabled={bookmarkLoading || !norma?.id}
+              disabled={!norma?.id}
+              className={bookmarkLoading ? 'opacity-70' : ''}
             >
               <Bookmark
-                className={`size-4 ${
-                  isBookmarked ? 'fill-yellow-400 text-yellow-400' : ''
+                className={`size-4 transition-all ${
+                  isBookmarked ? 'text-primary fill-primary dark:text-foreground dark:fill-foreground drop-shadow-sm' : ''
                 }`}
               />
             </Button>

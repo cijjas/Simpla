@@ -10,6 +10,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { BookmarksProvider } from '@/features/bookmark';
 
 export default function AppLayout({
   children,
@@ -34,16 +35,18 @@ export default function AppLayout({
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <AppSidebar />
-      <div className="flex flex-1 flex-col">
-        <AppHeader />
-        <SidebarInset>
-          <div className="flex flex-1 flex-col gap-4">
-            {children}
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+    <BookmarksProvider>
+      <SidebarProvider defaultOpen={true}>
+        <AppSidebar />
+        <div className="flex flex-1 flex-col">
+          <AppHeader />
+          <SidebarInset>
+            <div className="flex flex-1 flex-col gap-4">
+              {children}
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </BookmarksProvider>
   );
 }

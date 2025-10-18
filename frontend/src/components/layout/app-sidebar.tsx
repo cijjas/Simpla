@@ -53,11 +53,6 @@ const data = {
       isActive: true,
     },
     {
-      title: 'Búsqueda',
-      url: '/busqueda',
-      icon: Search,
-    },
-    {
       title: "Normas",
       url: "/normas",
       icon: Search,

@@ -8,11 +8,13 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, Send, X, User, Loader2, ArrowUp } from 'lucide-react';
+import { MessageCircle, ChevronDown, User, Loader2, ArrowUp } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import SvgEstampa from '@/components/icons/Estampa';
+import { Kbd } from '@/components/ui/kbd';
+import { getCommandById, getShortcutParts } from '@/features/command-center';
 
 interface Message {
   id: string;
@@ -54,6 +56,10 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  
+  // Command center integration
+  const toggleCommand = getCommandById('toggle-norma-chat');
+  const toggleShortcut = toggleCommand ? getShortcutParts(toggleCommand) : [];
 
   // Resize handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -111,6 +117,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isResizing, dragStart]);
 
   // Reset session when norma changes
@@ -152,6 +159,28 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Register toggle command handler and ESC key handler
+  useEffect(() => {
+    // Register the toggle handler on the command
+    if (toggleCommand) {
+      toggleCommand.action = { 
+        type: 'custom', 
+        handler: () => setIsOpen(prev => !prev)
+      };
+    }
+
+    // Handle ESC key to close chat when open
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, toggleCommand]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -250,6 +279,10 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     setIsOpen(false);
   };
 
+  const toggleChat = () => {
+    setIsOpen(prev => !prev);
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('es-AR', { 
       hour: '2-digit', 
@@ -261,22 +294,39 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
         <Button
-          onClick={() => setIsOpen(true)}
+          onClick={toggleChat}
           size="lg"
-          className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse-slow bg-primary hover:bg-primary/90"
+          className="group relative flex items-center gap-1 rounded-lg overflow-hidden transition-all duration-300 ease-out !px-2"
           aria-label="Abrir chat de AI sobre esta norma"
         >
-          <MessageCircle className="h-6 w-6" />
+          {/* Expanding text content - slides in on hover */}
+          <div className="max-w-0 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-xs group-hover:opacity-100 group-hover:mr-2">
+            <span className="whitespace-nowrap">  
+              Preguntale a {' '}
+              <span className="font-serif font-thin italic">Simpla</span>
+            </span>
+          </div>
+          {/* Kbd shortcuts - always visible */}
+          {toggleShortcut.length > 0 && (
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              {toggleShortcut.map((key, idx) => (
+                <Kbd key={idx} className="bg-primary-foreground/10 text-texts ">{key}</Kbd>
+              ))}
+            </span>
+          )}
+          {/* Icon - always visible */}
+          <MessageCircle className="h-6 w-6 flex-shrink-0" />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* frosted glass effect */}
       <Card 
         ref={chatRef}
-        className="shadow-xl border-2 relative" 
+        className=" relative shadow-sm pb-0 rounded-2xl backdrop-blur-sm bg-background/80  p-2" 
         style={{ 
           width: `${chatDimensions.width}px`, 
           height: `${chatDimensions.height}px` 
@@ -284,38 +334,36 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       >
         {/* Invisible resize handle - top left corner */}
         <div 
-          className={`absolute top-0 left-0 w-5 h-5 cursor-nw-resize z-20 ${
-            isResizing ? 'bg-primary/10' : ''
-          }`}
+          className={`absolute top-0 left-0 w-5 h-5 cursor-nw-resize z-20`}
           onMouseDown={handleMouseDown}
           title="Arrastra para redimensionar"
         />
         
         <CardContent className="p-0 h-full flex flex-col">
-          {/* Close button in top right */}
-          <Button
-            onClick={handleClose}
-            size="sm"
-            variant="ghost"
-            className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {/* Collapse button in top right */}
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            <Kbd className="text-xs">Esc</Kbd>
+            <Button
+              onClick={handleClose}
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              aria-label="Cerrar chat"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-hidden pt-3 min-h-0">
             {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center p-4">
-                <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                    <img 
-                        src="/images/estampa.png" 
-                        alt="Simpla" 
-                        className="w-8 h-8 object-contain brightness-0 invert"
-                    />
+                <div className="text-center text-muted-foreground">
+                    <div className="mx-auto pb-6 flex items-center justify-center ">
+                      <SvgEstampa className="size-26" />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                    Pregúntame sobre esta norma
+                    <p className="text-md font-serif text-muted-foreground ">
+                    Pregunta sobre esta norma
                     </p>
                 </div>
                 </div>
@@ -333,39 +381,35 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                         >
                         {message.role === 'assistant' && (
                             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                            <img 
-                                src="/images/estampa.png" 
-                                alt="Simpla" 
-                                className="h-3 w-3 object-contain brightness-0 invert opacity-70"
-                            />
+                            <SvgEstampa className="size-6" />
                             </div>
                         )}
                         
                         <div
                             className={`max-w-[80%] p-2 rounded-lg ${
                             message.role === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
+                                ? 'bg-muted text-muted-foreground/70'
+                                : ''
                             }`}
                         >
                             <div className="prose-chat text-sm break-words">
                             {message.role === 'assistant' ? (
                                 <ReactMarkdown 
                                 components={{
-                                    p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
-                                    strong: ({ children }) => <strong>{children}</strong>,
+                                    p: ({ children }) => <p className="whitespace-pre-wrap text-card-foreground/90">{children}</p>,
+                                    strong: ({ children }) => <strong className="text-card-foreground">{children}</strong>,
                                     em: ({ children }) => <em>{children}</em>,
                                     code: ({ children }) => <code className="bg-muted-foreground/20 px-1 rounded">{children}</code>,
                                     pre: ({ children }) => <pre className="bg-muted-foreground/20 p-2 rounded overflow-x-auto">{children}</pre>,
                                     ul: ({ children }) => <ul className="list-disc list-inside">{children}</ul>,
                                     ol: ({ children }) => <ol className="list-decimal list-inside">{children}</ol>,
-                                    li: ({ children }) => <li>{children}</li>,
+                                    li: ({ children }) => <li className="text-card-foreground/85">{children}</li>,
                                 }}
                                 >
                                 {message.content}
                                 </ReactMarkdown>
                             ) : (
-                                <p className="whitespace-pre-wrap">{message.content}</p>
+                                <p className="whitespace-pre-wrap text-card-foreground/90">{message.content}</p>
                             )}
                             </div>
                             <p className="text-xs opacity-70 mt-1">
@@ -374,8 +418,8 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                         </div>
 
                         {message.role === 'user' && (
-                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                            <User className="h-3 w-3 text-primary-foreground" />
+                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
+                            <User className="h-3 w-3 text-muted-foreground" />
                             </div>
                         )}
                         </div>
@@ -390,7 +434,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                     <div className="flex justify-start">
                         <div className="text-sm">
                         <div className="flex items-center mb-1 gap-2 text-xs text-muted-foreground">
-                            <SvgEstampa className="h-4 w-4" />
+                            <SvgEstampa className="h-6 w-6" />
                             <span className="font-medium">Simpla</span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -406,8 +450,8 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
             </div>
 
           {/* Input Area */}
-          <div className="p-4 flex-shrink-0">
-            <InputGroup className="rounded-3xl bg-card border border-border focus-visible:ring-transparent">
+          <div className="px-3 pb-4 flex-shrink-0">
+            <InputGroup className="rounded-xl pr-0 bg-card border border-border ">
               <InputGroupTextarea
                 ref={inputRef}
                 data-slot="input-group-control"
@@ -415,15 +459,15 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Pregunta sobre esta norma..."
-                className="py-3 px-4 pr-12 max-h-[120px] min-h-[40px]"
+                className="py-3 px-4 pr-12 max-h-[120px] min-h-[40px] "
                 disabled={isLoading}
                 maxLength={500}
                 rows={1}
               />
               
-              <InputGroupAddon align="inline-end">
+              <InputGroupAddon align="inline-end" className="self-end">
                 <Button
-                  className="h-8 w-8 rounded-full p-0"
+                  className="h-8 w-8 p-0 rounded-lg"
                   size="sm"
                   variant="default"
                   onClick={handleSendMessage}

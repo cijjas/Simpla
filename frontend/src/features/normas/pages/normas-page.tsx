@@ -1,17 +1,13 @@
 'use client';
-
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
 import { NormasFilter } from '../components/list/normas-filter';
 import { NormasList } from '../components/list/normas-list';
 import { useNormasSearch } from '../hooks/use-normas-search';
 
 export function NormasPage() {
-  const { loading, error } = useNormasSearch({ autoSearch: true }); // Only this component triggers initial search
+  const { loading } = useNormasSearch({ autoSearch: true }); // Only this component triggers initial search
 
   return (
-    <div className='h-[calc(100vh-4rem)] flex flex-col overflow-hidden'>
+    <div className='flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden'>
       {/* Header Section - Fixed */}
       <div className='flex-shrink-0 border-b bg-background px-4 md:px-6 py-4'>
         <div className='text-start space-y-1'>
@@ -22,23 +18,7 @@ export function NormasPage() {
             Busca y explora la base de datos de normas legales argentinas
           </p>
         </div>
-        {/* Error Alert */}
-        {error && (
-          <Alert variant='destructive' className='mt-3'>
-            <AlertCircle className='h-4 w-4' />
-            <AlertDescription className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2'>
-              <span className='text-sm'>{error}</span>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => window.location.reload()}
-                className='w-full sm:w-auto'
-              >
-                Reintentar
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        
       </div>
 
       {/* Main Content - Different layouts for mobile vs desktop */}

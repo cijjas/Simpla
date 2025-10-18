@@ -1,6 +1,5 @@
 import DOMPurify from 'isomorphic-dompurify';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { FileQuestion } from 'lucide-react';
 import { Division } from '@/features/normas/api/normas-api';
 import { NormaDivisionComponent } from './norma-division';
 
@@ -33,13 +32,18 @@ export function NormaBody({
 
   if (hasNoContent) {
     return (
-      <Alert variant='default' className='my-6'>
-        <Info className='h-4 w-4' />
-        <AlertTitle>Sin contenido estructurado</AlertTitle>
-        <AlertDescription>
-          Esta norma no contiene divisiones o artículos estructurados.
-        </AlertDescription>
-      </Alert>
+      <div className='flex flex-col items-center justify-center min-h-[400px] text-center py-8'>
+        
+        <div className='space-y-3 max-w-md'>
+          <h2 className='text-2xl font-serif font-bold tracking-tight'>
+            Sin contenido estructurado
+          </h2>
+          
+          <p className='text-sm leading-relaxed text-muted-foreground'>
+            Esta norma tiene contenido disponible para mostrar.
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -47,7 +51,7 @@ export function NormaBody({
     <>
       {showOriginal && hasOriginalText ? (
         <div
-          className='prose max-w-none text-gray-700 dark:text-slate-300 norma-html font-serif text-justify'
+          className='prose max-w-none text-muted-foreground norma-html font-serif text-justify'
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize(
               textoNorma || textoNormaActualizado || '',

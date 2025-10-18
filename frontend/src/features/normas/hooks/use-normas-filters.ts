@@ -2,99 +2,91 @@
 
 import { useCallback, useEffect } from 'react';
 import { useNormas } from '../contexts/normas-context';
+import { useNormasUrlSync } from './use-normas-url-sync';
+import { NormaFilters } from '../api/normas-api';
 
+/**
+ * Hook for managing filter state and options
+ * All filter changes are immediately reflected in the URL
+ */
 export function useNormasFilters() {
-  const {
-    state,
-    loadFilterOptions,
-    updateFilters,
-    resetFilters,
-    searchNormas,
-  } = useNormas();
+  const { state, loadFilterOptions } = useNormas();
+  const { currentFilters, setFiltersInUrl, clearFilters } = useNormasUrlSync();
 
   // Load filter options on mount
   useEffect(() => {
     loadFilterOptions();
   }, [loadFilterOptions]);
 
-  const handleFilterChange = useCallback(
-    (key: string, value: unknown) => {
-      const newFilters = { [key]: value, offset: 0 };
-      updateFilters(newFilters);
-      // Trigger search with updated filters
-      searchNormas({ ...state.filters, ...newFilters });
+  /**
+   * Update a single filter value
+   */
+  const setFilter = useCallback(
+    (key: keyof NormaFilters, value: string | number | undefined) => {
+      setFiltersInUrl({ [key]: value });
     },
-    [updateFilters, searchNormas, state.filters],
+    [setFiltersInUrl],
   );
 
-  const handleDateRangeChange = useCallback(
-    (key: string, value: string | undefined) => {
-      const newFilters = { [key]: value, offset: 0 };
-      updateFilters(newFilters);
-      // Trigger search with updated filters
-      searchNormas({ ...state.filters, ...newFilters });
+  /**
+   * Update multiple filters at once
+   */
+  const setFilters = useCallback(
+    (filters: Partial<NormaFilters>) => {
+      setFiltersInUrl(filters);
     },
-    [updateFilters, searchNormas, state.filters],
+    [setFiltersInUrl],
   );
 
-  const handleSearchTermChange = useCallback(
-    (searchTerm: string) => {
-      const newFilters = { search_term: searchTerm || undefined, offset: 0 };
-      updateFilters(newFilters);
-      // Trigger search with updated filters
-      searchNormas({ ...state.filters, ...newFilters });
-    },
-    [updateFilters, searchNormas, state.filters],
-  );
-
-  const handlePaginationChange = useCallback(
-    (limit: number, offset: number) => {
-      updateFilters({ limit, offset });
-    },
-    [updateFilters],
-  );
-
+  /**
+   * Clear all filters (reset to defaults)
+   */
   const clearAllFilters = useCallback(() => {
-    resetFilters();
-  }, [resetFilters]);
+    clearFilters();
+  }, [clearFilters]);
 
-  const clearSpecificFilter = useCallback(
-    (key: string) => {
-      updateFilters({ [key]: undefined, offset: 0 });
+  /**
+   * Clear a specific filter
+   */
+  const clearFilter = useCallback(
+    (key: keyof NormaFilters) => {
+      setFiltersInUrl({ [key]: undefined });
     },
-    [updateFilters],
+    [setFiltersInUrl],
   );
+
+  // Computed values
+  const hasActiveFilters = Object.entries(currentFilters).some(
+    ([key, value]) =>
+      key !== 'limit' &&
+      key !== 'offset' &&
+      value !== undefined &&
+      value !== '',
+  );
+
+  const activeFilterCount = Object.entries(currentFilters).filter(
+    ([key, value]) =>
+      key !== 'limit' &&
+      key !== 'offset' &&
+      value !== undefined &&
+      value !== '',
+  ).length;
 
   return {
     // State
     filterOptions: state.filterOptions,
     filterOptionsLoading: state.filterOptionsLoading,
     filterOptionsError: state.filterOptionsError,
-    currentFilters: state.filters,
+    currentFilters,
 
     // Actions
-    handleFilterChange,
-    handleDateRangeChange,
-    handleSearchTermChange,
-    handlePaginationChange,
+    setFilter,
+    setFilters,
     clearAllFilters,
-    clearSpecificFilter,
-    resetFilters,
+    clearFilter,
 
     // Computed values
-    hasActiveFilters: Object.entries(state.filters).some(
-      ([key, value]) =>
-        key !== 'limit' &&
-        key !== 'offset' &&
-        value !== undefined &&
-        value !== '',
-    ),
-    activeFilterCount: Object.entries(state.filters).filter(
-      ([key, value]) =>
-        key !== 'limit' &&
-        key !== 'offset' &&
-        value !== undefined &&
-        value !== '',
-    ).length,
+    hasActiveFilters,
+    activeFilterCount,
   };
 }

@@ -228,50 +228,52 @@ export function NormasProvider({ children }: NormasProviderProps) {
 
   // Track if initial search has been triggered
   const hasTriggeredInitialSearch = useRef(false);
+  
+  // Track last search to prevent duplicates (using ref for stability)
+  const lastSearchKeyRef = useRef<string | null>(null);
 
   // Search actions with deduplication
-  const searchNormas = useCallback(
-    async (filters?: NormaFilters) => {
-      const searchFilters = filters || state.filters;
+  const searchNormas = useCallback(async (filters?: NormaFilters) => {
+    const searchFilters = filters || state.filters;
 
-      // Create a unique key for this search
-      const searchKey = JSON.stringify(searchFilters);
+    // Create a unique key for this search
+    const searchKey = JSON.stringify(searchFilters);
 
-      // If we already searched with these exact params, skip
-      if (state.lastSearchParams === searchKey && state.searchResults) {
-        return;
+    // If we already searched with these exact params, skip
+    if (lastSearchKeyRef.current === searchKey) {
+      return;
+    }
+
+    // Cancel any ongoing search
+    if (ongoingRequests.current.search) {
+      ongoingRequests.current.search.abort();
+    }
+
+    const controller = new AbortController();
+    ongoingRequests.current.search = controller;
+
+    // Set search key FIRST to prevent duplicates
+    lastSearchKeyRef.current = searchKey;
+    dispatch({ type: 'SET_LAST_SEARCH_PARAMS', payload: searchKey });
+    dispatch({ type: 'SET_SEARCH_LOADING', payload: true });
+
+    try {
+      const results = await normasAPI.listNormas(searchFilters);
+
+      // Only update if this request wasn't aborted
+      if (!controller.signal.aborted) {
+        dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
+        ongoingRequests.current.search = undefined;
       }
-
-      // Cancel any ongoing search
-      if (ongoingRequests.current.search) {
-        ongoingRequests.current.search.abort();
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Error al buscar normas';
+        dispatch({ type: 'SET_SEARCH_ERROR', payload: errorMessage });
+        ongoingRequests.current.search = undefined;
       }
-
-      const controller = new AbortController();
-      ongoingRequests.current.search = controller;
-
-      dispatch({ type: 'SET_SEARCH_LOADING', payload: true });
-      dispatch({ type: 'SET_LAST_SEARCH_PARAMS', payload: searchKey });
-
-      try {
-        const results = await normasAPI.listNormas(searchFilters);
-
-        // Only update if this request wasn't aborted
-        if (!controller.signal.aborted) {
-          dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
-          ongoingRequests.current.search = undefined;
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Error al buscar normas';
-          dispatch({ type: 'SET_SEARCH_ERROR', payload: errorMessage });
-          ongoingRequests.current.search = undefined;
-        }
-      }
-    },
-    [state.filters, state.lastSearchParams, state.searchResults],
-  );
+    }
+  }, [state.filters]);
 
   // Trigger initial search - called by hooks that need it
   const triggerInitialSearch = useCallback(() => {

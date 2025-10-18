@@ -3,8 +3,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { TreeView, TreeDataItem } from '@/components/tree-view-old';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Plus,
@@ -25,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
-import { findFolderById } from '../utils/folder-utils';
+import { findFolderById, findParentFolder, getFirstAvailableFolder } from '../utils/folder-utils';
 import { CreateFolderDialog } from './create-folder-dialog';
 import { EditFolderDialog } from './edit-folder-dialog';
 import { DeleteFolderDialog } from './delete-folder-dialog';
@@ -36,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 
 interface FolderTreeProps {
   onFolderSelect?: (folder: FolderTreeItem | null) => void;
@@ -107,7 +106,30 @@ export function FolderTree({
   const confirmDeleteFolder = useCallback(
     async (folderId: string) => {
       try {
+        // Check if the deleted folder is currently selected
+        const isDeletingSelectedFolder = selectedFolderId === folderId;
+        
+        // If deleting the selected folder, find a new folder to select
+        let folderToSelect: FolderTreeItem | null = null;
+        if (isDeletingSelectedFolder) {
+          // First, try to select the parent folder
+          const parentFolder = findParentFolder(folders, folderId);
+          if (parentFolder) {
+            folderToSelect = parentFolder;
+          } else {
+            // If no parent (root level), get the first available folder that's not being deleted
+            const availableFolders = folders.filter(f => f.id !== folderId);
+            folderToSelect = getFirstAvailableFolder(availableFolders);
+          }
+        }
+        
         await deleteFolder(folderId);
+        
+        // Select the new folder after successful deletion
+        if (isDeletingSelectedFolder && onFolderSelect) {
+          onFolderSelect(folderToSelect);
+        }
+        
         toast.success('Carpeta eliminada correctamente');
         handleDeleteDialogClose(false);
       } catch (error) {
@@ -119,7 +141,7 @@ export function FolderTree({
         throw error; // Re-throw so the dialog can handle it
       }
     },
-    [deleteFolder, handleDeleteDialogClose],
+    [deleteFolder, handleDeleteDialogClose, selectedFolderId, folders, onFolderSelect],
   );
 
   // Filter folders based on search query
@@ -208,14 +230,14 @@ export function FolderTree({
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end'>
                 <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
-                  <Edit className='h-4 w-4 mr-2' />
+                  <Edit className='size-4 mr-2' />
                   Editar carpeta
                 </DropdownMenuItem>
                 {folder.level < 2 && (
                   <DropdownMenuItem
                     onClick={() => handleCreateSubfolder(folder)}
                   >
-                    <FolderPlus className='h-4 w-4 mr-2' />
+                    <FolderPlus className='size-4 mr-2' />
                     Nueva subcarpeta
                   </DropdownMenuItem>
                 )}
@@ -223,7 +245,7 @@ export function FolderTree({
                   onClick={() => handleDeleteFolder(folder)}
                   className='text-destructive focus:text-destructive'
                 >
-                  <Trash2 className='h-4 w-4 mr-2' />
+                  <Trash2 className='size-4 mr-2 text-destructive' />
                   Eliminar carpeta
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -266,42 +288,34 @@ export function FolderTree({
   // Enhanced loading skeleton
   if (loading) {
     return (
-      <Card className='h-full flex flex-col gap-0 border-border/50 bg-card'>
-        <CardHeader className='pb-3 px-4 border-b border-border/50'>
-          <div className='flex items-center gap-3'>
+      <div className='h-full flex flex-col gap-0'>
+        <div className='p-4 border-b border-border/50'>
+          <div className='flex items-center gap-2'>
             <div className='relative flex-1'>
-              <Skeleton className='h-10 w-full' />
+              <Skeleton className='h-8 w-full' />
             </div>
-            <Skeleton className='h-10 w-10 rounded-md' />
+            <Skeleton className='h-8 w-8 rounded-md' />
           </div>
-        </CardHeader>
-        <CardContent className='p-4 flex-1 space-y-3'>
+        </div>
+        <div className='p-4 flex-1 space-y-3'>
           {/* Skeleton folder items */}
-          {[1, 2, 3, 4, 5].map(i => (
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <div key={i} className='flex items-center gap-3 px-2 py-2.5'>
-              <Skeleton className='h-4 w-4 rounded-sm' />
+              <Skeleton className='size-4 rounded-sm' />
               <Skeleton className='h-4 flex-1 max-w-[180px]' />
-              <Skeleton className='h-4 w-4 rounded-full ml-auto' />
+              <Skeleton className='size-4 rounded-full ml-auto' />
             </div>
           ))}
-
-          {/* Loading indicator at bottom */}
-          <div className='flex items-center justify-center pt-4 pb-2'>
-            <div className='flex items-center gap-2 text-muted-foreground/70'>
-              <Loader2 className='h-4 w-4 animate-spin' />
-              <span className='text-xs font-medium'>Cargando carpetas...</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   // Enhanced error state
   if (error) {
     return (
-      <Card className='h-full flex flex-col gap-0 border-destructive/20 bg-destructive/5'>
-        <CardContent className='p-6 flex-1 flex items-center justify-center'>
+      <div className='h-full flex flex-col gap-0'>
+        <div className='p-6 flex-1 flex items-center justify-center'>
           <div className='text-center max-w-sm'>
             <div className='mb-4 flex justify-center'>
               <div className='rounded-full bg-destructive/10 p-3'>
@@ -322,43 +336,47 @@ export function FolderTree({
               Reintentar
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
-      <Card className='h-full flex flex-col gap-0 bg-card overflow-hidden p-0 shadow-none '>
+      <div className='h-full flex flex-col gap-0 overflow-hidden'>
         {/* Enhanced Header */}
-        <CardHeader className='p-4 !pb-3 border-b border-border'>
+        <div className='p-4 border-b border-border'>
           {/* Compact toolbar: search + create button */}
           <div className='flex items-center gap-2'>
-            <div className='relative flex-1'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none' />
-              <Input
-                placeholder='Buscar...'
+            <InputGroup className="h-8">
+              <InputGroupInput
+                placeholder='Buscar carpetas...'
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className='pl-9 h-9 text-sm bg-background/50 border-border/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 transition-all'
                 aria-label='Buscar carpetas'
+                className=""
               />
-            </div>
+              <InputGroupAddon>
+                <Search className="size-4 text-muted-foreground" />
+              </InputGroupAddon>
+            </InputGroup>
+            
             <Button
               size='icon'
               variant='default'
+              className='size-8'
               onClick={() => setIsCreateDialogOpen(true)}
-              className='h-9 w-9'
               title='Nueva carpeta'
               aria-label='Crear carpeta'
             >
-              <Plus className='h-4 w-4' />
+              <Plus className='size-4' />
             </Button>
           </div>
-        </CardHeader>
+
+        </div>
 
         {/* Content Area */}
-        <CardContent className='p-4 flex-1 flex flex-col min-h-0'>
+        <div className='p-4 flex-1 flex flex-col min-h-0 overflow-y-auto'>
           {treeData.length === 0 ? (
             <div className='flex-1 flex items-center justify-center p-6'>
               <div className='text-center max-w-xs'>
@@ -414,8 +432,8 @@ export function FolderTree({
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <CreateFolderDialog
         open={isCreateDialogOpen}

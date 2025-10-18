@@ -10,6 +10,7 @@ export function useNormaExpansion(divisions: Division[] | undefined) {
   const [expandedArticles, setExpandedArticles] = useState<Set<number>>(
     new Set(),
   );
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // Initialize all divisions as expanded by default
   useEffect(() => {
@@ -41,6 +42,7 @@ export function useNormaExpansion(divisions: Division[] | undefined) {
       collectIds(divisions);
       setExpandedDivisions(allDivisionIds);
       setExpandedArticles(allArticleIds);
+      setIsExpanded(true);
     }
   }, [divisions]);
 
@@ -93,11 +95,21 @@ export function useNormaExpansion(divisions: Division[] | undefined) {
     collectIds(divisions);
     setExpandedDivisions(allDivisionIds);
     setExpandedArticles(allArticleIds);
+    setIsExpanded(true);
   };
 
   const collapseAll = () => {
     setExpandedDivisions(new Set());
     setExpandedArticles(new Set());
+    setIsExpanded(false);
+  };
+
+  const toggleExpansion = () => {
+    if (isExpanded) {
+      collapseAll();
+    } else {
+      expandAll();
+    }
   };
 
   return {
@@ -107,5 +119,7 @@ export function useNormaExpansion(divisions: Division[] | undefined) {
     toggleArticle,
     expandAll,
     collapseAll,
+    isExpanded,
+    toggleExpansion,
   };
 }

@@ -5,8 +5,8 @@ import uuid
 from core.database.base import Base
 
 
-class Favorite(Base):
-    __tablename__ = "favorites"
+class Bookmark(Base):
+    __tablename__ = "favorites"  # Keep table name for backward compatibility
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False)
@@ -15,3 +15,4 @@ class Favorite(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
+

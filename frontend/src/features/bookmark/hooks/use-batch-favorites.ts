@@ -2,35 +2,54 @@
 
 /**
  * Hook for components that display multiple normas
- * Efficiently batch-checks favorite status for all normas
+ * Efficiently batch-checks bookmark status for all normas
  */
 
-import { useEffect } from 'react';
-import { useFavoritesContext } from '../context/bookmark-context';
-import { NormaItem } from '@/features/infoleg/utils/types';
+import { useEffect, useMemo } from 'react';
+import { useBookmarksContext } from '../context/bookmark-context';
 
-interface UseBatchFavoritesResult {
-  isFavorite: (normaId: number) => boolean;
+interface UseBatchBookmarksResult {
+  isBookmarked: (normaId: number) => boolean;
   loading: boolean;
   error: string | null;
-  toggleFavorite: (normaId: number) => Promise<void>;
+  toggleBookmark: (normaId: number) => Promise<void>;
 }
 
-export function useBatchFavorites(normas: NormaItem[]): UseBatchFavoritesResult {
-  const { checkFavorites, toggleFavorite, isFavorite, loading, error } = useFavoritesContext();
+interface NormaWithId {
+  id?: number;
+  infoleg_id?: number;
+}
 
-  // Batch check all normas when they change
+/**
+ * Extract infoleg_id from norma object
+ * Supports both old NormaItem (with id) and new NormaSummary (with infoleg_id)
+ */
+function extractInfolegId(norma: NormaWithId): number | null {
+  // Prefer infoleg_id if present, otherwise fall back to id
+  return norma.infoleg_id ?? norma.id ?? null;
+}
+
+export function useBatchBookmarks(normas: NormaWithId[]): UseBatchBookmarksResult {
+  const { checkBookmarks, toggleBookmark, isBookmarked, loading, error } = useBookmarksContext();
+
+  // Extract norma IDs (memoize to prevent unnecessary rechecks)
+  const normaIds = useMemo(() => {
+    return normas
+      .map(extractInfolegId)
+      .filter((id): id is number => id !== null);
+  }, [normas]);
+
+  // Batch check all normas when IDs change
   useEffect(() => {
-    if (normas.length > 0) {
-      const normaIds = normas.map(norma => norma.id);
-      checkFavorites(normaIds);
+    if (normaIds.length > 0) {
+      checkBookmarks(normaIds);
     }
-  }, [normas, checkFavorites]);
+  }, [normaIds, checkBookmarks]);
 
   return {
-    isFavorite,
+    isBookmarked,
     loading,
     error,
-    toggleFavorite,
+    toggleBookmark,
   };
 }

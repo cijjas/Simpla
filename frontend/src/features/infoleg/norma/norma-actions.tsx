@@ -320,10 +320,11 @@ export function NormaActions({ norma }: { norma?: NormaDetallada }) {
               size='icon'
               variant='outline'
               onClick={toggleBookmark}
-              disabled={bookmarkLoading || !norma?.id}
+              disabled={!norma?.id}
+              className={bookmarkLoading ? 'opacity-70' : ''}
             >
               <Bookmark
-                className={`h-4 w-4 ${
+                className={`h-4 w-4 transition-all ${
                   isBookmarked ? 'fill-yellow-400 text-yellow-400' : ''
                 }`}
               />

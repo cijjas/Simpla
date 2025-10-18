@@ -7,15 +7,15 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const treeVariants = cva(
-    'group hover:before:opacity-100 hover:bg-accent/70 hover:text-sidebar-accent-foreground hover:rounded-md before:absolute before:rounded-md before:left-0 px-2 before:w-full before:opacity-0 before:bg-accent/70 before:h-6 before:-z-10 transition-all my-0.5'
+    'group rounded-md hover:bg-sidebar-accent/70 my-0.5 px-2 py-1'
 )
 
 const selectedTreeVariants = cva(
-    'before:opacity-100 before:bg-accent/70 bg-accent/70 text-sidebar-accent-foreground rounded-md font-medium my-0.5'
+    'bg-sidebar-accent rounded-md hover:bg-sidebar-accent/70'
 )
 
 const dragOverVariants = cva(
-    'before:opacity-100 before:bg-accent/70 bg-accent/70 text-sidebar-accent-foreground rounded-md my-0.5'
+    'bg-sidebar-accent rounded-md hover:bg-sidebar-accent/70'
 )
 
 interface TreeDataItem {
@@ -395,7 +395,7 @@ const TreeLeaf = React.forwardRef<
             <div
                 ref={ref}
                 className={cn(
-                    'flex text-left items-center py-2 cursor-pointer before:right-1',
+                    'flex text-left items-center   cursor-pointer before:right-1',
                     treeVariants(),
                     className,
                     selectedItemId === item.id && selectedTreeVariants(),
@@ -415,7 +415,7 @@ const TreeLeaf = React.forwardRef<
                 {...props}
             >
                 {/* Invisible chevron placeholder for consistent spacing */}
-                <div className="w-6 h-6 mr-1 flex items-center justify-center">
+                <div className="size-4 mr-1 flex items-center justify-center">
                     <ChevronRight className="h-4 w-4 shrink-0 opacity-0" />
                 </div>
                 <TreeIcon
@@ -441,11 +441,11 @@ const AccordionTrigger = React.forwardRef<
     }
 >(({ children, hasChildren = true, onFolderClick, ...props }, ref) => (
     <AccordionPrimitive.Header>
-        <div className="flex w-full items-center py-2">
+        <div className="flex w-full items-center ">
             <AccordionPrimitive.Trigger
                 ref={ref}
                 className={cn(
-                    'flex items-center justify-center w-6 h-6 mr-1 transition-all first:[&[data-state=open]>svg]:first-of-type:rotate-90',
+                    'flex items-center justify-center size-4 mr-1 transition-all first:[&[data-state=open]>svg]:first-of-type:rotate-90',
                     !hasChildren && 'opacity-0 cursor-default'
                 )}
                 disabled={!hasChildren}
