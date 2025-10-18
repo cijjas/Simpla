@@ -9,14 +9,14 @@ from typing import Optional
 backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, backend_dir)
 
-from features.normas.normas_reconstructor import NormaReconstructor  # noqa: E402
+from shared.utils.norma_reconstruction import get_norma_reconstructor  # noqa: E402
 
 
 class TestNormas:
     """Test class for normas functionality."""
     
     def __init__(self):
-        self.reconstructor = NormaReconstructor()
+        self.reconstructor = get_norma_reconstructor()
         self.passed = 0
         self.failed = 0
         self.test_norma_id: Optional[int] = None

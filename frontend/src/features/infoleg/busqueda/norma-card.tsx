@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarIcon, FileTextIcon, Star } from 'lucide-react';
+import { CalendarIcon, FileTextIcon, Bookmark } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDatePretty } from '@/lib/utils';
 
 import { JSX } from 'react';
-import { useFavoriteToggle } from '@/features/favorites';
+import { useBookmarkToggle } from '@/features/bookmark';
 import { NormaItem } from '../utils/types';
 
 export default function NormaCard({
@@ -15,12 +15,12 @@ export default function NormaCard({
 }: {
   norma: NormaItem;
 }): JSX.Element {
-  // Check if this norma is favorited
-  const { isFavorite, toggleFavorite } = useFavoriteToggle(norma.id);
+  // Check if this norma is bookmarked
+  const { isBookmarked, toggleBookmark } = useBookmarkToggle(norma.id);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toggleFavorite();
+    toggleBookmark();
   };
 
   return (
@@ -28,12 +28,12 @@ export default function NormaCard({
       href={`/norma/${norma.id}`}
       className='group block h-full rounded-xl border bg-card transition hover:bg-accent hover:shadow-md relative'
     >
-      {/* Favorite star (only show if favorited) */}
-      {isFavorite && (
+      {/* Bookmark indicator (only show if bookmarked) */}
+      {isBookmarked && (
         <div className='absolute top-4.5 right-3 z-10'>
-          <Star 
-            className='h-5 w-5 text-yellow-400 fill-yellow-400 cursor-pointer drop-shadow-sm' 
-            onClick={handleFavoriteClick}
+          <Bookmark
+            className='h-5 w-5 text-yellow-400 fill-yellow-400 cursor-pointer drop-shadow-sm'
+            onClick={handleBookmarkClick}
           />
         </div>
       )}
@@ -43,7 +43,9 @@ export default function NormaCard({
         <CardContent className='flex grow flex-col gap-3 p-4'>
           {/* ---------- TOP SECTION : title & summary ---------- */}
           <div className='flex flex-col gap-2'>
-            <h3 className={`text-base font-extrabold font-serif leading-snug line-clamp-2 ${isFavorite ? 'pr-8' : ''}`}>
+            <h3
+              className={`text-base font-extrabold font-serif leading-snug line-clamp-2 ${isBookmarked ? 'pr-8' : ''}`}
+            >
               {norma.tituloSumarioFormateado ||
                 norma.tituloResumidoFormateado ||
                 'Sin título'}

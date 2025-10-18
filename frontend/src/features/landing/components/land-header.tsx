@@ -19,12 +19,16 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export default function LandHeader() {
   const [activeSection, setActiveSection] = useState('hero');
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  // Track which section is currently in view
+  // Track scroll position and which section is currently in view
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['features', 'how-it-works', 'about-us', 'testimonials', 'faq', 'contact'];
-      const scrollPosition = window.scrollY + 100; // Offset for header height
+      const scrollY = window.scrollY;
+      setIsScrolled(scrollY > 50);
+
+      const sections = ['features', 'about-us', 'testimonials', 'faq', 'contact'];
+      const scrollPosition = scrollY + 100; // Offset for header height
 
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId);
@@ -46,24 +50,26 @@ export default function LandHeader() {
 
 
   const sections = [
-    { id: 'features', label: 'Características', href: '/#features' },
-    { id: 'how-it-works', label: 'Cómo Funciona', href: '/#how-it-works' },
-    { id: 'about-us', label: 'Acerca de Nosotros', href: '/#about-us' },
+    { id: 'features', label: 'Producto', href: '/#features' },
+    { id: 'about-us', label: 'Nosotros', href: '/#about-us' },
     { id: 'testimonials', label: 'Testimonios', href: '/#testimonials' },
     { id: 'faq', label: 'FAQ', href: '/#faq' },
     { id: 'contact', label: 'Contacto', href: '/#contact' },
   ];
 
   return (
-    <header className='w-full pt-6 bg-background backdrop-blur-lg sticky top-0 z-50'>
-      <div className='mx-auto flex max-w-7xl items-center justify-between px-4  pb-6'>
+    <header className={cn(
+      'w-full fixed top-0 z-50 transition-all duration-300',
+      isScrolled ? 'bg-background/80 backdrop-blur-lg pt-4' : 'bg-transparent pt-4'
+    )}>
+      <div className='flex items-center justify-between px-6 pb-4'>
         {/* Logo */}
         <Link
           href='/'
           className='flex items-center gap-3 hover:opacity-80 transition'
         >
-          <SvgEstampa className='h-[2.3rem] w-auto' />
-          <span className='font-serif text-3xl font-bold'>SIMPLA</span>
+          <SvgEstampa className='h-[1.5rem] w-auto' />
+          <span className='font-serif text-xl font-bold'>SIMPLA</span>
         </Link>
 
         {/* Desktop nav - Section outline */}
@@ -99,7 +105,7 @@ export default function LandHeader() {
           </SheetTrigger>
           <SheetContent
             side='left'
-            className='w-64 border-r px-0 py-0 bg-background/95 backdrop-blur-lg'
+            className='w-64 border-r px-0 py-0 bg-white/95 backdrop-blur-lg'
           >
             <SheetHeader className='sr-only'>
               <SheetTitle>Menú principal</SheetTitle>
@@ -110,7 +116,7 @@ export default function LandHeader() {
               <div className='flex items-center justify-between border-b px-6 py-4'>
                 <Link
                   href='/'
-                  className='font-serif text-2xl font-bold'
+                  className='font-serif text-lg font-bold'
                   onClick={() =>
                     (document.activeElement as HTMLElement | null)?.blur()
                   }

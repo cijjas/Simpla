@@ -37,7 +37,7 @@
   --destructive: oklch(0.5433 0.1740 29.6967);
   --destructive-foreground: oklch(1.0000 0 0);
   --border: oklch(0.8671 0.0106 247.9485);
-  --input: oklch(0.9940 0 0);
+  --input: oklch(0.8671 0.0106 247.9485);
   --ring: oklch(0.6531 0.1347 242.6867);
   --chart-1: oklch(0.6531 0.1347 242.6867);
   --chart-2: oklch(0.7459 0.1812 152.3266);
@@ -301,4 +301,30 @@ body {
   .prose-chat th {
     @apply bg-muted font-semibold;
   }
+}
+
+
+
+::-moz-selection { /* Code for Firefox */
+  color: rgba(4, 75, 206, 0.923);
+  background:rgb(231, 231, 231) ;
+}
+
+::selection {
+  color: rgba(4, 75, 206, 0.923);
+  background:rgb(231, 231, 231) ;
+}
+
+/* Custom slower pulse animation for chat button */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

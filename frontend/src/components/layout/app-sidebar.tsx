@@ -1,105 +1,103 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { useAuth } from "@/features/auth/hooks/use-auth"
+import * as React from 'react';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
   Search,
   Folder,
-  BookOpen,
-  Star,
+  Bookmark,
   Compass,
-  Scale,
   MessageSquare,
-  FileText,
-} from "lucide-react"
-import SvgEstampa from "@/components/icons/Estampa"
-import { forwardRef } from "react"
+} from 'lucide-react';
+import SvgEstampa from '@/components/icons/Estampa';
+import { forwardRef } from 'react';
 
 // Create a wrapper to make Estampa compatible with LucideIcon interface
-const EstampaIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>((props, ref) => (
-  <SvgEstampa {...props} ref={ref} />
-))
-EstampaIcon.displayName = "EstampaIcon"
+const EstampaIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
+  (props, ref) => <SvgEstampa {...props} ref={ref} />,
+);
+EstampaIcon.displayName = 'EstampaIcon';
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavCopiloto } from "@/components/nav-copiloto"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from '@/components/nav-main';
+import { NavProjects } from '@/components/nav-projects';
+import { NavCopiloto } from '@/components/nav-copiloto';
+import { NavUser } from '@/components/nav-user';
+import { TeamSwitcher } from '@/components/team-switcher';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar';
 
 // This is sample data.
 const data = {
   user: {
-    name: "Usuario",
-    email: "usuario@example.com",
-    avatar: "/avatars/user.jpg",
+    name: 'Usuario',
+    email: 'usuario@example.com',
+    avatar: '/avatars/user.jpg',
   },
   teams: [
     {
-      name: "Simpla",
+      name: 'Simpla',
       logo: EstampaIcon,
-      plan: "Pro",
+      plan: 'Pro',
     },
   ],
   navMain: [
     {
-      title: "Inicio",
-      url: "/inicio",
+      title: 'Inicio',
+      url: '/inicio',
       icon: Compass,
       isActive: true,
     },
     {
-      title: "Búsqueda",
-      url: "/busqueda",
+      title: 'Búsqueda',
+      url: '/busqueda',
       icon: Search,
     },
     {
       title: "Normas",
       url: "/normas",
-      icon: FileText,
+      icon: Search,
+      commandId: "search-normas", // Will automatically show ⌘K on Mac, Ctrl+K on Windows
     },
   ],
   copiloto: [
     {
-      name: "Conversaciones",
-      url: "/conversaciones",
+      name: 'Conversaciones',
+      url: '/conversaciones',
       icon: MessageSquare,
     },
   ],
   projects: [
     {
-      name: "Favoritos",
-      url: "/favoritos",
-      icon: Star,
+      name: 'Guardados',
+      url: '/bookmark',
+      icon: Bookmark,
     },
     {
-      name: "Carpetas",
-      url: "/carpetas",
+      name: 'Carpetas',
+      url: '/carpetas',
       icon: Folder,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth()
-  
+  const { user } = useAuth();
+
   // Update user data with auth info
   const userData = {
     ...data.user,
     name: user?.name || data.user.name,
     email: user?.email || data.user.email,
     avatar: user?.avatar_url || data.user.avatar, // Use user's avatar or fallback to default
-  }
+  };
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
@@ -113,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
 
-export default AppSidebar
+export default AppSidebar;

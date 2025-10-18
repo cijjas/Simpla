@@ -7,16 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { HeroSection } from './hero-section';
 import { FeaturesSection } from './features-section';
-import { HowItWorksSection } from './how-it-works-section';
 import { AboutUsSection } from './about-us-section';
-import { TestimonialsSection } from './testimonials-section';
+import { BentoGridSection, defaultServicesCards } from './bento-grid-section';
+import Image from 'next/image';
 
 
 export default function LandingPage() {
@@ -126,9 +121,17 @@ export default function LandingPage() {
         <FeaturesSection />
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works">
-        <HowItWorksSection />
+      {/* Logo Section */}
+      <section className='py-20 bg-background'>
+        <div className='mx-auto max-w-7xl px-4 flex justify-center'>
+          <Image
+            src='/images/logo_completo_light.png'
+            alt='Simpla Logo'
+            width={1700}
+            height={567}
+            className='h-104 w-auto'
+          />
+        </div>
       </section>
 
       {/* About Us Section */}
@@ -136,91 +139,13 @@ export default function LandingPage() {
         <AboutUsSection />
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials">
-        <TestimonialsSection />
-      </section>
-
-      {/* FAQ Section */}
-      <section id="faq" className='py-40 bg-background'>
-        <div className='mx-auto max-w-7xl px-4'>
-          <div className='text-center mb-16'>
-            <h2 className='text-4xl font-bold text-gray-900 dark:text-white mb-4'>
-              Preguntas Frecuentes
-            </h2>
-            <p className='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'>
-              Encontrá respuestas a las preguntas más comunes sobre Simpla.
-            </p>
-          </div>
-          
-          <div className='max-w-4xl mx-auto space-y-4'>
-            <Collapsible className='border rounded-lg'>
-              <CollapsibleTrigger className='flex w-full items-center justify-between p-6 text-left hover:bg-muted/50 transition-colors'>
-                <span className='text-lg font-semibold text-gray-900 dark:text-white'>
-                  ¿Cómo funciona el chatbot de investigación legal?
-                </span>
-                <span className='text-gray-500'>+</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className='px-6 pb-6'>
-                <p className='text-gray-600 dark:text-gray-300'>
-                  Nuestro chatbot utiliza tecnología RAG (Retrieval-Augmented Generation) entrenado 
-                  específicamente en normativa argentina. Podés hacer preguntas en lenguaje natural 
-                  y el chatbot buscará en nuestra base de datos de normas para darte respuestas precisas 
-                  con referencias a las leyes correspondientes.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-
-            <Collapsible className='border rounded-lg'>
-              <CollapsibleTrigger className='flex w-full items-center justify-between p-6 text-left hover:bg-muted/50 transition-colors'>
-                <span className='text-lg font-semibold text-gray-900 dark:text-white'>
-                  ¿Cómo funciona el almacenamiento de normas en carpetas?
-                </span>
-                <span className='text-gray-500'>+</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className='px-6 pb-6'>
-                <p className='text-gray-600 dark:text-gray-300'>
-                  Podés crear carpetas para organizar las normas que encontrás. Guardá normas por área 
-                  de práctica, por cliente, o por cualquier criterio que te sirva. Esto te permite 
-                  acceder rápidamente a las normas más relevantes para tu trabajo y mantener tus 
-                  investigaciones organizadas.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-
-            <Collapsible className='border rounded-lg'>
-              <CollapsibleTrigger className='flex w-full items-center justify-between p-6 text-left hover:bg-muted/50 transition-colors'>
-                <span className='text-lg font-semibold text-gray-900 dark:text-white'>
-                  ¿De dónde proviene la información legal?
-                </span>
-                <span className='text-gray-500'>+</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className='px-6 pb-6'>
-                <p className='text-gray-600 dark:text-gray-300'>
-                  Toda la información proviene de fuentes oficiales como InfoLeg.gob.ar, bajo licencia 
-                  Creative Commons CC BY 2.5 AR. Nuestra base de datos se mantiene actualizada con 
-                  las últimas modificaciones normativas para asegurar la precisión de las respuestas.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-
-            <Collapsible className='border rounded-lg'>
-              <CollapsibleTrigger className='flex w-full items-center justify-between p-6 text-left hover:bg-muted/50 transition-colors'>
-                <span className='text-lg font-semibold text-gray-900 dark:text-white'>
-                  ¿Es gratis usar Simpla?
-                </span>
-                <span className='text-gray-500'>+</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className='px-6 pb-6'>
-                <p className='text-gray-600 dark:text-gray-300'>
-                  Sí, Simpla es gratuito pero con límites. Podés hacer un número limitado de consultas 
-                  al chatbot y crear carpetas básicas. Para uso intensivo en estudios jurídicos, 
-                  contactanos para conocer nuestros planes profesionales.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </div>
+      {/* Bento Grid Section */}
+      <section id="services">
+        <BentoGridSection 
+          title="¿Qué ofrece Simpla?"
+          subtitle="Todo lo que necesitás para investigación legal moderna"
+          cards={defaultServicesCards}
+        />
       </section>
 
       {/* Contact Section */}

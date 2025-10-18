@@ -60,7 +60,7 @@ export class ConversationsAPI {
   static async getConversations(params?: {
     limit?: number;
     offset?: number;
-    chat_type?: 'normativa_nacional' | 'constituciones';
+    chat_type?: 'normativa_nacional' | 'constituciones' | 'norma_chat';
     is_archived?: boolean;
   }): Promise<ConversationListResponse> {
     const searchParams = new URLSearchParams();

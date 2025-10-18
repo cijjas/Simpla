@@ -19,6 +19,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { Kbd } from "@/components/ui/kbd"
+import { getCommandById, getShortcutParts } from "@/features/command-center"
 
 export function NavMain({
   items,
@@ -28,6 +30,8 @@ export function NavMain({
     url: string
     icon?: LucideIcon
     isActive?: boolean
+    kbd?: string
+    commandId?: string
     items?: {
       title: string
       url: string
@@ -46,12 +50,31 @@ export function NavMain({
           
           // If item has no sub-items, render as direct link
           if (!item.items || item.items.length === 0) {
+            // Get shortcut parts from command center if commandId is provided
+            const shortcutParts = item.commandId 
+              ? (() => {
+                  const command = getCommandById(item.commandId)
+                  return command ? getShortcutParts(command) : (item.kbd ? [item.kbd] : [])
+                })()
+              : (item.kbd ? [item.kbd] : [])
+
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
-                  <Link href={item.url}>
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
+                  <Link href={item.url} className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      {item.icon && <item.icon className="size-4" />}
+                      <span>{item.title}</span>
+                    </div>
+                    {shortcutParts.length > 0 && (
+                      <div className="ml-2 flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        {shortcutParts.map((part: string, index: number) => (
+                          <Kbd key={index}>
+                            {part}
+                          </Kbd>
+                        ))}
+                      </div>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

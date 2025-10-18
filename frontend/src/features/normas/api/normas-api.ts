@@ -12,6 +12,7 @@ export interface NormaSummary {
   publicacion?: string;
   titulo_sumario?: string;
   titulo_resumido?: string;
+  texto_resumido?: string;
   observaciones?: string;
   nro_boletin?: string;
   pag_boletin?: string;
@@ -22,7 +23,6 @@ export interface NormaSummary {
 
 export interface NormaDetail extends NormaSummary {
   id_normas?: Record<string, unknown>;
-  texto_resumido?: string;
   texto_norma?: string;
   texto_norma_actualizado?: string;
   lista_normas_que_complementa?: Record<string, unknown>;
@@ -89,6 +89,9 @@ export interface NormaStats {
 
 export interface NormaFilters {
   search_term?: string;
+  numero?: number;
+  anio?: number;
+  nro_boletin?: string;
   jurisdiccion?: string;
   tipo_norma?: string;
   clase_norma?: string;
