@@ -18,6 +18,7 @@ import ResultListItem from './norma-list-item';
 import InitialSearchView from './initial-search-view';
 import SvgSearch from '@/components/icons/Search';
 import type { NormaItem } from '../utils/types';
+import { useBatchBookmarks } from '@/features/bookmark';
 
 interface Meta {
   count: number;
@@ -50,6 +51,9 @@ export default function Results({
   loading,
   onReset,
 }: ResultsProps) {
+  // Batch check bookmarks for all normas in results
+  const { isBookmarked } = useBatchBookmarks(results || []);
+
   /* keep view in LocalStorage for next visit */
   const handleViewChange = (val: 'list' | 'grid') => {
     localStorage.setItem('resultsViewPreference', val);
@@ -293,9 +297,9 @@ export default function Results({
       >
         {results.map(n =>
           view === 'grid' ? (
-            <ResultCard key={n.id} norma={n} />
+            <ResultCard key={n.id} norma={n} isBookmarked={isBookmarked(n.id)} />
           ) : (
-            <ResultListItem key={n.id} norma={n} />
+            <ResultListItem key={n.id} norma={n} isBookmarked={isBookmarked(n.id)} />
           ),
         )}
       </div>

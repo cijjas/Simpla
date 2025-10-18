@@ -9,7 +9,9 @@ from .bookmarks_schemas import (
     BookmarkResponse, 
     BookmarkToggleRequest, 
     BookmarkToggleResponse,
-    BookmarksListResponse
+    BookmarksListResponse,
+    BookmarkBatchCheckRequest,
+    BookmarkBatchCheckResponse
 )
 from .bookmarks_service import BookmarksService
 
@@ -103,4 +105,22 @@ async def check_is_bookmarked(
     is_bookmarked = service.is_bookmarked(user_uuid, norma_id)
     
     return {"is_bookmarked": is_bookmarked}
+
+
+@router.post("/check-batch", response_model=BookmarkBatchCheckResponse)
+async def check_bookmarks_batch(
+    request: BookmarkBatchCheckRequest,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """
+    Batch check if multiple normas are bookmarked by the current user.
+    Returns list of norma_ids that are bookmarked.
+    Much more efficient than checking each norma individually.
+    """
+    service = BookmarksService(db)
+    user_uuid = uuid.UUID(current_user_id)
+    bookmarked_ids = service.check_bookmarks_batch(user_uuid, request.norma_ids)
+    
+    return BookmarkBatchCheckResponse(bookmarked_ids=bookmarked_ids)
 

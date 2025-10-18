@@ -71,8 +71,8 @@ export function NormaRelationGraph({
     // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove();
 
-    // If no relationships, show empty state
-    if (data.nodes.length === 0) {
+    // If no relationships at all (no nodes and no links), show empty state
+    if (data.nodes.length === 0 && data.links.length === 0) {
       return;
     }
 
@@ -359,7 +359,7 @@ export function NormaRelationGraph({
     );
   }
 
-  if (!data || data.nodes.length === 0) {
+  if (!data || (data.nodes.length === 0 && data.links.length === 0)) {
     return null;
   }
 

@@ -1,57 +1,65 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useNormas } from '../contexts/normas-context';
-import { NormaFilters } from '../api/normas-api';
+import { useNormasUrlSync } from './use-normas-url-sync';
 
+/**
+ * Main hook for normas search functionality
+ * Initializes from URL and triggers searches when URL changes
+ */
 export function useNormasSearch(options?: { autoSearch?: boolean }) {
-  const {
-    state,
-    searchNormas,
-    triggerInitialSearch,
-    clearSearch,
-    updateFilters,
-    resetFilters,
-  } = useNormas();
+  const { state, searchNormas, updateFilters } = useNormas();
+  const { getFiltersFromUrl, setFiltersInUrl } = useNormasUrlSync();
+  const searchParams = useSearchParams();
+  const hasInitialized = useRef(false);
+  const lastSearchKey = useRef<string | null>(null);
 
-  const hasTriggeredInitialSearch = useRef(false);
-
-  // Only trigger initial search ONCE from the first component that mounts with autoSearch enabled
+  // Initialize from URL on mount and search if autoSearch is enabled
   useEffect(() => {
-    if (options?.autoSearch && !hasTriggeredInitialSearch.current) {
-      hasTriggeredInitialSearch.current = true;
-      triggerInitialSearch();
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    // Get filters from URL (source of truth)
+    const urlFilters = getFiltersFromUrl();
+    
+    // Update context state to match URL
+    updateFilters(urlFilters);
+    
+    // Trigger search if autoSearch is enabled
+    if (options?.autoSearch) {
+      const searchKey = JSON.stringify(urlFilters);
+      lastSearchKey.current = searchKey;
+      searchNormas(urlFilters);
     }
-  }, [options?.autoSearch, triggerInitialSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleSearch = useCallback(
-    (filters?: NormaFilters) => {
-      if (filters) {
-        updateFilters(filters);
-      }
-      // Always trigger search explicitly
-      searchNormas(filters);
-    },
-    [searchNormas, updateFilters],
-  );
+  // Watch for URL changes and trigger search
+  useEffect(() => {
+    if (!hasInitialized.current) return;
 
+    const urlFilters = getFiltersFromUrl();
+    const searchKey = JSON.stringify(urlFilters);
+
+    // Only search if filters actually changed from last search
+    if (searchKey !== lastSearchKey.current) {
+      lastSearchKey.current = searchKey;
+      updateFilters(urlFilters);
+      searchNormas(urlFilters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only depend on searchParams, not the functions
+
+  /**
+   * Change pagination offset (for page navigation)
+   */
   const handlePageChange = useCallback(
     (offset: number) => {
-      updateFilters({ offset });
-      // Trigger search after updating filters
-      searchNormas({ ...state.filters, offset });
+      setFiltersInUrl({ offset }, false); // Don't reset pagination when changing pages
     },
-    [updateFilters, searchNormas, state.filters],
-  );
-
-  const handleFilterChange = useCallback(
-    (key: keyof NormaFilters, value: string | undefined) => {
-      const newFilters = { [key]: value, offset: 0 };
-      updateFilters(newFilters);
-      // Trigger search after updating filters
-      searchNormas({ ...state.filters, ...newFilters });
-    },
-    [updateFilters, searchNormas, state.filters],
+    [setFiltersInUrl],
   );
 
   return {
@@ -62,21 +70,16 @@ export function useNormasSearch(options?: { autoSearch?: boolean }) {
     filters: state.filters,
 
     // Actions
-    search: handleSearch,
-    clearSearch,
-    updateFilters,
-    resetFilters,
     handlePageChange,
-    handleFilterChange,
 
     // Computed values
     hasResults: !!state.searchResults?.normas?.length,
     totalCount: state.searchResults?.total_count || 0,
     hasMore: state.searchResults?.has_more || false,
     currentPage:
-      Math.floor((state.filters.offset || 0) / (state.filters.limit || 50)) + 1,
+      Math.floor((state.filters.offset || 0) / (state.filters.limit || 12)) + 1,
     totalPages: Math.ceil(
-      (state.searchResults?.total_count || 0) / (state.filters.limit || 50),
+      (state.searchResults?.total_count || 0) / (state.filters.limit || 12),
     ),
   };
 }

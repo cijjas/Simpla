@@ -135,6 +135,16 @@ export function useBookmarkToggle(
     }
   }, [api, isAuthenticated, normaId, loading, isBookmarked]);
 
+  // Sync with initialBookmarkedState when it changes (from batch check)
+  useEffect(() => {
+    if (initialBookmarkedState !== undefined) {
+      console.log(`[useBookmarkToggle] Syncing norma ${normaId} with initialBookmarkedState:`, initialBookmarkedState);
+      setIsBookmarked(initialBookmarkedState);
+      bookmarkCache.set(normaId, initialBookmarkedState);
+      hasChecked.current = true;
+    }
+  }, [initialBookmarkedState, normaId]);
+
   // Check bookmark status on mount and when normaId/auth changes
   useEffect(() => {
     if (isAuthenticated && normaId) {

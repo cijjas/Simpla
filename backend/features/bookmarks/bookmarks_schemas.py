@@ -40,3 +40,11 @@ class BookmarksListResponse(BaseModel):
     limit: int
     offset: int
 
+
+class BookmarkBatchCheckRequest(BaseModel):
+    norma_ids: List[int]
+
+
+class BookmarkBatchCheckResponse(BaseModel):
+    bookmarked_ids: List[int]
+

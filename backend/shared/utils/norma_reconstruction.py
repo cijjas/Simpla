@@ -430,14 +430,20 @@ class NormaReconstructor:
     def search_normas(
         self,
         search_term: Optional[str] = None,
+        numero: Optional[int] = None,
+        dependencia: Optional[str] = None,
+        titulo_sumario: Optional[str] = None,
         jurisdiccion: Optional[str] = None,
         tipo_norma: Optional[str] = None,
         clase_norma: Optional[str] = None,
         estado: Optional[str] = None,
+        año_sancion: Optional[int] = None,
         sancion_desde: Optional[date] = None,
         sancion_hasta: Optional[date] = None,
         publicacion_desde: Optional[date] = None,
         publicacion_hasta: Optional[date] = None,
+        nro_boletin: Optional[str] = None,
+        pag_boletin: Optional[str] = None,
         limit: int = 50,
         offset: int = 0
     ) -> tuple[List[Dict[str, Any]], int]:
@@ -448,6 +454,14 @@ class NormaReconstructor:
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # Determine if we need to join with normas_referencias
+                    needs_referencia_join = numero is not None or dependencia is not None
+                    
+                    # Build the FROM clause
+                    from_clause = "normas_structured ns"
+                    if needs_referencia_join:
+                        from_clause += " LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id"
+                    
                     # Build the WHERE clause dynamically
                     where_clauses = []
                     params = []
@@ -456,69 +470,93 @@ class NormaReconstructor:
                         # Use PostgreSQL full-text search if available, otherwise fall back to ILIKE
                         # This is more efficient for large datasets
                         where_clauses.append("""
-                            (to_tsvector('spanish', COALESCE(titulo_resumido, '') || ' ' || 
-                                          COALESCE(titulo_sumario, '') || ' ' || 
-                                          COALESCE(texto_resumido, '') || ' ' || 
-                                          COALESCE(observaciones, '')) @@ plainto_tsquery('spanish', %s)
+                            (to_tsvector('spanish', COALESCE(ns.titulo_resumido, '') || ' ' || 
+                                          COALESCE(ns.titulo_sumario, '') || ' ' || 
+                                          COALESCE(ns.texto_resumido, '') || ' ' || 
+                                          COALESCE(ns.observaciones, '')) @@ plainto_tsquery('spanish', %s)
                              OR
-                             (titulo_resumido ILIKE %s OR
-                              titulo_sumario ILIKE %s OR
-                              texto_resumido ILIKE %s OR
-                              observaciones ILIKE %s))
+                             (ns.titulo_resumido ILIKE %s OR
+                              ns.titulo_sumario ILIKE %s OR
+                              ns.texto_resumido ILIKE %s OR
+                              ns.observaciones ILIKE %s))
                         """)
                         search_pattern = f'%{search_term}%'
                         params.extend([search_term, search_pattern, search_pattern, search_pattern, search_pattern])
                     
+                    if numero is not None:
+                        where_clauses.append("nr.numero = %s")
+                        params.append(numero)
+                    
+                    if dependencia:
+                        where_clauses.append("nr.dependencia = %s")
+                        params.append(dependencia)
+                    
+                    if titulo_sumario:
+                        where_clauses.append("ns.titulo_sumario = %s")
+                        params.append(titulo_sumario)
+                    
                     if jurisdiccion:
-                        where_clauses.append("jurisdiccion = %s")
+                        where_clauses.append("ns.jurisdiccion = %s")
                         params.append(jurisdiccion)
                     
                     if tipo_norma:
-                        where_clauses.append("tipo_norma = %s")
+                        where_clauses.append("ns.tipo_norma = %s")
                         params.append(tipo_norma)
                     
                     if clase_norma:
-                        where_clauses.append("clase_norma = %s")
+                        where_clauses.append("ns.clase_norma = %s")
                         params.append(clase_norma)
                     
                     if estado:
-                        where_clauses.append("estado = %s")
+                        where_clauses.append("ns.estado = %s")
                         params.append(estado)
                     
+                    if año_sancion:
+                        where_clauses.append("EXTRACT(YEAR FROM ns.sancion) = %s")
+                        params.append(año_sancion)
+                    
                     if sancion_desde:
-                        where_clauses.append("sancion >= %s")
+                        where_clauses.append("ns.sancion >= %s")
                         params.append(sancion_desde)
                     
                     if sancion_hasta:
-                        where_clauses.append("sancion <= %s")
+                        where_clauses.append("ns.sancion <= %s")
                         params.append(sancion_hasta)
                     
                     if publicacion_desde:
-                        where_clauses.append("publicacion >= %s")
+                        where_clauses.append("ns.publicacion >= %s")
                         params.append(publicacion_desde)
                     
                     if publicacion_hasta:
-                        where_clauses.append("publicacion <= %s")
+                        where_clauses.append("ns.publicacion <= %s")
                         params.append(publicacion_hasta)
+                    
+                    if nro_boletin:
+                        where_clauses.append("ns.nro_boletin = %s")
+                        params.append(nro_boletin)
+                    
+                    if pag_boletin:
+                        where_clauses.append("ns.pag_boletin = %s")
+                        params.append(pag_boletin)
                     
                     where_sql = " AND ".join(where_clauses) if where_clauses else "TRUE"
                     
                     # Get total count
-                    count_query = f"SELECT COUNT(*) FROM normas_structured WHERE {where_sql}"
+                    count_query = f"SELECT COUNT(DISTINCT ns.id) FROM {from_clause} WHERE {where_sql}"
                     cur.execute(count_query, params)
                     total_count = cur.fetchone()['count']
                     
                     # Get results (create new params list with limit and offset)
                     results_params = params + [limit, offset]
                     query = f"""
-                        SELECT 
-                            id, infoleg_id, jurisdiccion, clase_norma, tipo_norma,
-                            sancion, publicacion, titulo_sumario, titulo_resumido,
-                            texto_resumido, observaciones, nro_boletin, pag_boletin, estado,
-                            created_at, updated_at
-                        FROM normas_structured 
+                        SELECT DISTINCT
+                            ns.id, ns.infoleg_id, ns.jurisdiccion, ns.clase_norma, ns.tipo_norma,
+                            ns.sancion, ns.publicacion, ns.titulo_sumario, ns.titulo_resumido,
+                            ns.texto_resumido, ns.observaciones, ns.nro_boletin, ns.pag_boletin, ns.estado,
+                            ns.created_at, ns.updated_at
+                        FROM {from_clause}
                         WHERE {where_sql}
-                        ORDER BY created_at DESC
+                        ORDER BY ns.publicacion DESC NULLS LAST, ns.sancion DESC NULLS LAST, ns.created_at DESC
                         LIMIT %s OFFSET %s
                     """
                     cur.execute(query, results_params)
@@ -557,15 +595,6 @@ class NormaReconstructor:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     options = {}
                     
-                    # Get unique jurisdictions
-                    cur.execute("""
-                        SELECT DISTINCT jurisdiccion 
-                        FROM normas_structured 
-                        WHERE jurisdiccion IS NOT NULL 
-                        ORDER BY jurisdiccion
-                    """)
-                    options['jurisdicciones'] = [row['jurisdiccion'] for row in cur.fetchall()]
-                    
                     # Get unique tipo_norma
                     cur.execute("""
                         SELECT DISTINCT tipo_norma 
@@ -575,23 +604,23 @@ class NormaReconstructor:
                     """)
                     options['tipos_norma'] = [row['tipo_norma'] for row in cur.fetchall()]
                     
-                    # Get unique clase_norma
+                    # Get unique dependencias from normas_referencias
                     cur.execute("""
-                        SELECT DISTINCT clase_norma 
-                        FROM normas_structured 
-                        WHERE clase_norma IS NOT NULL 
-                        ORDER BY clase_norma
+                        SELECT DISTINCT dependencia 
+                        FROM normas_referencias 
+                        WHERE dependencia IS NOT NULL 
+                        ORDER BY dependencia
                     """)
-                    options['clases_norma'] = [row['clase_norma'] for row in cur.fetchall()]
+                    options['dependencias'] = [row['dependencia'] for row in cur.fetchall()]
                     
-                    # Get unique estados
+                    # Get unique titulo_sumario
                     cur.execute("""
-                        SELECT DISTINCT estado 
+                        SELECT DISTINCT titulo_sumario 
                         FROM normas_structured 
-                        WHERE estado IS NOT NULL 
-                        ORDER BY estado
+                        WHERE titulo_sumario IS NOT NULL 
+                        ORDER BY titulo_sumario
                     """)
-                    options['estados'] = [row['estado'] for row in cur.fetchall()]
+                    options['titulos_sumario'] = [row['titulo_sumario'] for row in cur.fetchall()]
                     
                     return options
         

@@ -48,29 +48,29 @@ export function BookmarksProvider({ children }: BookmarksProviderProps) {
       setLoading(true);
       setError(null);
 
-      // Check each norma individually for now - TODO: implement bulk endpoint
-      const checks = await Promise.all(
-        uncheckedNormas.map(async (normaId) => {
-          try {
-            const response = await api.get<{ is_bookmarked: boolean }>(`/api/bookmarks/check/${normaId}`);
-            return { normaId, isBookmarked: response.is_bookmarked };
-          } catch (err) {
-            console.error(`Error checking bookmark status for norma ${normaId}:`, err);
-            return { normaId, isBookmarked: false };
-          }
-        })
+      // Use batch endpoint - single API call for all normas
+      const response = await api.post<{ bookmarked_ids: number[] }>(
+        '/api/bookmarks/check-batch',
+        { norma_ids: uncheckedNormas }
       );
+
+      console.log('[BookmarksContext] Batch check response:', response);
+      console.log('[BookmarksContext] Requested IDs:', uncheckedNormas);
 
       // Update state with results
       setBookmarkedNormas(prev => {
         const newBookmarks = new Set(prev);
-        checks.forEach(({ normaId, isBookmarked }) => {
-          if (isBookmarked) {
-            newBookmarks.add(normaId);
-          } else {
-            newBookmarks.delete(normaId);
+        const prevSize = newBookmarks.size;
+        // Add all bookmarked normas from response
+        response.bookmarked_ids.forEach(id => newBookmarks.add(id));
+        // Remove any unchecked normas that weren't in the response
+        uncheckedNormas.forEach(id => {
+          if (!response.bookmarked_ids.includes(id)) {
+            newBookmarks.delete(id);
           }
         });
+        console.log('[BookmarksContext] Updated bookmarks from', prevSize, 'to', newBookmarks.size);
+        console.log('[BookmarksContext] Bookmarked IDs:', Array.from(newBookmarks));
         return newBookmarks;
       });
 

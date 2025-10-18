@@ -28,15 +28,21 @@ reconstructor = get_norma_reconstructor()
 
 @router.get("/normas/", response_model=NormaSearchResponse)
 async def list_normas(
-    search_term: Optional[str] = Query(None, description="Search term to filter normas"),
+    search_term: Optional[str] = Query(None, description="Search term to filter normas by text"),
+    numero: Optional[int] = Query(None, description="Filter by norma number (numero)"),
+    dependencia: Optional[str] = Query(None, description="Filter by dependencia"),
+    titulo_sumario: Optional[str] = Query(None, description="Filter by titulo_sumario"),
     jurisdiccion: Optional[str] = Query(None, description="Filter by jurisdiction"),
     tipo_norma: Optional[str] = Query(None, description="Filter by norma type"),
     clase_norma: Optional[str] = Query(None, description="Filter by norma class"),
     estado: Optional[str] = Query(None, description="Filter by status"),
+    año_sancion: Optional[int] = Query(None, description="Filter by year of sanction", ge=1810),
     sancion_desde: Optional[date] = Query(None, description="Filter normas sanctioned from this date"),
     sancion_hasta: Optional[date] = Query(None, description="Filter normas sanctioned until this date"),
     publicacion_desde: Optional[date] = Query(None, description="Filter normas published from this date"),
     publicacion_hasta: Optional[date] = Query(None, description="Filter normas published until this date"),
+    nro_boletin: Optional[str] = Query(None, description="Filter by bulletin number"),
+    pag_boletin: Optional[str] = Query(None, description="Filter by bulletin page"),
     limit: int = Query(50, ge=1, le=100, description="Maximum number of results to return"),
     offset: int = Query(0, ge=0, description="Number of results to skip")
 ):
@@ -45,19 +51,26 @@ async def list_normas(
     This endpoint is optimized for bulk operations like browsing and searching.
     """
     logger.info(f"Listing normas with filters - search_term: {search_term}, "
+                f"numero: {numero}, dependencia: {dependencia}, titulo_sumario: {titulo_sumario}, "
                 f"jurisdiccion: {jurisdiccion}, tipo_norma: {tipo_norma}, limit: {limit}")
     
     try:
         normas, total_count = reconstructor.search_normas(
             search_term=search_term,
+            numero=numero,
+            dependencia=dependencia,
+            titulo_sumario=titulo_sumario,
             jurisdiccion=jurisdiccion,
             tipo_norma=tipo_norma,
             clase_norma=clase_norma,
             estado=estado,
+            año_sancion=año_sancion,
             sancion_desde=sancion_desde,
             sancion_hasta=sancion_hasta,
             publicacion_desde=publicacion_desde,
             publicacion_hasta=publicacion_hasta,
+            nro_boletin=nro_boletin,
+            pag_boletin=pag_boletin,
             limit=limit,
             offset=offset
         )

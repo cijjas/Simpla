@@ -4,24 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { FolderContent, FolderTree } from '@/features/folders';
 import { FolderTreeItem } from '@/features/folders/types';
 import { useFoldersContext } from '@/features/folders/context/folders-context';
+import { getFirstAvailableFolder } from '@/features/folders/utils/folder-utils';
 
 export function FoldersPage() {
   const [selectedFolder, setSelectedFolder] = useState<FolderTreeItem | null>(null);
   const { folders } = useFoldersContext();
 
-  // Helper function to get the first available folder
-  const getFirstFolder = (folders: FolderTreeItem[]): FolderTreeItem | null => {
-    if (folders.length === 0) return null;
-    
-    // Return the first root folder (level 0)
-    const rootFolders = folders.filter(folder => folder.level === 0);
-    return rootFolders.length > 0 ? rootFolders[0] : folders[0];
-  };
-
   // Auto-select the first folder when folders are loaded
   useEffect(() => {
     if (folders.length > 0 && !selectedFolder) {
-      const firstFolder = getFirstFolder(folders);
+      const firstFolder = getFirstAvailableFolder(folders);
       if (firstFolder) {
         setSelectedFolder(firstFolder);
       }

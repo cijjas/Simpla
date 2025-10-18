@@ -71,20 +71,17 @@ export function NormaRelationGraphDialog({
   const [incomingIds, setIncomingIds] = useState<Set<number>>(new Set());
   const router = useRouter();
 
-  // Preselect a random norma when data is available
+  // Preselect the current norma when data is available
   useEffect(() => {
-    if (data && data.nodes && data.nodes.length > 0 && !nodeInfo) {
-      // Select a random node from the available nodes
-      const randomIndex = Math.floor(Math.random() * data.nodes.length);
-      const randomNode = data.nodes[randomIndex];
-      
+    if (data && data.current_norma && !nodeInfo) {
+      // Start with the current norma selected
       setNodeInfo({
-        id: randomNode.infoleg_id,
-        title: randomNode.titulo || `Norma ${randomNode.infoleg_id}`,
-        titulo_resumido: randomNode.titulo_resumido,
-        tipo: randomNode.tipo_norma || '',
-        numero: randomNode.numero,
-        sancion: randomNode.sancion
+        id: data.current_norma.infoleg_id,
+        title: data.current_norma.titulo || `Norma ${data.current_norma.infoleg_id}`,
+        titulo_resumido: data.current_norma.titulo_resumido,
+        tipo: data.current_norma.tipo_norma || '',
+        numero: data.current_norma.numero,
+        sancion: data.current_norma.sancion
       });
     }
   }, [data, nodeInfo]);
@@ -149,8 +146,8 @@ export function NormaRelationGraphDialog({
     // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove();
 
-    // If no relationships, show empty state
-    if (data.nodes.length === 0) {
+    // If no relationships at all (no nodes and no links), show empty state
+    if (data.nodes.length === 0 && data.links.length === 0) {
       return;
     }
 
@@ -394,7 +391,7 @@ export function NormaRelationGraphDialog({
     );
   }
 
-  if (!data || data.nodes.length === 0) {
+  if (!data || (data.nodes.length === 0 && data.links.length === 0)) {
     return (
       <div className='w-full h-full flex items-center justify-center text-muted-foreground'>
         No hay relaciones para mostrar

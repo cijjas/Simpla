@@ -134,3 +134,22 @@ class BookmarksService:
         
         return [bookmark.norma_id for bookmark in bookmarks]
 
+    def check_bookmarks_batch(self, user_id: uuid.UUID, norma_ids: List[int]) -> List[int]:
+        """
+        Check which normas from the provided list are bookmarked by the user.
+        Returns list of norma_ids that are bookmarked.
+        Efficient single-query implementation using IN clause.
+        """
+        if not norma_ids:
+            return []
+        
+        bookmarked_normas = self.db.query(Bookmark.norma_id).filter(
+            and_(
+                Bookmark.user_id == user_id,
+                Bookmark.norma_id.in_(norma_ids),
+                Bookmark.is_deleted == False
+            )
+        ).all()
+        
+        return [bookmark.norma_id for bookmark in bookmarked_normas]
+

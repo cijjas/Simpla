@@ -9,6 +9,7 @@ export type {
 export { useNormaDetail } from './use-norma-detail';
 export { useNormasSearch } from './use-normas-search';
 export { useNormasFilters } from './use-normas-filters';
+export { useNormasUrlSync } from './use-normas-url-sync';
 export { useNormasStats } from './use-normas-stats';
 export { useRelatedNormas } from './use-related-normas';
 export { useNormaExpansion } from './use-norma-expansion';

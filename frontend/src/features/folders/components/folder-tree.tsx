@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
-import { findFolderById } from '../utils/folder-utils';
+import { findFolderById, findParentFolder, getFirstAvailableFolder } from '../utils/folder-utils';
 import { CreateFolderDialog } from './create-folder-dialog';
 import { EditFolderDialog } from './edit-folder-dialog';
 import { DeleteFolderDialog } from './delete-folder-dialog';
@@ -106,7 +106,30 @@ export function FolderTree({
   const confirmDeleteFolder = useCallback(
     async (folderId: string) => {
       try {
+        // Check if the deleted folder is currently selected
+        const isDeletingSelectedFolder = selectedFolderId === folderId;
+        
+        // If deleting the selected folder, find a new folder to select
+        let folderToSelect: FolderTreeItem | null = null;
+        if (isDeletingSelectedFolder) {
+          // First, try to select the parent folder
+          const parentFolder = findParentFolder(folders, folderId);
+          if (parentFolder) {
+            folderToSelect = parentFolder;
+          } else {
+            // If no parent (root level), get the first available folder that's not being deleted
+            const availableFolders = folders.filter(f => f.id !== folderId);
+            folderToSelect = getFirstAvailableFolder(availableFolders);
+          }
+        }
+        
         await deleteFolder(folderId);
+        
+        // Select the new folder after successful deletion
+        if (isDeletingSelectedFolder && onFolderSelect) {
+          onFolderSelect(folderToSelect);
+        }
+        
         toast.success('Carpeta eliminada correctamente');
         handleDeleteDialogClose(false);
       } catch (error) {
@@ -118,7 +141,7 @@ export function FolderTree({
         throw error; // Re-throw so the dialog can handle it
       }
     },
-    [deleteFolder, handleDeleteDialogClose],
+    [deleteFolder, handleDeleteDialogClose, selectedFolderId, folders, onFolderSelect],
   );
 
   // Filter folders based on search query
@@ -222,7 +245,7 @@ export function FolderTree({
                   onClick={() => handleDeleteFolder(folder)}
                   className='text-destructive focus:text-destructive'
                 >
-                  <Trash2 className='size-4 mr-2' />
+                  <Trash2 className='size-4 mr-2 text-destructive' />
                   Eliminar carpeta
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -325,30 +348,30 @@ export function FolderTree({
         <div className='p-4 border-b border-border'>
           {/* Compact toolbar: search + create button */}
           <div className='flex items-center gap-2'>
-  <InputGroup className="h-8">
-    <InputGroupInput
-      placeholder='Buscar carpetas...'
-      value={searchQuery}
-      onChange={e => setSearchQuery(e.target.value)}
-      aria-label='Buscar carpetas'
-      className=""
-    />
-    <InputGroupAddon>
-      <Search className="size-4 text-muted-foreground" />
-    </InputGroupAddon>
-  </InputGroup>
-  
-  <Button
-    size='icon'
-    variant='default'
-    className='size-8'
-    onClick={() => setIsCreateDialogOpen(true)}
-    title='Nueva carpeta'
-    aria-label='Crear carpeta'
-  >
-    <Plus className='size-4' />
-  </Button>
-</div>
+            <InputGroup className="h-8">
+              <InputGroupInput
+                placeholder='Buscar carpetas...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                aria-label='Buscar carpetas'
+                className=""
+              />
+              <InputGroupAddon>
+                <Search className="size-4 text-muted-foreground" />
+              </InputGroupAddon>
+            </InputGroup>
+            
+            <Button
+              size='icon'
+              variant='default'
+              className='size-8'
+              onClick={() => setIsCreateDialogOpen(true)}
+              title='Nueva carpeta'
+              aria-label='Crear carpeta'
+            >
+              <Plus className='size-4' />
+            </Button>
+          </div>
 
         </div>
 

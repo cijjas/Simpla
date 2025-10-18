@@ -1,7 +1,7 @@
 """Shared Pydantic models for normas, divisions, and articles."""
 
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import datetime, date
 
 
@@ -18,6 +18,8 @@ class NormaReferenciaModel(BaseModel):
 class ArticleModel(BaseModel):
     """Model for a legal article within a division."""
     id: int
+    division_id: Optional[int] = None
+    parent_article_id: Optional[int] = None
     ordinal: Optional[str] = None
     body: str
     order_index: Optional[int] = None
@@ -28,6 +30,8 @@ class ArticleModel(BaseModel):
 class DivisionModel(BaseModel):
     """Model for a legal division within a norma."""
     id: int
+    norma_id: int
+    parent_division_id: Optional[int] = None
     name: Optional[str] = None
     ordinal: Optional[str] = None
     title: Optional[str] = None
@@ -46,7 +50,6 @@ class NormaStructuredModel(BaseModel):
     clase_norma: Optional[str] = None
     tipo_norma: Optional[str] = None
     sancion: Optional[date] = None
-    id_normas: Optional[List[Dict[str, Any]]] = None
     publicacion: Optional[date] = None
     titulo_sumario: Optional[str] = None
     titulo_resumido: Optional[str] = None
@@ -57,8 +60,6 @@ class NormaStructuredModel(BaseModel):
     texto_norma: Optional[str] = None
     texto_norma_actualizado: Optional[str] = None
     estado: Optional[str] = None
-    lista_normas_que_complementa: Optional[List[int]] = None
-    lista_normas_que_la_complementan: Optional[List[int]] = None
     purified_texto_norma: Optional[str] = None
     purified_texto_norma_actualizado: Optional[str] = None
     embedding_model: Optional[str] = None

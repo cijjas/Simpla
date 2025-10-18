@@ -110,11 +110,11 @@ export function NormaSidebar({
       {/* === Scrollable Content Section: The table of contents === */}
       <ScrollArea className='flex-1'>
         <nav className='p-4 space-y-6'>
-        <h1 className='px-2 text-lg font-bold font-serif tracking-tight text-foreground pb-2'>
-          {normaTitle}
-        </h1>
+          <h1 className='px-2 text-lg font-bold font-serif tracking-tight text-foreground pb-2'>
+            {normaTitle}
+          </h1>
 
-          {showOutline && (
+          {showOutline && divisions.length > 0 ? (
             <div className='space-y-1'>
               {divisions.map(division => (
                 <button
@@ -147,55 +147,61 @@ export function NormaSidebar({
                 </button>
               ))}
             </div>
+          ) : (
+            <div className='px-2 py-4 text-sm text-muted-foreground text-center'>
+            </div>
           )}
         </nav>
       </ScrollArea>
 
       {/* === Relationship Graph Section === */}
-      <div className='flex-shrink-0 font-serif font-bold relative group text-center text-xs text-muted-foreground/70 tracking-wide py-2'>
-        {hoveredNode ? formatHoveredTitle(hoveredNode) : ''}
-      </div>
-      <div className='flex-shrink-0 border-t border-border relative group'>
-        <Button
-          variant='ghost'
-          size='icon'
-          className='absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8'
-          onClick={() => setIsGraphDialogOpen(true)}
-        >
-          <Expand className='h-4 w-4' />
-        </Button>
-        <NormaRelationGraph 
-          infolegId={infolegId}
-          data={relacionesData || undefined}
-          loading={relacionesLoading}
-          onNodeHover={handleNodeHover}
-          onNodeLeave={handleNodeLeave}
-        />
-      </div>
-
-      {/* === Expanded Graph Dialog === */}
-      
-      <Dialog open={isGraphDialogOpen} onOpenChange={setIsGraphDialogOpen}>
-        <DialogContent className='max-w-[95vw] max-h-[60vh] h-[60vh] w-[95vw] p-0 gap-0 overflow-hidden flex flex-col '>
-          <DialogHeader className='flex-shrink-0 px-4 py-3 pe-10 border-b bg-muted/30'>
-            <div className='text-xs text-muted-foreground uppercase tracking-wide mb-1'>
-              Grafo de relaciones
-            </div>
-            <DialogTitle className='text-xl font-bold font-serif'>
-              {nombreNorma}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {/* Graph with integrated information display */}
-          <div className='flex-1 min-h-0 overflow-hidden'>
-            <NormaRelationGraphDialog 
+      {relacionesData && (relacionesData.nodes.length > 0 || relacionesData.links.length > 0) && (
+        <>
+          <div className='flex-shrink-0 font-serif font-bold relative group text-center text-xs text-muted-foreground/70 tracking-wide py-2'>
+            {hoveredNode ? formatHoveredTitle(hoveredNode) : ''}
+          </div>
+          <div className='flex-shrink-0 border-t border-border relative group'>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8'
+              onClick={() => setIsGraphDialogOpen(true)}
+            >
+              <Expand className='h-4 w-4' />
+            </Button>
+            <NormaRelationGraph 
               infolegId={infolegId}
               data={relacionesData || undefined}
               loading={relacionesLoading}
+              onNodeHover={handleNodeHover}
+              onNodeLeave={handleNodeLeave}
             />
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* === Expanded Graph Dialog === */}
+          <Dialog open={isGraphDialogOpen} onOpenChange={setIsGraphDialogOpen}>
+            <DialogContent className='max-w-[95vw] max-h-[60vh] h-[60vh] w-[95vw] p-0 gap-0 overflow-hidden flex flex-col '>
+              <DialogHeader className='flex-shrink-0 px-4 py-3 pe-10 border-b bg-muted/30'>
+                <div className='text-xs text-muted-foreground uppercase tracking-wide mb-1'>
+                  Grafo de relaciones
+                </div>
+                <DialogTitle className='text-xl font-bold font-serif'>
+                  {nombreNorma}
+                </DialogTitle>
+              </DialogHeader>
+              
+              {/* Graph with integrated information display */}
+              <div className='flex-1 min-h-0 overflow-hidden'>
+                <NormaRelationGraphDialog 
+                  infolegId={infolegId}
+                  data={relacionesData || undefined}
+                  loading={relacionesLoading}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       {/* === Footer Section === */}
       <div className='flex-shrink-0 border-t  border-border p-3 text-center text-xs text-muted-foreground/70 tracking-wide'>

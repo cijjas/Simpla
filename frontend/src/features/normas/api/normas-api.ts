@@ -83,10 +83,9 @@ export interface NormaSearchResponse {
 }
 
 export interface NormaFilterOptions {
-  jurisdicciones: string[];
   tipos_norma: string[];
-  clases_norma: string[];
-  estados: string[];
+  dependencias: string[];
+  titulos_sumario: string[];
 }
 
 export interface NormaStats {
@@ -110,16 +109,19 @@ export interface NormaBatchResponse {
 export interface NormaFilters {
   search_term?: string;
   numero?: number;
-  anio?: number;
-  nro_boletin?: string;
+  dependencia?: string;
+  titulo_sumario?: string;
   jurisdiccion?: string;
   tipo_norma?: string;
   clase_norma?: string;
   estado?: string;
+  año_sancion?: number;
   sancion_desde?: string;
   sancion_hasta?: string;
   publicacion_desde?: string;
   publicacion_hasta?: string;
+  nro_boletin?: string;
+  pag_boletin?: string;
   limit?: number;
   offset?: number;
 }

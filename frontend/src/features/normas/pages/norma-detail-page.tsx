@@ -57,6 +57,8 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
     toggleArticle,
     expandAll,
     collapseAll,
+    isExpanded,
+    toggleExpansion,
   } = useNormaExpansion(norma?.divisions);
 
   const hasDivisions = norma?.divisions && norma.divisions.length > 0;
@@ -200,31 +202,20 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
 
   return (
     <div className='flex'>
-      {hasDivisions ? (
-        <NormaSidebar
-          divisions={norma.divisions}
-          activeDivisionId={activeDivisionId}
-          normaTitle={normaTitle}
-          nombreNorma={nombreNorma}
-          infolegId={infolegId}
-          modifica={modifica ?? undefined}
-          modificadaPor={modificadaPor ?? undefined}
-          onDivisionClick={scrollToDivision}
-          onBack={() => router.push('/normas')}
-          showOutline={!showOriginal}
-          relacionesData={relacionesData}
-          relacionesLoading={relacionesLoading}
-        />
-      ) : (
-        <aside className='w-72 flex-shrink-0 border-r border-border bg-muted/30 h-[calc(100vh-3.5rem)] sticky top-14'>
-          <div className='p-6'>
-            <Button variant='ghost' onClick={() => router.back()}>
-              <ArrowLeft className='h-4 w-4 mr-2' />
-              Volver
-            </Button>
-          </div>
-        </aside>
-      )}
+      <NormaSidebar
+        divisions={norma.divisions || []}
+        activeDivisionId={activeDivisionId}
+        normaTitle={normaTitle}
+        nombreNorma={nombreNorma}
+        infolegId={infolegId}
+        modifica={modifica ?? undefined}
+        modificadaPor={modificadaPor ?? undefined}
+        onDivisionClick={scrollToDivision}
+        onBack={() => router.push('/normas')}
+        showOutline={hasDivisions && !showOriginal}
+        relacionesData={relacionesData}
+        relacionesLoading={relacionesLoading}
+      />
 
       <main className='flex-1 flex flex-col'>
         {/* Full-width header background */}
@@ -267,11 +258,12 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
           <div className='flex justify-center'>
             <div className='w-full px-8 py-4 max-w-4xl flex items-center justify-between gap-4'>
               <NormaControls
-                onExpandAll={expandAll}
-                onCollapseAll={collapseAll}
+                onToggleExpansion={toggleExpansion}
+                isExpanded={isExpanded}
                 onToggleOriginal={() => setShowOriginal(!showOriginal)}
                 showOriginal={showOriginal}
                 hasOriginalText={hasOriginalText}
+                hasStructure={!!hasDivisions}
               />
               <NormaActions norma={{
                 id: norma.id,

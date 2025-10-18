@@ -180,11 +180,14 @@ const FolderHeader = ({
 );
 
 const EmptyFolderState = () => (
-  <div className='h-full flex items-center justify-center'>
-    <div className='text-center text-muted-foreground'>
-      <FileText className='h-8 w-8 mx-auto mb-2 text-muted-foreground/50' />
-      <p className='text-sm'>
-        Selecciona una carpeta para ver su contenido
+  <div className='flex flex-col items-center justify-center min-h-[400px] text-center py-8'>
+    <div className='space-y-3 max-w-md'>
+      <h2 className='text-2xl font-serif font-bold tracking-tight'>
+        Selecciona una carpeta
+      </h2>
+      
+      <p className='text-sm leading-relaxed text-muted-foreground'>
+        Elige una carpeta del panel lateral para ver su contenido y las normas organizadas dentro de ella.
       </p>
     </div>
   </div>
