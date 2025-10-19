@@ -90,7 +90,7 @@ class RateLimitCheckSchema(BaseModel):
     """Schema for rate limit check results."""
     allowed: bool
     current_usage: int
-    limit: int
+    limit: Optional[int]  # None means unlimited
     period_type: str
     reset_at: datetime
     message: Optional[str] = None

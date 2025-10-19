@@ -118,8 +118,10 @@ class RateLimitService:
         try:
             # 1. Get user's limits
             limits = await self.get_user_limits(user_id)
+            logger.info(f"Got limits for user {user_id}: {limits}")
             
             if not limits:
+                logger.warning(f"No limits found for user {user_id}")
                 return RateLimitCheckSchema(
                     allowed=False,
                     current_usage=0,
@@ -178,7 +180,7 @@ class RateLimitService:
             return RateLimitCheckSchema(
                 allowed=True,
                 current_usage=current_daily_tokens,
-                limit=daily_limit or float('inf'),
+                limit=daily_limit,  # None means unlimited
                 period_type="day",
                 reset_at=self._get_period_end("day"),
                 message="Request allowed"

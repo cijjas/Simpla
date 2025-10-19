@@ -76,7 +76,7 @@ export default function FeaturesSection() {
         <h2 className='text-4xl font-bold mb-4 font-serif tracking-tight'>
           Qué te ofrecemos
         </h2>
-        <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
+        <p className='text-xl text-muted-foreground max-w-2xl mx-auto'>
           Hacemos que acceder a la información legal sea simple, rápido y útil
           para que puedas tomar decisiones con confianza.
         </p>
@@ -93,8 +93,8 @@ export default function FeaturesSection() {
           <motion.div key={index} variants={item}>
             <Card className='h-full border-2 shadow-none hover:border-primary/50 transition-all duration-300'>
               <CardHeader>
-                <div className='w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4'>
-                  <feature.icon className='w-6 h-6 text-primary' />
+                <div className='w-12 h-12 rounded-full bg-primary/10 dark:bg-muted flex items-center justify-center mb-4'>
+                  <feature.icon className='w-6 h-6 text-primary dark:text-muted-foreground' />
                 </div>
                 <CardTitle className='text-xl'>{feature.title}</CardTitle>
               </CardHeader>
@@ -108,7 +108,7 @@ export default function FeaturesSection() {
                   <Button
                     asChild
                     variant='outline'
-                    className='w-full border-primary/50 text-primary hover:bg-primary/5 hover:text-primary dark:hover:bg-primary/10'
+                    className='w-full border-primary/50 text-primary hover:bg-primary/5 hover:text-primary dark:text-foreground dark:border-muted-foreground/50 dark:hover:bg-muted dark:hover:text-foreground'
                   >
                     <Link href={feature.action.href}>
                       {feature.action.label}

@@ -29,7 +29,7 @@ export function HeroSection() {
             />
           </div>
 
-          <h2 className='text-4xl font-bold tracking-tight sm:text-5xl md:text-5xl mb-6 text-slate-900 dark:text-slate-50 '>
+          <h2 className='text-4xl font-bold font-serif tracking-tight sm:text-5xl md:text-5xl mb-6 text-slate-900 dark:text-slate-50 '>
             Portal de Legislación Argentina
           </h2>
           <p className='max-w-3xl text-lg sm:text-xl text-muted-foreground mb-10 sm:mb-12'>
