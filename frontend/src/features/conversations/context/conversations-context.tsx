@@ -9,7 +9,7 @@ interface ConversationsState {
   conversations: Conversation[];
   // currentConversation removed - was duplicating messages array
   messages: Message[];
-  // currentSessionId removed - use URL as single source of truth
+  currentSessionId: string | null; // Re-added: fallback when URL navigation hasn't completed yet
   chatType: ChatType;
   tone: ToneType;
   isLoading: boolean;
@@ -30,6 +30,7 @@ type ConversationsAction =
   | { type: 'SET_CONVERSATIONS'; payload: Conversation[] }
   | { type: 'SET_MESSAGES'; payload: Message[] }
   | { type: 'ADD_MESSAGE'; payload: Message }
+  | { type: 'SET_CURRENT_SESSION_ID'; payload: string | null }
   | { type: 'SET_CHAT_TYPE'; payload: ChatType }
   | { type: 'SET_TONE'; payload: ToneType }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -44,6 +45,7 @@ type ConversationsAction =
 const initialState: ConversationsState = {
   conversations: [],
   messages: [],
+  currentSessionId: null,
   chatType: 'normativa_nacional',
   tone: 'default',
   isLoading: false,
@@ -62,6 +64,9 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
     
     case 'ADD_MESSAGE':
       return { ...state, messages: [...state.messages, action.payload] };
+
+    case 'SET_CURRENT_SESSION_ID':
+      return { ...state, currentSessionId: action.payload };
 
     case 'SET_CHAT_TYPE':
       return { ...state, chatType: action.payload };
@@ -177,6 +182,20 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   // Load a specific conversation
   const loadConversation = useCallback(async (id: string) => {
     try {
+      console.log('[loadConversation] Called with id:', id, {
+        'current state.currentSessionId': state.currentSessionId,
+        'messages.length': state.messages.length,
+        'will skip reload': state.currentSessionId === id && state.messages.length > 0
+      });
+
+      // Optimization: If this conversation is already loaded in memory, don't clear and reload
+      // This prevents losing messages when navigating to a conversation we just created
+      if (state.currentSessionId === id && state.messages.length > 0) {
+        console.log('[loadConversation] Skipping reload - conversation already in memory');
+        // Already have this conversation loaded, skip reload
+        return;
+      }
+
       // Clear messages first to show empty state while loading
       dispatch({ type: 'SET_MESSAGES', payload: [] });
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -195,6 +214,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
       dispatch({ type: 'SET_MESSAGES', payload: processedMessages });
       dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
+      dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: id });
       // currentConversation removed - messages is the single source
     } catch (error) {
       toast.error('Error loading conversation');
@@ -202,11 +222,12 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, []);
+  }, [state.currentSessionId, state.messages.length]);
 
   // Select empty conversation (new conversation state)
   const selectEmptyConversation = useCallback(() => {
     dispatch({ type: 'SET_MESSAGES', payload: [] });
+    dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: null });
     // currentConversation removed - messages is the single source
   }, []);
 
@@ -234,10 +255,20 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     dispatch({ type: 'SET_STREAMING_MESSAGE', payload: ' ' });
     streamingContentRef.current = '';
 
-    // Determine session_id: use currentConversationId if it's not 'new', otherwise undefined
+    // Determine session_id with fallback logic:
+    // 1. Use currentConversationId from URL if it's not 'new'
+    // 2. Otherwise, use state.currentSessionId as fallback (for when navigation hasn't completed)
+    // 3. Otherwise undefined (truly new conversation)
     const sessionId = (currentConversationId && currentConversationId !== 'new')
       ? currentConversationId
-      : undefined;
+      : (state.currentSessionId || undefined);
+
+    console.log('[sendMessage] Debug info:', {
+      currentConversationId,
+      'state.currentSessionId': state.currentSessionId,
+      'final sessionId': sessionId,
+      'messages count': state.messages.length
+    });
 
     try {
       await ConversationsAPI.sendMessage(
@@ -248,6 +279,13 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           tone: currentToneRef.current,
         },
         (chunk) => {
+          // Update currentSessionId IMMEDIATELY when we receive session_id from backend
+          // This allows subsequent messages to use the correct session_id even before streaming completes
+          if (chunk.session_id && !state.currentSessionId) {
+            console.log('[onChunk] Received session_id, updating currentSessionId immediately:', chunk.session_id);
+            dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: chunk.session_id });
+          }
+
           if (chunk.content) {
             streamingContentRef.current += chunk.content;
             dispatch({ type: 'SET_STREAMING_MESSAGE', payload: streamingContentRef.current });
@@ -291,6 +329,8 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             // Messages are already in state.messages, no need for ConversationDetail
             dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
 
+            // currentSessionId already updated in onChunk callback (no need to dispatch again)
+
             // Call navigation callback to update URL
             if (onNewConversation) {
               onNewConversation(newSessionId);
@@ -312,7 +352,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
       streamingContentRef.current = '';
     }
-  }, [state.chatType, state.streamingMessage]);
+  }, [state.chatType, state.streamingMessage, state.currentSessionId]);
 
   // Archive conversation
   const archiveConversation = useCallback(async (conversation: Conversation) => {

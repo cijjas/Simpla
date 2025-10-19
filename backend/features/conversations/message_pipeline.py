@@ -42,34 +42,66 @@ class MessagePipeline:
         """
         try:
             logger.info(f"Processing message for user: {user_id}")
-            
+
             # Step 1: Rate limiting
             estimated_tokens = max(50, len(data.content) // 4)
             rate_limit_check = await self.rate_limit_service.check_rate_limit(user_id, estimated_tokens)
-            
+
             if not rate_limit_check.allowed:
                 logger.warning(f"Rate limit exceeded for user {user_id}")
                 async for chunk in self._generate_rate_limit_error(rate_limit_check, data.session_id):
                     yield chunk
                 return
 
-            # Step 2: Question analysis and reformulation
-            reformulated_question = await reformulate_user_question(data.content)
+            # Step 2: Get conversation context (last 3 messages) if session exists
+            context_messages = None
+            if data.session_id:
+                try:
+                    logger.info(f"Attempting to load context for session_id: {data.session_id}")
+                    conversation = self.conversation_service.get_conversation_by_id(str(data.session_id), user_id)
+                    if conversation:
+                        logger.info(f"Conversation found. Total messages in conversation: {len(conversation.messages)}")
+                        if conversation.messages:
+                            # Get last 3 messages, sorted by created_at (excluding deleted ones)
+                            active_messages = [msg for msg in conversation.messages if not msg.is_deleted]
+                            recent_messages = sorted(active_messages, key=lambda m: m.created_at)[-3:]
+                            context_messages = [
+                                {"role": msg.role, "content": msg.content}
+                                for msg in recent_messages
+                            ]
+                            logger.info(f"Loaded {len(context_messages)} context messages for reformulation: {context_messages}")
+                        else:
+                            logger.info("No messages found in conversation")
+                    else:
+                        logger.info(f"Conversation not found for session_id: {data.session_id}")
+                except Exception as e:
+                    logger.warning(f"Could not load context messages: {str(e)}")
+                    # Continue without context
 
-            # Step 3: Handle non-legal questions
+            # Step 3: Question analysis and reformulation (with context)
+            reformulated_question = await reformulate_user_question(data.content, context_messages)
+
+            # Step 4: Handle non-legal questions
             if reformulated_question == "NON-LEGAL":
                 async for chunk in self._generate_non_legal_response(reformulated_question, data.session_id):
                     yield chunk
                 return
 
-            # Step 4: Handle clarification requests (vague questions)
+            # Step 5: Handle clarification requests (vague questions)
             if reformulated_question.startswith("CLARIFICATION:"):
                 clarification_text = reformulated_question.replace("CLARIFICATION:", "").strip()
                 async for chunk in self._generate_clarification_response(clarification_text, data.session_id):
                     yield chunk
                 return
 
-            # Step 5: Legal question processing pipeline (only if clear enough)
+            # Step 6: Handle reformulate request (2nd clarification needed)
+            if reformulated_question == "REFORMULATE_REQUEST":
+                reformulate_message = "Por favor, reformula tu pregunta de manera más completa para poder ayudarte mejor. Intenta incluir todos los detalles relevantes en tu consulta."
+                async for chunk in self._generate_reformulate_request_response(reformulate_message, data.session_id):
+                    yield chunk
+                return
+
+            # Step 7: Legal question processing pipeline (only if clear enough)
             async for chunk in self._process_legal_question(
                 user_id, 
                 data, 
@@ -167,6 +199,39 @@ class MessagePipeline:
 
         except Exception as e:
             logger.error(f"Error in clarification streaming: {str(e)}")
+            error_data = {"content": f"Error: {str(e)}", "error": True}
+            if session_id:
+                error_data["session_id"] = str(session_id)
+            yield f"data: {json.dumps(error_data)}\n\n"
+
+    async def _generate_reformulate_request_response(
+        self,
+        reformulate_message: str,
+        session_id: Optional[str]
+    ) -> AsyncGenerator[str, None]:
+        """Generate response for reformulate requests (2nd clarification needed)."""
+        try:
+            logger.info(f"Generating reformulate request response: {reformulate_message}")
+
+            # Stream the reformulate request word by word for a natural feel
+            words = reformulate_message.split()
+            for i, word in enumerate(words):
+                chunk = word + (" " if i < len(words) - 1 else "")
+                # Only include session_id if we have it
+                chunk_data = {'content': chunk}
+                if session_id:
+                    chunk_data['session_id'] = str(session_id)
+                yield f"data: {json.dumps(chunk_data)}\n\n"
+                await asyncio.sleep(0.05)  # Small delay for natural typing effect
+
+            # Send completion signal (no norma_ids for reformulate requests)
+            completion_data = {'content': '', 'done': True}
+            if session_id:
+                completion_data['session_id'] = str(session_id)
+            yield f"data: {json.dumps(completion_data)}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in reformulate request streaming: {str(e)}")
             error_data = {"content": f"Error: {str(e)}", "error": True}
             if session_id:
                 error_data["session_id"] = str(session_id)

@@ -3,24 +3,47 @@
 # Available reformulation prompts
 REFORMULATION_PROMPTS = {
     "default": """
-IMPORTANTE: Debes clasificar la pregunta del usuario en 3 categorías: NON-LEGAL, VAGA (necesita clarificación), o CLARA (puede reformularse).
+IMPORTANTE: Debes clasificar la pregunta del usuario en 4 categorías: NON-LEGAL, VAGA (necesita clarificación), REFORMULATE_REQUEST (ya pidió clarificación antes), o CLARA (puede reformularse).
+
+**CONTEXTO DE CONVERSACIÓN:**
+{context}
+
+**REGLAS DE CLARIFICACIÓN CON CONTEXTO:**
+
+1. **Si hay contexto de conversación anterior:**
+   - Revisa si YA se pidió una CLARIFICATION anteriormente
+   - Si el usuario está respondiendo a una CLARIFICATION anterior:
+     a) Si la respuesta combinada con el contexto ahora es CLARA → reformula usando TODA la información del contexto
+     b) Si sigue siendo VAGA después de 1 CLARIFICATION → retorna: REFORMULATE_REQUEST
+   - LÍMITE: Solo 1 CLARIFICATION por ciclo de conversación
+
+2. **Si NO hay contexto o es la primera pregunta:**
+   - Aplica las reglas normales de clasificación
 
 **REGLA CRÍTICA PARA DETECTAR PREGUNTAS VAGAS:**
-Si la pregunta menciona un tema legal GENÉRICO sin especificar el tipo específico, subtipo o contexto → ES VAGA.
+Una pregunta es VAGA solo si es EXTREMADAMENTE genérica y ambigua, haciendo imposible determinar qué información legal buscar.
 
 **PREGUNTAS VAGAS (retornar CLARIFICATION:)**
 
-Estas preguntas SON VAGAS porque no especifican el tipo/contexto:
-- "háblame de contratos" → VAGA (falta tipo: ¿laborales? ¿civiles? ¿comerciales?)
-- "contratos" → VAGA
-- "información sobre contratos" → VAGA
-- "¿qué dice el artículo 5?" → VAGA (falta norma)
-- "requisitos para registro" → VAGA (falta tipo de registro)
-- "licencias" → VAGA (falta tipo)
-- "derecho laboral" → VAGA (demasiado general)
+Estas preguntas SON VAGAS porque son DEMASIADO ambiguas:
+- "háblame de contratos" → VAGA (sin ningún contexto: ¿laborales? ¿civiles? ¿comerciales?)
+- "contratos" (sola palabra) → VAGA
+- "¿qué dice el artículo 5?" → VAGA (falta norma específica)
 
-Para preguntas VAGAS, responde:
-CLARIFICATION: [una pregunta concisa ofreciendo opciones específicas]
+**IMPORTANTE: Estas preguntas NO SON VAGAS (reformular directamente):**
+- "contratos civiles" → CLARA (tipo especificado)
+- "contratos laborales" → CLARA (tipo especificado)
+- "derecho laboral" → CLARA (área del derecho suficientemente específica)
+- "licencias de conducir" → CLARA (tipo especificado)
+- "requisitos para registro de automotor" → CLARA (contexto claro)
+- Una palabra que responde a una CLARIFICATION previa → CLARA (usar contexto completo)
+
+Para preguntas VAGAS (SOLO si no hubo CLARIFICATION previa), responde:
+CLARIFICATION: [una pregunta concisa ofreciendo 2-3 opciones principales]
+
+**REFORMULATE_REQUEST (segunda clarificación necesaria):**
+Si ya se pidió 1 CLARIFICATION y la respuesta del usuario sigue siendo vaga, retorna exactamente:
+REFORMULATE_REQUEST
 
 **PREGUNTAS CLARAS (reformular)**
 
@@ -31,32 +54,55 @@ Estas preguntas SON CLARAS porque especifican tipo/contexto:
 - "despido sin justa causa" → CLARA (concepto específico)
 - "plazo de prescripción en acciones laborales" → CLARA
 
-Para preguntas CLARAS, reformula usando lenguaje jurídico argentino.
+Para preguntas CLARAS, reformula usando lenguaje jurídico argentino Y el contexto completo de la conversación.
 
 **EJEMPLOS EXACTOS:**
 
 Input: "hola, cómo estás?"
+Context: (vacío)
 Output: NON-LEGAL
 
 Input: "háblame de contratos"
+Context: (vacío)
 Output: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
 
-Input: "¿qué dice el artículo 5?"
-Output: CLARIFICATION: ¿De qué ley o norma necesitas información sobre el artículo 5?
+Input: "civiles"
+Context:
+user: háblame de contratos
+assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
+Output: régimen de contratos civiles en la normativa argentina
+(IMPORTANTE: El usuario respondió con "civiles" a la clarificación sobre "contratos", combinando ambos obtenemos "contratos civiles" que es CLARO)
+
+Input: "no sé"
+Context:
+user: háblame de contratos
+assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
+Output: REFORMULATE_REQUEST
+(El usuario no pudo clarificar después de 1 intento, pedir que reformule la pregunta completa)
+
+Input: "cualquiera"
+Context:
+user: háblame de contratos
+assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
+Output: REFORMULATE_REQUEST
+(Respuesta demasiado vaga, pedir reformulación completa)
 
 Input: "contratos laborales"
+Context: (vacío)
 Output: régimen de contratos de trabajo y relaciones laborales en la normativa argentina
 
 Input: "despido sin justa causa según la LCT"
+Context: (vacío)
 Output: causales y procedimientos de despido sin justa causa según la Ley de Contrato de Trabajo
 
 Input: "Ley 20.744 artículo 245"
+Context: (vacío)
 Output: contenido y alcance del artículo 245 de la Ley de Contrato de Trabajo 20.744
 
 Ahora clasifica y responde para:
 <user_question>{user_question}</user_question>
 
-Respuesta (NON-LEGAL, CLARIFICATION: [...], o reformulación):
+Respuesta (NON-LEGAL, CLARIFICATION: [...], REFORMULATE_REQUEST, o reformulación):
     """,
     
     "strict": """

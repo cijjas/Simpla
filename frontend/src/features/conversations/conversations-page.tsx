@@ -147,7 +147,7 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
     // Pass current conversationId and navigation callback
     await sendMessage(
       messageContent,
-      conversationId === 'new' ? null : conversationId,
+      conversationId, // Pass 'new' as-is, let Context handle the logic
       (newSessionId) => {
         // Navigate to new conversation when created
         router.replace(`/conversaciones/${newSessionId}`);
