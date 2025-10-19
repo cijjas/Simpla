@@ -103,13 +103,13 @@ export function NormaCard({ norma, isBookmarked: initialBookmarked }: NormaCardP
             <div className="flex flex-wrap items-center justify-between w-full pt-2 text-muted-foreground text-xs">
               {norma.publicacion && (
                 <div className="flex items-center gap-1">
-                  <CalendarIcon className="h-4 w-4" />
+                  <CalendarIcon className="h-3.5 w-3.5" />
                   <span>{formatDatePretty(norma.publicacion)}</span>
                 </div>
               )}
               {norma.nro_boletin && (
                 <div className="flex items-center gap-1">
-                  <FileTextIcon className="h-4 w-4" />
+                  <FileTextIcon className="h-3.5 w-3.5" />
                   <span>
                     B.O.R.A. {norma.nro_boletin} • pág. {norma.pag_boletin}
                   </span>

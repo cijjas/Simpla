@@ -32,14 +32,14 @@ export function LatestNormasSection() {
     <section className='py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-white dark:bg-background'>
       <div className='mx-auto max-w-7xl'>
         <div className='flex flex-col sm:flex-row items-center justify-between mb-10 sm:mb-12'>
-          <h2 className='text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-200 mb-4 sm:mb-0'>
-            <Clock className='inline-block mr-3 h-7 w-7 text-primary' />
+          <h2 className='text-4xl font-bold tracking-tight mb-4 sm:mb-0 font-serif flex items-center'>
+            <Clock className='mr-3 h-7 w-7 text-muted-foreground' />
             Últimas Normas Publicadas
           </h2>
           <Button
             variant='link'
             asChild
-            className='text-primary hover:text-primary/80'
+            className='text-muted-foreground hover:text-primary/80'
           >
             <Link href='/busqueda' className='flex items-center'>
               Ver todas

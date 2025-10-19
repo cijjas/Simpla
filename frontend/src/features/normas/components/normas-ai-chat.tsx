@@ -478,7 +478,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-hidden pt-3 min-h-0">
+          <div className="flex-1 overflow-hidden pt-8 min-h-0">
             {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center p-4">
                 <div className="text-center text-muted-foreground">

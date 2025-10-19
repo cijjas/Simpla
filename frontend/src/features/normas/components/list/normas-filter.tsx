@@ -149,6 +149,13 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
     onFilterApplied?.();
   };
 
+  // Handle Enter key press to apply filters
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && hasChanges && !loading) {
+      handleApplyFilters();
+    }
+  };
+
   // Clear all filters
   const handleClearAll = () => {
     setPendingFilters({
@@ -183,6 +190,7 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
               placeholder='Buscar...'
               value={pendingFilters.search_term || ''}
               onChange={e => handleSearchTermChange(e.target.value)}
+              onKeyPress={handleKeyPress}
               disabled={loading}
             />
           </div>
@@ -202,6 +210,7 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
               placeholder='Número'
               value={pendingFilters.numero || ''}
               onChange={e => handleNumeroChange(e.target.value)}
+              onKeyPress={handleKeyPress}
               className='h-9 text-sm mt-1 bg-background'
               disabled={loading}
             />
