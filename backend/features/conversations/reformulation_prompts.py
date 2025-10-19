@@ -2,107 +2,124 @@
 
 # Available reformulation prompts
 REFORMULATION_PROMPTS = {
-    "default": """
-IMPORTANTE: Debes clasificar la pregunta del usuario en 4 categorías: NON-LEGAL, VAGA (necesita clarificación), REFORMULATE_REQUEST (ya pidió clarificación antes), o CLARA (puede reformularse).
+    "initial": """
+IMPORTANTE: Debes clasificar la PRIMERA pregunta del usuario en 3 categorías: NON-LEGAL, VAGA (necesita clarificación), o CLARA (puede reformularse).
 
-**CONTEXTO DE CONVERSACIÓN:**
-{context}
-
-**REGLAS DE CLARIFICACIÓN CON CONTEXTO:**
-
-1. **Si hay contexto de conversación anterior:**
-   - Revisa si YA se pidió una CLARIFICATION anteriormente
-   - Si el usuario está respondiendo a una CLARIFICATION anterior:
-     a) Si la respuesta combinada con el contexto ahora es CLARA → reformula usando TODA la información del contexto
-     b) Si sigue siendo VAGA después de 1 CLARIFICATION → retorna: REFORMULATE_REQUEST
-   - LÍMITE: Solo 1 CLARIFICATION por ciclo de conversación
-
-2. **Si NO hay contexto o es la primera pregunta:**
-   - Aplica las reglas normales de clasificación
-
-**REGLA CRÍTICA PARA DETECTAR PREGUNTAS VAGAS:**
-Una pregunta es VAGA solo si es EXTREMADAMENTE genérica y ambigua, haciendo imposible determinar qué información legal buscar.
+**REGLA CRÍTICA - SÉ PERMISIVO:**
+Una pregunta es VAGA **SOLO** si es genuinamente imposible determinar qué buscar en la base de datos legal. Cuando hay DUDA, considera la pregunta CLARA.
 
 **PREGUNTAS VAGAS (retornar CLARIFICATION:)**
+SOLO estas preguntas extremadamente genéricas son VAGAS:
+- "contratos" (palabra suelta sin contexto) → VAGA
+- "artículo 5" (sin especificar norma) → VAGA
+- "leyes" (demasiado genérico) → VAGA
+- "derecho" (sin área especificada) → VAGA
 
-Estas preguntas SON VAGAS porque son DEMASIADO ambiguas:
-- "háblame de contratos" → VAGA (sin ningún contexto: ¿laborales? ¿civiles? ¿comerciales?)
-- "contratos" (sola palabra) → VAGA
-- "¿qué dice el artículo 5?" → VAGA (falta norma específica)
-
-**IMPORTANTE: Estas preguntas NO SON VAGAS (reformular directamente):**
-- "contratos civiles" → CLARA (tipo especificado)
+**PREGUNTAS CLARAS (reformular directamente - SIN pedir clarificación):**
+- "háblame de alimentos" → CLARA (asume Código Alimentario)
+- "necesito info sobre refugiados" → CLARA (tema suficientemente específico)
+- "que dice el codigo alimentario argentino" → CLARA (menciona código específico)
+- "impuestos sobre combustibles" → CLARA (tema + ámbito específico)
+- "puedo izar banderas extranjeras en feriados" → CLARA (pregunta concreta)
 - "contratos laborales" → CLARA (tipo especificado)
-- "derecho laboral" → CLARA (área del derecho suficientemente específica)
-- "licencias de conducir" → CLARA (tipo especificado)
-- "requisitos para registro de automotor" → CLARA (contexto claro)
-- Una palabra que responde a una CLARIFICATION previa → CLARA (usar contexto completo)
+- "derecho laboral" → CLARA (área específica)
+- Cualquier pregunta que mencione una ley, código o tema específico → CLARA
 
-Para preguntas VAGAS (SOLO si no hubo CLARIFICATION previa), responde:
-CLARIFICATION: [una pregunta concisa ofreciendo 2-3 opciones principales]
+Para preguntas VAGAS, responde:
+CLARIFICATION: [pregunta concisa ofreciendo 2-3 opciones principales]
 
-**REFORMULATE_REQUEST (segunda clarificación necesaria):**
-Si ya se pidió 1 CLARIFICATION y la respuesta del usuario sigue siendo vaga, retorna exactamente:
-REFORMULATE_REQUEST
+Para preguntas CLARAS, reformula usando lenguaje jurídico argentino.
 
-**PREGUNTAS CLARAS (reformular)**
-
-Estas preguntas SON CLARAS porque especifican tipo/contexto:
-- "contratos laborales" → CLARA (especifica tipo)
-- "contratos de locación urbana" → CLARA
-- "Ley 20.744 artículo 245" → CLARA (referencia completa)
-- "despido sin justa causa" → CLARA (concepto específico)
-- "plazo de prescripción en acciones laborales" → CLARA
-
-Para preguntas CLARAS, reformula usando lenguaje jurídico argentino Y el contexto completo de la conversación.
-
-**EJEMPLOS EXACTOS:**
+**EJEMPLOS:**
 
 Input: "hola, cómo estás?"
-Context: (vacío)
 Output: NON-LEGAL
 
-Input: "háblame de contratos"
-Context: (vacío)
-Output: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
+Input: "contratos"
+Output: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales o algún otro tipo?
 
-Input: "civiles"
-Context:
-user: háblame de contratos
-assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
-Output: régimen de contratos civiles en la normativa argentina
-(IMPORTANTE: El usuario respondió con "civiles" a la clarificación sobre "contratos", combinando ambos obtenemos "contratos civiles" que es CLARO)
+Input: "háblame de alimentos"
+Output: normativa sobre producción, elaboración y circulación de alimentos - Código Alimentario Argentino
 
-Input: "no sé"
-Context:
-user: háblame de contratos
-assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
-Output: REFORMULATE_REQUEST
-(El usuario no pudo clarificar después de 1 intento, pedir que reformule la pregunta completa)
+Input: "necesito info sobre refugiados"
+Output: régimen legal de reconocimiento y protección de refugiados en Argentina
 
-Input: "cualquiera"
-Context:
-user: háblame de contratos
-assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales, de locación o algún otro tipo específico?
-Output: REFORMULATE_REQUEST
-(Respuesta demasiado vaga, pedir reformulación completa)
+Input: "que dice el codigo alimentario argentino"
+Output: normativa argentina sobre alimentos de consumo humano - Código Alimentario Argentino Ley 18.284
+
+Input: "impuestos sobre combustibles"
+Output: régimen tributario aplicable a la comercialización de combustibles en Argentina
+
+Input: "puedo izar banderas extranjeras en feriados"
+Output: regulación sobre el izamiento de banderas extranjeras en días feriados y festivos nacionales
 
 Input: "contratos laborales"
-Context: (vacío)
 Output: régimen de contratos de trabajo y relaciones laborales en la normativa argentina
-
-Input: "despido sin justa causa según la LCT"
-Context: (vacío)
-Output: causales y procedimientos de despido sin justa causa según la Ley de Contrato de Trabajo
-
-Input: "Ley 20.744 artículo 245"
-Context: (vacío)
-Output: contenido y alcance del artículo 245 de la Ley de Contrato de Trabajo 20.744
 
 Ahora clasifica y responde para:
 <user_question>{user_question}</user_question>
 
-Respuesta (NON-LEGAL, CLARIFICATION: [...], REFORMULATE_REQUEST, o reformulación):
+Respuesta (NON-LEGAL, CLARIFICATION: [...], o reformulación):
+    """,
+
+    "followup": """
+IMPORTANTE: El usuario está respondiendo a una CLARIFICATION previa. Debes COMBINAR el contexto anterior con su respuesta.
+
+**CONTEXTO DE CONVERSACIÓN:**
+{context}
+
+**REGLA PRINCIPAL - SIEMPRE COMBINA:**
+1. Identifica la pregunta original del usuario en el contexto
+2. Identifica la CLARIFICATION que se le hizo
+3. Combina la pregunta original + la respuesta actual del usuario
+4. Si la combinación es CLARA → reformula
+5. Si la respuesta es muy vaga ("no sé", "cualquiera", respuestas sin sentido) → REFORMULATE_REQUEST
+
+**NUNCA pidas una segunda CLARIFICATION. Solo tienes 2 opciones:**
+- Reformular combinando toda la información
+- REFORMULATE_REQUEST si la respuesta es inútil
+
+**EJEMPLOS DE COMBINACIÓN:**
+
+Context:
+user: háblame de contratos
+assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles, comerciales...?
+Input: "civiles"
+Output: régimen de contratos civiles en la normativa argentina
+(Combinación: contratos + civiles = contratos civiles)
+
+Context:
+user: hablame de alimentos
+assistant: CLARIFICATION: ¿Te refieres a producción, normativa sanitaria...?
+Input: "produccion"
+Output: normativa sobre producción de alimentos - Código Alimentario Argentino
+(Combinación: alimentos + producción = producción de alimentos)
+
+Context:
+user: necesito info sobre refugiados
+assistant: CLARIFICATION: ¿Sobre el proceso de solicitud, derechos, legislación...?
+Input: "legislación"
+Output: marco legal de refugiados en Argentina - Ley 26.165 y modificatorias
+(Combinación: refugiados + legislación = legislación sobre refugiados)
+
+Context:
+user: háblame de contratos
+assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles...?
+Input: "no sé"
+Output: REFORMULATE_REQUEST
+(Respuesta inútil, pedir reformulación completa)
+
+Context:
+user: háblame de contratos
+assistant: CLARIFICATION: ¿Te refieres a contratos laborales, civiles...?
+Input: "cualquiera"
+Output: REFORMULATE_REQUEST
+(Respuesta demasiado vaga, pedir reformulación)
+
+Ahora combina el contexto con la respuesta del usuario:
+<user_question>{user_question}</user_question>
+
+Respuesta (reformulación combinada o REFORMULATE_REQUEST):
     """,
     
     "strict": """
@@ -203,28 +220,29 @@ Consulta del usuario:
 }
 
 
-def get_reformulation_prompt(prompt_type: str = "default") -> str:
+def get_reformulation_prompt(prompt_type: str = "initial") -> str:
     """
     Get a reformulation prompt by type.
-    
+
     Args:
         prompt_type: The type of prompt to retrieve. Available options:
-                    - "default": Balanced approach with clear legal/non-legal distinction
+                    - "initial": For first questions without context (permissive, fewer clarifications)
+                    - "followup": For responses to clarifications (combines context + response)
                     - "strict": Very strict classification, minimal false positives
                     - "permissive": More inclusive, treats most topics as potentially legal
                     - "constitutional": Focus on constitutional and public law
                     - "civil_commercial": Focus on civil and commercial law
-    
+
     Returns:
         The formatted prompt string
-        
+
     Raises:
         ValueError: If prompt_type is not found
     """
     if prompt_type not in REFORMULATION_PROMPTS:
         available_types = ", ".join(REFORMULATION_PROMPTS.keys())
         raise ValueError(f"Unknown prompt type '{prompt_type}'. Available types: {available_types}")
-    
+
     return REFORMULATION_PROMPTS[prompt_type]
 
 
@@ -251,7 +269,8 @@ def add_custom_prompt(name: str, prompt_template: str) -> None:
 
 # Prompt descriptions for easy reference
 PROMPT_DESCRIPTIONS = {
-    "default": "Balanced approach with clear legal/non-legal distinction",
+    "initial": "For first questions without context (permissive, fewer clarifications)",
+    "followup": "For responses to clarifications (combines context + response)",
     "strict": "Very strict classification, minimal false positives",
     "permissive": "More inclusive, treats most topics as potentially legal",
     "constitutional": "Focus on constitutional and public law topics",

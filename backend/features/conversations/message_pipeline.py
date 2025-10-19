@@ -84,7 +84,11 @@ class MessagePipeline:
                             active_messages = [msg for msg in conversation.messages if not msg.is_deleted]
                             recent_messages = sorted(active_messages, key=lambda m: m.created_at)[-3:]
                             context_messages = [
-                                {"role": msg.role, "content": msg.content}
+                                {
+                                    "role": msg.role,
+                                    "content": msg.content,
+                                    "metadata": msg.message_metadata if hasattr(msg, 'message_metadata') else None
+                                }
                                 for msg in recent_messages
                             ]
                             logger.info(f"Loaded {len(context_messages)} context messages for reformulation: {context_messages}")
@@ -210,7 +214,8 @@ class MessagePipeline:
                 assistant_message_data = MessageCreate(
                     role="assistant",
                     content=non_legal_message,
-                    tokens_used=self.conversation_service.ai_service.count_tokens(non_legal_message)
+                    tokens_used=self.conversation_service.ai_service.count_tokens(non_legal_message),
+                    metadata={"message_type": "non_legal"}
                 )
                 self.conversation_service.create_message(session_id, assistant_message_data)
                 logger.info(f"Saved non-legal response to database for session {session_id}")
@@ -270,7 +275,8 @@ class MessagePipeline:
                 assistant_message_data = MessageCreate(
                     role="assistant",
                     content=clarification_text,
-                    tokens_used=self.conversation_service.ai_service.count_tokens(clarification_text)
+                    tokens_used=self.conversation_service.ai_service.count_tokens(clarification_text),
+                    metadata={"message_type": "clarification"}
                 )
                 self.conversation_service.create_message(session_id, assistant_message_data)
                 logger.info(f"Saved clarification response to database for session {session_id}")
@@ -329,7 +335,8 @@ class MessagePipeline:
                 assistant_message_data = MessageCreate(
                     role="assistant",
                     content=reformulate_message,
-                    tokens_used=self.conversation_service.ai_service.count_tokens(reformulate_message)
+                    tokens_used=self.conversation_service.ai_service.count_tokens(reformulate_message),
+                    metadata={"message_type": "reformulate_request"}
                 )
                 self.conversation_service.create_message(session_id, assistant_message_data)
                 logger.info(f"Saved reformulate request response to database for session {session_id}")

@@ -17,6 +17,10 @@ async def reformulate_user_question(
     """
     Reformulate a user question with optional conversation context.
 
+    Uses different prompts based on context:
+    - "initial": For first questions without prior CLARIFICATION (permissive)
+    - "followup": For responses to CLARIFICATION questions (combines context + response)
+
     Args:
         user_question: The current user question
         context_messages: Optional list of previous messages in format [{"role": "user", "content": "..."}, ...]
@@ -30,18 +34,30 @@ async def reformulate_user_question(
 
         # Build context string from messages
         context_str = ""
+        has_clarification = False
+
         if context_messages and len(context_messages) > 0:
             context_lines = []
             for msg in context_messages:
                 role = msg.get("role", "unknown")
                 content = msg.get("content", "")
                 context_lines.append(f"{role}: {content}")
+
+                # Check if this is an assistant message with clarification metadata
+                metadata = msg.get("metadata", {}) or {}  # Handle None
+                if role == "assistant" and metadata.get("message_type") == "clarification":
+                    has_clarification = True
+
             context_str = "\n".join(context_lines)
         else:
             context_str = "(vacío)"
 
+        # Select appropriate prompt type based on whether we're following up on a clarification
+        prompt_type = "followup" if has_clarification else "initial"
+        logger.info(f"Using prompt type: {prompt_type}")
+
         # Get the reformulation prompt with the user question and context injected
-        reformulation_prompt = get_reformulation_prompt("default").format(
+        reformulation_prompt = get_reformulation_prompt(prompt_type).format(
             user_question=user_question,
             context=context_str
         )
