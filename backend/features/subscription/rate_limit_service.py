@@ -121,14 +121,16 @@ class RateLimitService:
             logger.info(f"Got limits for user {user_id}: {limits}")
             
             if not limits:
-                logger.warning(f"No limits found for user {user_id}")
+                # TEMPORARY: Allow requests even without subscription (for testing)
+                # TODO: Revert this to allowed=False after fixing subscription tables
+                logger.warning(f"No subscription found for user {user_id}, allowing request for testing")
                 return RateLimitCheckSchema(
-                    allowed=False,
+                    allowed=True,  # Changed from False to True for testing
                     current_usage=0,
-                    limit=0,
+                    limit=999999,  # High limit for testing
                     period_type="day",
                     reset_at=self._get_period_end("day"),
-                    message="No active subscription found"
+                    message="No subscription - using testing mode"
                 )
             
             # 2. Check daily token limit

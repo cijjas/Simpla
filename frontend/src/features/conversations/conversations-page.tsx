@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -29,10 +29,12 @@ import {
 } from './index';
 import { ConversationNormasDisplay, ToneSelector } from './components';
 
-export default function ConversacionesPage() {
+interface ConversacionesPageProps {
+  conversationId: string;
+}
+
+export default function ConversacionesPage({ conversationId }: ConversacionesPageProps) {
   const router = useRouter();
-  const params = useParams();
-  const conversationId = params?.id as string;
 
   // Use conversations context
   const {
@@ -40,11 +42,8 @@ export default function ConversacionesPage() {
     sendMessage,
     archiveConversation,
     deleteConversation,
-    startRenameConversation,
-    saveRenameConversation,
-    cancelRenameConversation,
+    updateConversationTitle,
     setTone,
-    setTempTitle,
     submitFeedback,
     removeFeedback,
   } = useConversations();
@@ -55,6 +54,10 @@ export default function ConversacionesPage() {
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
+  // Local state for editing conversation title (moved from Context)
+  const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
+  const [tempTitle, setTempTitle] = useState('');
+
   // Destructure state for easier access
   const {
     conversations,
@@ -64,20 +67,26 @@ export default function ConversacionesPage() {
     isStreaming,
     streamingMessage,
     isLoadingConversations,
-    editingConversationId,
-    tempTitle,
   } = state;
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastScrollTimeRef = useRef<number>(0);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (throttled during streaming)
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const now = Date.now();
+      // Throttle scroll during streaming to every 100ms, always scroll for new messages
+      const shouldScroll = !isStreaming || (now - lastScrollTimeRef.current > 100);
+
+      if (shouldScroll) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        lastScrollTimeRef.current = now;
+      }
     }
-  }, [messages, streamingMessage]);
+  }, [messages, streamingMessage, isStreaming]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -90,6 +99,29 @@ export default function ConversacionesPage() {
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
+  };
+
+  // Handle renaming conversation (local state management)
+  const handleStartRename = (conv: Conversation) => {
+    setEditingConversationId(conv.id);
+    setTempTitle(conv.title);
+  };
+
+  const handleSaveRename = async (conversationId: string) => {
+    if (!tempTitle.trim()) {
+      setEditingConversationId(null);
+      setTempTitle('');
+      return;
+    }
+
+    await updateConversationTitle(conversationId, tempTitle.trim());
+    setEditingConversationId(null);
+    setTempTitle('');
+  };
+
+  const handleCancelRename = () => {
+    setEditingConversationId(null);
+    setTempTitle('');
   };
 
   const confirmDeleteConversation = async () => {
@@ -111,16 +143,17 @@ export default function ConversacionesPage() {
 
     const messageContent = inputMessage;
     setInputMessage('');
-    await sendMessage(messageContent);
-  };
 
-  // Navigate to new conversation ID after it's created
-  useEffect(() => {
-    if (state.currentSessionId && conversationId === 'new' && !isStreaming) {
-      // Navigate to the new conversation URL
-      router.replace(`/conversaciones/${state.currentSessionId}`);
-    }
-  }, [state.currentSessionId, conversationId, isStreaming, router]);
+    // Pass current conversationId and navigation callback
+    await sendMessage(
+      messageContent,
+      conversationId, // Pass 'new' as-is, let Context handle the logic
+      (newSessionId) => {
+        // Navigate to new conversation when created
+        router.replace(`/conversaciones/${newSessionId}`);
+      }
+    );
+  };
 
   // Handle conversation selection - navigate to conversation URL
   const handleLoadConversation = (id: string) => {
@@ -178,11 +211,11 @@ export default function ConversacionesPage() {
             <h2 className="text-2xl md:text-3xl font-bold font-serif text-foreground  ">Conversaciones</h2>
         </div>
         <div className="p-4 border-b bg-muted">
-        <Button 
-              onClick={handleNewConversation} 
-              size="sm" 
+        <Button
+              onClick={handleNewConversation}
+              size="sm"
               disabled={isLoading}
-              className="w-full "
+              className="w-full cursor-pointer"
             >
               <Plus className="size-4 mr-2" />
               Nueva conversación
@@ -220,12 +253,12 @@ export default function ConversacionesPage() {
                               type="text"
                               value={tempTitle}
                               onChange={(e) => setTempTitle(e.target.value)}
-                              onBlur={() => saveRenameConversation(conv.id)}
+                              onBlur={() => handleSaveRename(conv.id)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  saveRenameConversation(conv.id);
+                                  handleSaveRename(conv.id);
                                 } else if (e.key === 'Escape') {
-                                  cancelRenameConversation();
+                                  handleCancelRename();
                                 }
                               }}
                               className="w-full border-none bg-transparent p-0 text-sm font-medium text-foreground focus:ring-0 focus:outline-none"
@@ -264,7 +297,7 @@ export default function ConversacionesPage() {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              startRenameConversation(conv);
+                              handleStartRename(conv);
                             }}
                           >
                             <Pencil className="h-4 w-4 mr-2" />
