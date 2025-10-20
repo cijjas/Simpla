@@ -6,11 +6,14 @@ export function useNormaSidebar(hasDivisions: boolean) {
   const [activeDivisionId, setActiveDivisionId] = useState<number | null>(null);
   const divisionRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
+  // Use consistent offset for both scrolling and detection
+  const SCROLL_OFFSET = 150;
+
   useEffect(() => {
     if (!hasDivisions) return;
 
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 100;
+      const scrollPosition = window.scrollY + SCROLL_OFFSET;
       let currentDivision: number | null = null;
 
       divisionRefs.current.forEach((element, divisionId) => {
@@ -34,11 +37,10 @@ export function useNormaSidebar(hasDivisions: boolean) {
   const scrollToDivision = (divisionId: number) => {
     const element = divisionRefs.current.get(divisionId);
     if (element) {
-      const offset = 150;
       const elementPosition =
         element.getBoundingClientRect().top + window.scrollY;
       window.scrollTo({
-        top: elementPosition - offset,
+        top: elementPosition - SCROLL_OFFSET,
         behavior: 'smooth',
       });
     }
