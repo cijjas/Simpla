@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
@@ -202,8 +203,20 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     }
   }, [inputValue]);
 
+  // Stop microphone when loading starts
+  useEffect(() => {
+    if (isLoading && isListening) {
+      stopDictation();
+    }
+  }, [isLoading, isListening]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
+
+    // Stop microphone if listening
+    if (isListening) {
+      stopDictation();
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -317,6 +330,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -357,17 +371,11 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
         setInterimText(''); // Clear interim text
       }
       
-      // Reset timeout - if no speech for 2 seconds, stop listening
+      // Clear any existing timeout (no auto-stop)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
-      
-      timeoutRef.current = setTimeout(() => {
-        if (isListening) {
-          stopDictation();
-          toast.info('Dictado completado');
-        }
-      }, 2000); // 2 second timeout
     };
     
     recognition.onerror = (event: any) => {
@@ -410,6 +418,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     setInterimText('');
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   };
 
@@ -582,17 +591,16 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={isListening ? "Escuchando..." : "Conversa..."}
-                className="py-3 px-4 pr-12 max-h-[120px] min-h-[40px] "
+                className="  max-h-[120px] min-h-[40px] "
                 disabled={isLoading}
                 maxLength={500}
                 rows={1}
               />
               
               <InputGroupAddon align="inline-end" className="self-end">
-                <div className="flex items-center gap-1">
                   {/* Microphone Button */}
-                  <Button
-                    className="h-8 w-8 p-0 rounded-lg"
+                  <InputGroupButton
+                    className="h-8 w-8 p-0 rounded-lg relative"
                     size="sm"
                     variant={isListening ? "default" : "ghost"}
                     onClick={isListening ? stopDictation : startDictation}
@@ -600,27 +608,26 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                     title={isListening ? "Detener dictado" : "Iniciar dictado"}
                   >
                     {isListening ? (
-                      <MicOff className="h-4 w-4" />
+                      <div className="relative">
+                        <MicOff className="h-4 w-4" />
+                        {/* Pulsing dot indicator */}
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
+                      </div>
                     ) : (
                       <Mic className="h-4 w-4" />
                     )}
-                  </Button>
+                  </InputGroupButton>
                   
                   {/* Send Button */}
-                  <Button
+                  <InputGroupButton
                     className="h-8 w-8 p-0 rounded-lg"
                     size="sm"
                     variant="default"
                     onClick={handleSendMessage}
                     disabled={!inputValue.trim() || isLoading}
                   >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
                       <ArrowUp className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+                  </InputGroupButton>
               </InputGroupAddon>
             </InputGroup>
           </div>
