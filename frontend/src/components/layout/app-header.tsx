@@ -17,8 +17,9 @@ import React from 'react';
 import { Separator } from '../ui/separator';
 import { FeedbackButton } from '@/features/feedback/components/feedback-button';
 import NotificationInbox from '@/features/notifications/inbox';
+import { useConversations } from '@/features/conversations/context/conversations-context';
 
-function renderBreadcrumb(pathname: string) {
+function renderBreadcrumb(pathname: string, conversations: Array<{ id: string; title: string }>) {
   const segments = pathname.split('/').filter(Boolean);
 
   if (pathname.startsWith('/norma/') && segments.length === 2) {
@@ -50,12 +51,24 @@ function renderBreadcrumb(pathname: string) {
     carpetas: 'Carpetas',
     folders: 'Carpetas',
     settings: 'Configuración',
+    conversaciones: 'Conversaciones',
   };
 
   return segments.reduce<React.ReactNode[]>((acc, segment, idx) => {
     const href = '/' + segments.slice(0, idx + 1).join('/');
     const isLast = idx === segments.length - 1;
-    const label = segmentLabelMap[segment] || segment;
+
+    // Special handling for conversation IDs
+    let label = segmentLabelMap[segment] || segment;
+    if (idx > 0 && segments[idx - 1] === 'conversaciones') {
+      // This is a conversation ID, try to get the title
+      if (segment === 'new') {
+        label = 'Nueva conversación';
+      } else {
+        const conversation = conversations.find(c => c.id === segment);
+        label = conversation?.title || 'Conversación';
+      }
+    }
 
     acc.push(
       <BreadcrumbItem key={`item-${href}`}>
@@ -82,9 +95,10 @@ function renderBreadcrumb(pathname: string) {
 export default function AppHeader() {
   const pathname = usePathname();
   const { state } = useSidebar();
+  const { state: conversationsState } = useConversations();
 
   return (
-    <header 
+    <header
       className='sticky top-0 z-2 flex h-14 shrink-0 items-center gap-2 px-4 border-b border-border bg-background transition-all duration-200 ease-linear'
       data-sidebar-state={state}
     >
@@ -105,7 +119,7 @@ export default function AppHeader() {
         </Link>
 
         <Breadcrumb className='truncate hidden sm:flex'>
-          <BreadcrumbList>{renderBreadcrumb(pathname)}</BreadcrumbList>
+          <BreadcrumbList>{renderBreadcrumb(pathname, conversationsState.conversations)}</BreadcrumbList>
         </Breadcrumb>
       </div>
 
