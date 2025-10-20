@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useBookmarkToggle } from '@/features/bookmark';
+import { useOptimizedBookmarkToggle } from '@/features/bookmark';
 import { AddToFolderDialog } from '@/features/folders';
 
 interface NormaActionsProps {
@@ -55,7 +55,7 @@ export function NormaActions({ norma }: NormaActionsProps) {
     isBookmarked,
     loading: bookmarkLoading,
     toggleBookmark,
-  } = useBookmarkToggle(norma?.infoleg_id || 0);
+  } = useOptimizedBookmarkToggle(norma?.infoleg_id || 0);
 
   /* ───────── Copy ───────── */
   const handleCopy = async () => {

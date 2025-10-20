@@ -190,11 +190,7 @@ export function AddToFolderDialog({
               <span className='text-sm font-medium truncate'>
                 {folder.name}
               </span>
-              {wasOriginallySelected && (
-                <span className='text-xs text-blue-600 font-medium whitespace-nowrap'>
-                  (en carpeta)
-                </span>
-              )}
+              
             </div>
             {folder.description && (
               <span className='text-xs text-muted-foreground truncate block'>
@@ -309,11 +305,9 @@ export function AddToFolderDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className='max-w-md w-full max-h-[80vh] overflow-hidden'>
         <DialogHeader>
-          <DialogTitle>Gestionar Carpetas</DialogTitle>
+          <DialogTitle className='text-lg font-bold'>Gestionar Carpetas</DialogTitle>
           <DialogDescription>
-            {normaTitle
-              ? `Gestiona las carpetas de "${normaTitle}"`
-              : 'Selecciona o deselecciona carpetas para esta norma'}
+              Selecciona o deselecciona carpetas para esta norma
           </DialogDescription>
         </DialogHeader>
 

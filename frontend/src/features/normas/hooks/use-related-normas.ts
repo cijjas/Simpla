@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NormaSummary, normasAPI } from '../api/normas-api';
 
 interface UseRelatedNormasProps {
@@ -20,6 +20,10 @@ export function useRelatedNormas({
   );
   const [modificaProgress, setModificaProgress] = useState(0);
   const [modificadaProgress, setModificadaProgress] = useState(0);
+
+  // Create stable string representations for dependency checking
+  const modificaIdsKey = useMemo(() => modificaIds.join(','), [modificaIds]);
+  const modificadaIdsKey = useMemo(() => modificadaIds.join(','), [modificadaIds]);
 
   const fetchList = async (
     ids: number[],
@@ -66,7 +70,9 @@ export function useRelatedNormas({
     ) {
       fetchList(modificadaIds, setModificadaPor, setModificadaProgress);
     }
-  }, [open, modifica, modificadaPor, modificaIds, modificadaIds]);
+    // Use stable string keys for array comparison instead of array references
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, modifica, modificadaPor, modificaIdsKey, modificadaIdsKey]);
 
   return {
     modifica,

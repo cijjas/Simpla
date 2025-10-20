@@ -348,11 +348,15 @@ export function NormasProvider({ children }: NormasProviderProps) {
   }, [state.stats]);
 
   // Norma actions (all use infoleg_id)
+  // Use ref to access cache without causing dependency updates
+  const normaCacheRef = useRef(state.normaCache);
+  normaCacheRef.current = state.normaCache;
+
   const getNorma = useCallback(
     async (infolegId: number): Promise<NormaDetail | null> => {
       // Check cache first (cache by infoleg_id)
-      if (state.normaCache.has(infolegId)) {
-        return state.normaCache.get(infolegId)!;
+      if (normaCacheRef.current.has(infolegId)) {
+        return normaCacheRef.current.get(infolegId)!;
       }
 
       try {
@@ -364,14 +368,17 @@ export function NormasProvider({ children }: NormasProviderProps) {
         return null;
       }
     },
-    [state.normaCache],
+    [], // No dependencies - stable reference
   );
+
+  const normaSummaryCacheRef = useRef(state.normaSummaryCache);
+  normaSummaryCacheRef.current = state.normaSummaryCache;
 
   const getNormaSummary = useCallback(
     async (infolegId: number): Promise<NormaSummary | null> => {
       // Check cache first (cache by infoleg_id)
-      if (state.normaSummaryCache.has(infolegId)) {
-        return state.normaSummaryCache.get(infolegId)!;
+      if (normaSummaryCacheRef.current.has(infolegId)) {
+        return normaSummaryCacheRef.current.get(infolegId)!;
       }
 
       try {
@@ -386,7 +393,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
         return null;
       }
     },
-    [state.normaSummaryCache],
+    [], // No dependencies - stable reference
   );
 
   // Cache actions
@@ -406,16 +413,16 @@ export function NormasProvider({ children }: NormasProviderProps) {
   // Utility functions
   const isNormaCached = useCallback(
     (infolegId: number) => {
-      return state.normaCache.has(infolegId);
+      return normaCacheRef.current.has(infolegId);
     },
-    [state.normaCache],
+    [],
   );
 
   const isNormaSummaryCached = useCallback(
     (infolegId: number) => {
-      return state.normaSummaryCache.has(infolegId);
+      return normaSummaryCacheRef.current.has(infolegId);
     },
-    [state.normaSummaryCache],
+    [],
   );
 
   const contextValue: NormasContextType = {

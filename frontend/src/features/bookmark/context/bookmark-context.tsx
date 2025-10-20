@@ -31,6 +31,7 @@ export function BookmarksProvider({ children }: BookmarksProviderProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkedNormas, setCheckedNormas] = useState<Set<number>>(new Set());
+  const [pendingChecks, setPendingChecks] = useState<Set<number>>(new Set());
 
   // Batch check bookmarks for multiple normas
   const checkBookmarks = useCallback(async (normaIds: number[]) => {
@@ -38,11 +39,18 @@ export function BookmarksProvider({ children }: BookmarksProviderProps) {
       return;
     }
 
-    // Filter out normas we've already checked
-    const uncheckedNormas = normaIds.filter(id => !checkedNormas.has(id));
+    // Filter out normas we've already checked or are currently being checked
+    const uncheckedNormas = normaIds.filter(id => !checkedNormas.has(id) && !pendingChecks.has(id));
     if (uncheckedNormas.length === 0) {
       return;
     }
+
+    // Mark these normas as pending
+    setPendingChecks(prev => {
+      const newPending = new Set(prev);
+      uncheckedNormas.forEach(id => newPending.add(id));
+      return newPending;
+    });
 
     try {
       setLoading(true);
@@ -74,20 +82,34 @@ export function BookmarksProvider({ children }: BookmarksProviderProps) {
         return newBookmarks;
       });
 
-      // Mark these normas as checked
+      // Mark these normas as checked and remove from pending
       setCheckedNormas(prev => {
         const newChecked = new Set(prev);
         uncheckedNormas.forEach(id => newChecked.add(id));
         return newChecked;
       });
+      
+      // Remove from pending checks
+      setPendingChecks(prev => {
+        const newPending = new Set(prev);
+        uncheckedNormas.forEach(id => newPending.delete(id));
+        return newPending;
+      });
 
     } catch (err) {
       console.error('Error checking bookmarks:', err);
       setError('Error al verificar guardados');
+      
+      // Remove from pending checks on error
+      setPendingChecks(prev => {
+        const newPending = new Set(prev);
+        uncheckedNormas.forEach(id => newPending.delete(id));
+        return newPending;
+      });
     } finally {
       setLoading(false);
     }
-  }, [api, isAuthenticated, checkedNormas]);
+  }, [api, isAuthenticated, checkedNormas, pendingChecks]);
 
   // Toggle bookmark status
   const toggleBookmark = useCallback(async (normaId: number) => {
@@ -134,6 +156,7 @@ export function BookmarksProvider({ children }: BookmarksProviderProps) {
     if (!isAuthenticated) {
       setBookmarkedNormas(new Set());
       setCheckedNormas(new Set());
+      setPendingChecks(new Set());
       setError(null);
     }
   }, [isAuthenticated]);
