@@ -1,14 +1,23 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+
+// Extend Window interface for Speech Recognition API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, ChevronDown, User, Loader2, ArrowUp } from 'lucide-react';
+import { MessageCircle, ChevronDown, User, Loader2, ArrowUp, Mic, MicOff } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +44,10 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null); // Track session ID
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [interimText, setInterimText] = useState('');
   
   // Resizable chat dimensions with viewport-aware limits
   const [chatDimensions, setChatDimensions] = useState(() => {
@@ -190,8 +203,20 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     }
   }, [inputValue]);
 
+  // Stop microphone when loading starts
+  useEffect(() => {
+    if (isLoading && isListening) {
+      stopDictation();
+    }
+  }, [isLoading, isListening]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
+
+    // Stop microphone if listening
+    if (isListening) {
+      stopDictation();
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -288,6 +313,113 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  // Speech Recognition Functions
+  const startDictation = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('El navegador no soporta reconocimiento de voz');
+      return;
+    }
+
+    // Stop any existing recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    
+    recognition.lang = 'es-ES'; // Spanish
+    recognition.continuous = true; // Keep listening
+    recognition.interimResults = true; // Show real-time results
+    
+    recognition.onstart = () => {
+      setIsListening(true);
+      setInterimText('');
+      toast.success('Escuchando...');
+    };
+    
+    recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      // Show interim results in real-time
+      if (interimTranscript) {
+        setInterimText(interimTranscript);
+      }
+      
+      // When we get final results, add them to the input
+      if (finalTranscript) {
+        setInputValue(prev => prev + finalTranscript + ' ');
+        setInterimText(''); // Clear interim text
+      }
+      
+      // Clear any existing timeout (no auto-stop)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+    
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      setInterimText('');
+      
+      switch (event.error) {
+        case 'no-speech':
+          toast.error('No se detectó voz. Intenta nuevamente.');
+          break;
+        case 'audio-capture':
+          toast.error('No se pudo acceder al micrófono.');
+          break;
+        case 'not-allowed':
+          toast.error('Permisos de micrófono denegados.');
+          break;
+        default:
+          toast.error('Error en el reconocimiento de voz.');
+      }
+    };
+    
+    recognition.onend = () => {
+      setIsListening(false);
+      setInterimText('');
+      recognitionRef.current = null;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+    
+    recognition.start();
+  };
+
+  const stopDictation = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+    setInterimText('');
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   };
 
   if (!isOpen) {
@@ -455,30 +587,47 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
               <InputGroupTextarea
                 ref={inputRef}
                 data-slot="input-group-control"
-                value={inputValue}
+                value={inputValue + (interimText ? interimText : '')}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Pregunta sobre esta norma..."
-                className="py-3 px-4 pr-12 max-h-[120px] min-h-[40px] "
+                placeholder={isListening ? "Escuchando..." : "Conversa..."}
+                className="  max-h-[120px] min-h-[40px] "
                 disabled={isLoading}
                 maxLength={500}
                 rows={1}
               />
               
               <InputGroupAddon align="inline-end" className="self-end">
-                <Button
-                  className="h-8 w-8 p-0 rounded-lg"
-                  size="sm"
-                  variant="default"
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowUp className="h-4 w-4" />
-                  )}
-                </Button>
+                  {/* Microphone Button */}
+                  <InputGroupButton
+                    className="h-8 w-8 p-0 rounded-lg relative"
+                    size="sm"
+                    variant={isListening ? "default" : "ghost"}
+                    onClick={isListening ? stopDictation : startDictation}
+                    disabled={isLoading}
+                    title={isListening ? "Detener dictado" : "Iniciar dictado"}
+                  >
+                    {isListening ? (
+                      <div className="relative">
+                        <MicOff className="h-4 w-4" />
+                        {/* Pulsing dot indicator */}
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
+                      </div>
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                  </InputGroupButton>
+                  
+                  {/* Send Button */}
+                  <InputGroupButton
+                    className="h-8 w-8 p-0 rounded-lg"
+                    size="sm"
+                    variant="default"
+                    onClick={handleSendMessage}
+                    disabled={!inputValue.trim() || isLoading}
+                  >
+                      <ArrowUp className="h-4 w-4" />
+                  </InputGroupButton>
               </InputGroupAddon>
             </InputGroup>
           </div>

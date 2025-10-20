@@ -244,9 +244,9 @@ export function NormaRelationGraphDialog({
     const nodes: Node[] = Array.from(nodeMap.values());
 
     // Create force simulation with forceX to separate outgoing/incoming
-    const linkDistance = 350;
+    const linkDistance = 250;
     const chargeStrength = -1800;
-    const collisionRadius = 140;
+    const collisionRadius = 50;
     
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink<Node, Link>(validLinks)
@@ -259,21 +259,21 @@ export function NormaRelationGraphDialog({
         if (outgoingIds.has(d.id)) return width * 0.8; // Affected by current → RIGHT
         if (incomingIds.has(d.id)) return width * 0.2; // Affect current → LEFT
         return width / 2;
-      }).strength(0.5))
+      }).strength(0.9))
       .force('collision', d3.forceCollide().radius(collisionRadius));
 
     // Create container for links
     const linkGroup = svg.append('g')
       .attr('class', 'links')
-      .attr('stroke-opacity', 0.2);
+      .attr('stroke-opacity', 0.4);
 
     // Create links
     const link = linkGroup.selectAll('line')
       .data(validLinks)
       .join('line')
       .attr('stroke', 'currentColor')
-      .attr('stroke-width', 6)
-      .attr('opacity', 0.8);
+      .attr('stroke-width', 5)
+      .attr('opacity', 0.6);
 
     // Create container for nodes
     const nodeGroup = svg.append('g')

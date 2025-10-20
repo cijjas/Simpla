@@ -9,12 +9,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Expand } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Expand, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Division, NormaSummary } from '@/features/normas/api/normas-api';
 import { NormaRelationGraph } from './norma-relation-graph';
 import { NormaRelationGraphDialog } from './norma-relation-graph-dialog';
 import { NormaRelacionesResponse } from '../../api/normas-api';
+import { useRouter } from 'next/navigation';
 
 interface HoveredNodeInfo {
   tipo: string;
@@ -71,6 +73,8 @@ export function NormaSidebar({
 }: NormaSidebarProps) {
   const [isGraphDialogOpen, setIsGraphDialogOpen] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
+  const [activeTab, setActiveTab] = useState<'grafo' | 'lista'>('grafo');
+  const router = useRouter();
 
   const handleNodeHover = useCallback((nodeInfo: { id: number; title: string; titulo_resumido: string | null; tipo: string; numero: number | null; sancion: string | null }) => {
     setHoveredNode({
@@ -91,6 +95,76 @@ export function NormaSidebar({
     const year = new Date(node.sancion).getFullYear();
     return `${node.tipo} ${node.numero}/${year}`;
   };
+
+  // Helper to format norma title
+  const formatNormaTitle = useCallback((node: { infoleg_id: number; tipo_norma?: string | null; numero?: number | null; sancion?: string | null }) => {
+    if (node.tipo_norma && node.numero && node.sancion) {
+      const year = new Date(node.sancion).getFullYear();
+      return `${node.tipo_norma} ${node.numero}/${year}`;
+    }
+    return `Norma ${node.infoleg_id}`;
+  }, []);
+
+  // Build complete node map including nodes from links
+  const buildCompleteNodeMap = useCallback(() => {
+    if (!relacionesData) return { normasQueModifican: [], normasModificadas: [] };
+
+    // Create a map of all infoleg_ids to ensure we have all nodes
+    const nodeMap = new Map<number, {
+      infoleg_id: number;
+      titulo?: string | null;
+      titulo_resumido?: string | null;
+      tipo_norma?: string | null;
+      numero?: number | null;
+      sancion?: string | null;
+    }>();
+
+    // Add nodes from data.nodes
+    relacionesData.nodes.forEach(node => {
+      nodeMap.set(node.infoleg_id, node);
+    });
+
+    // Add any missing nodes from links
+    relacionesData.links.forEach(link => {
+      if (!nodeMap.has(link.source_infoleg_id) && link.source_infoleg_id !== infolegId) {
+        nodeMap.set(link.source_infoleg_id, {
+          infoleg_id: link.source_infoleg_id,
+        });
+      }
+      if (!nodeMap.has(link.target_infoleg_id) && link.target_infoleg_id !== infolegId) {
+        nodeMap.set(link.target_infoleg_id, {
+          infoleg_id: link.target_infoleg_id,
+        });
+      }
+    });
+
+    // Get incoming (normas that modify current)
+    const incomingIds = new Set<number>();
+    relacionesData.links.forEach(link => {
+      if (link.target_infoleg_id === infolegId) {
+        incomingIds.add(link.source_infoleg_id);
+      }
+    });
+
+    // Get outgoing (normas modified by current)
+    const outgoingIds = new Set<number>();
+    relacionesData.links.forEach(link => {
+      if (link.source_infoleg_id === infolegId) {
+        outgoingIds.add(link.target_infoleg_id);
+      }
+    });
+
+    const normasQueModifican = Array.from(incomingIds).map(id => nodeMap.get(id)!).filter(Boolean);
+    const normasModificadas = Array.from(outgoingIds).map(id => nodeMap.get(id)!).filter(Boolean);
+
+    return { normasQueModifican, normasModificadas };
+  }, [relacionesData, infolegId]);
+
+  const { normasQueModifican, normasModificadas } = buildCompleteNodeMap();
+
+  const handleNavigateToNorma = useCallback((normaId: number) => {
+    router.push(`/normas/${normaId}`);
+  }, [router]);
 
   return (
     <aside className='w-80 flex-shrink-0 border-r border-border  flex flex-col h-[calc(100vh-3.5rem)] sticky top-14'>
@@ -181,23 +255,145 @@ export function NormaSidebar({
           {/* === Expanded Graph Dialog === */}
           <Dialog open={isGraphDialogOpen} onOpenChange={setIsGraphDialogOpen}>
             <DialogContent className='max-w-[95vw] max-h-[60vh] h-[60vh] w-[95vw] p-0 gap-0 overflow-hidden flex flex-col '>
-              <DialogHeader className='flex-shrink-0 px-4 py-3 pe-10 border-b bg-muted/30'>
-                <div className='text-xs text-muted-foreground uppercase tracking-wide mb-1'>
-                  Grafo de relaciones
+              <DialogHeader className='flex-shrink-0 px-4 py-3 pt-4  border-b bg-muted/30'>
+                <div className='text-xs text-muted-foreground/70 uppercase tracking-wide mb-1'>
+                  Normas relacionadas
                 </div>
                 <DialogTitle className='text-xl font-bold font-serif'>
                   {nombreNorma}
                 </DialogTitle>
+                
               </DialogHeader>
               
-              {/* Graph with integrated information display */}
-              <div className='flex-1 min-h-0 overflow-hidden'>
-                <NormaRelationGraphDialog 
-                  infolegId={infolegId}
-                  data={relacionesData || undefined}
-                  loading={relacionesLoading}
-                />
-              </div>
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'grafo' | 'lista')} className='flex-1 flex flex-col min-h-0 gap-0 '>
+                <TabsList className='flex-shrink-0 w-full justify-start rounded-none border-b bg-muted p-0'>
+                  <TabsTrigger value='grafo' className='data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:rounded-none text-muted-foreground/70'>
+                    Red Normativa
+                  </TabsTrigger>
+                  <TabsTrigger value='lista' className='data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:rounded-none text-muted-foreground/70'>
+                    Lista
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Graph Tab */}
+                <TabsContent value='grafo' className='flex-1 min-h-0 overflow-hidden mt-0'>
+                  <NormaRelationGraphDialog 
+                    infolegId={infolegId}
+                    data={relacionesData || undefined}
+                    loading={relacionesLoading}
+                  />
+                </TabsContent>
+                
+                {/* List Tab */}
+                <TabsContent value='lista' className='flex-1 min-h-0 overflow-hidden mt-0 flex flex-col'>
+                  {/* Sticky Header - 2 columns with border between them */}
+                  <div className='sticky top-0 bg-background z-10 border-b border-border flex-shrink-0'>
+                    <div className='grid grid-cols-2 divide-x divide-border'>
+                      <div className='p-2 text-center'>
+                        <h3 className='text-sm font-bold font-serif text-foreground'>
+                          Complementada por
+                          <span className='ml-2 text-xs font-normal text-muted-foreground'>
+                            ({normasQueModifican.length})
+                          </span>
+                        </h3>
+                      </div>
+                      <div className='p-2 text-center'>
+                        <h3 className='text-sm font-bold font-serif text-foreground'>
+                          Complementa
+                          <span className='ml-2 text-xs font-normal text-muted-foreground'>
+                            ({normasModificadas.length})
+                          </span>
+                        </h3>
+                      </div>
+                    </div>
+                  </div>
+                  <ScrollArea className='h-full'>
+                    <div className='grid grid-cols-2 divide-x divide-border pb-8'>
+                      {/* Left column - Normas que modifican */}
+                      <div className='pt-3 px-4 pb-6'>
+                        <div className='space-y-2'>
+                          {normasQueModifican.length > 0 ? (
+                            normasQueModifican.map((norma) => (
+                              <div
+                                key={norma.infoleg_id}
+                                className='group p-3 border rounded-md hover:bg-accent transition-colors cursor-pointer'
+                                onClick={() => handleNavigateToNorma(norma.infoleg_id)}
+                              >
+                                <div className='flex items-start justify-between gap-2'>
+                                  <div className='flex-1 min-w-0'>
+                                    <div className='font-bold font-serif text-sm truncate'>
+                                      {formatNormaTitle(norma)}
+                                    </div>
+                                    <div className='text-xs text-muted-foreground line-clamp-2 mt-1'>
+                                      {norma.titulo_resumido || 'Sin título resumido'}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    className='flex-shrink-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleNavigateToNorma(norma.infoleg_id);
+                                    }}
+                                  >
+                                    <ExternalLink className='h-3 w-3' />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className='text-sm text-muted-foreground text-center py-8'>
+                              No hay normas que complementen a esta
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Right column - Normas modificadas */}
+                      <div className='pt-3 px-4 pb-6'>
+                        <div className='space-y-2'>
+                          {normasModificadas.length > 0 ? (
+                            normasModificadas.map((norma) => (
+                              <div
+                                key={norma.infoleg_id}
+                                className='group p-3 border rounded-md hover:bg-accent transition-colors cursor-pointer'
+                                onClick={() => handleNavigateToNorma(norma.infoleg_id)}
+                              >
+                                <div className='flex items-start justify-between gap-2'>
+                                  <div className='flex-1 min-w-0'>
+                                    <div className='font-bold font-serif text-sm truncate'>
+                                      {formatNormaTitle(norma)}
+                                    </div>
+                                    <div className='text-xs text-muted-foreground line-clamp-2 mt-1'>
+                                      {norma.titulo_resumido || 'Sin título resumido'}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    className='flex-shrink-0 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity'
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleNavigateToNorma(norma.infoleg_id);
+                                    }}
+                                  >
+                                    <ExternalLink className='h-3 w-3' />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className='text-sm text-muted-foreground text-center py-8'>
+                              Esta norma no complementa otras
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         </>
