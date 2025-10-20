@@ -16,6 +16,7 @@ import SvgEstampa from '../icons/Estampa';
 import React from 'react';
 import { Separator } from '../ui/separator';
 import { FeedbackButton } from '@/features/feedback/components/feedback-button';
+import NotificationInbox from '@/features/notifications/inbox';
 
 function renderBreadcrumb(pathname: string) {
   const segments = pathname.split('/').filter(Boolean);
@@ -111,9 +112,8 @@ export default function AppHeader() {
       {/* User actions */}
       <div className='ml-auto flex items-center gap-2'>
         <FeedbackButton />
-
+        <NotificationInbox />
         <ThemeToggle />
-        
       </div>
     </header>
   );

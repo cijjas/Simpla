@@ -597,28 +597,19 @@ class NormaReconstructor:
                     
                     # Get unique tipo_norma
                     cur.execute("""
-                        SELECT DISTINCT tipo_norma 
-                        FROM normas_structured 
-                        WHERE tipo_norma IS NOT NULL 
-                        ORDER BY tipo_norma
+                        SELECT tipo_norma FROM tipos_norma;
                     """)
                     options['tipos_norma'] = [row['tipo_norma'] for row in cur.fetchall()]
                     
                     # Get unique dependencias from normas_referencias
                     cur.execute("""
-                        SELECT DISTINCT dependencia 
-                        FROM normas_referencias 
-                        WHERE dependencia IS NOT NULL 
-                        ORDER BY dependencia
+                        SELECT dependencia FROM dependencias;
                     """)
                     options['dependencias'] = [row['dependencia'] for row in cur.fetchall()]
                     
                     # Get unique titulo_sumario
                     cur.execute("""
-                        SELECT DISTINCT titulo_sumario 
-                        FROM normas_structured 
-                        WHERE titulo_sumario IS NOT NULL 
-                        ORDER BY titulo_sumario
+                        SELECT titulo_sumario FROM titulos_sumario;
                     """)
                     options['titulos_sumario'] = [row['titulo_sumario'] for row in cur.fetchall()]
                     
@@ -629,6 +620,29 @@ class NormaReconstructor:
             raise
         except Exception as e:
             logger.error(f"Unexpected error in get_filter_options: {str(e)}")
+            raise
+
+    def refresh_materialized_views(self):
+        """Refresh materialized views for filter options after batch inserts."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    
+                    # Refresh each materialized view concurrently
+                    logger.info("Refreshing materialized views...")
+
+                    cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY tipos_norma;")
+                    cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY dependencias;")
+                    cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY titulos_sumario;")
+                    
+                    conn.commit()
+                    logger.info("Materialized views refreshed successfully.")
+        
+        except psycopg2.Error as e:
+            logger.error(f"Database error during materialized view refresh: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during materialized view refresh: {str(e)}")
             raise
 
 

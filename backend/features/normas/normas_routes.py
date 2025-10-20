@@ -4,6 +4,9 @@ from typing import Optional
 from datetime import date
 from fastapi import APIRouter, HTTPException, status, Query
 from core.utils.logging_config import get_logger
+import json
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 from shared.utils.norma_reconstruction import get_norma_reconstructor
 from .normas_schemas import (
@@ -394,4 +397,181 @@ async def get_norma_relaciones(infoleg_id: int):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching norma relationships: {str(e)}"
+        )
+
+
+@router.post("/normas/daily-batch-complete")
+async def normas_daily_batch_complete(batch_date: Optional[date] = None):
+    """
+    Generic endpoint to be called by the daily batch job once new normas have been
+    inserted into the database. Responsibilities:
+      - Refresh materialized views used by the filters
+      - Find normas inserted during the previous day (or provided batch_date)
+        and, for each norma, read `lista_normas_que_complementa` (the normas
+        that it "complements" / modifies). For every user that has any of those
+        complemented normas in their favorites, insert a `norm_update` row into
+        the `notifications` table so they see an in-app notification.
+
+    The endpoint is idempotent if called multiple times for the same batch window
+    (it will insert notifications each time unless deduplication is implemented
+    later).
+    """
+    try:
+        logger.info("Received request: normas_daily_batch_complete, batch_date=%s", batch_date)
+
+        # Determine date window: default to previous UTC day if not provided
+        from datetime import datetime, timedelta, timezone
+
+        # TEMPORARILY COMMENTED OUT FOR TESTING
+        # now = datetime.now(timezone.utc)
+        # if batch_date:
+        #     # Interpret batch_date as the day that was processed (local date assumed UTC)
+        #     start_dt = datetime(batch_date.year, batch_date.month, batch_date.day, tzinfo=timezone.utc)
+        #     end_dt = start_dt + timedelta(days=1)
+        # else:
+        #     # previous day window
+        #     prev_day = (now - timedelta(days=1)).date()
+        #     start_dt = datetime(prev_day.year, prev_day.month, prev_day.day, tzinfo=timezone.utc)
+        #     end_dt = start_dt + timedelta(days=1)
+
+        # FOR TESTING: Look for normas published on 2021-08-24
+        test_date = date(2021, 8, 24)
+        logger.info("TEST MODE: Looking for normas published on %s", test_date)
+
+        # Step A: Refresh materialized views first (so front-end filters pick up new values)
+        try:
+            reconstructor.refresh_materialized_views()
+            logger.info("Materialized views refreshed successfully")
+        except Exception as e:
+            logger.warning("Materialized view refresh failed: %s", str(e))
+
+        # Step B: Find normas inserted in that window and their relationships
+        modified_norma_ids = set()  # normas that are modified by new normas
+        new_normas = []  # collect basic info about new normas for notification metadata
+
+        with reconstructor.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # First, get normas published on the test date (FOR TESTING)
+                cur.execute(
+                    """
+                    SELECT ns.id, ns.infoleg_id, ns.titulo_resumido, ns.titulo_sumario
+                    FROM normas_structured ns
+                    WHERE ns.publicacion = %s
+                    """,
+                    (test_date,),
+                )
+
+                new_normas_rows = cur.fetchall()
+                logger.info("Found %d normas published on test date", len(new_normas_rows))
+
+                if not new_normas_rows:
+                    logger.info("No normas found for test date; nothing to notify")
+                    return {"success": True, "notified": 0, "message": "No normas found for test date"}
+
+                # Collect new norma infoleg_ids
+                new_infoleg_ids = [row['infoleg_id'] for row in new_normas_rows]
+                new_normas = new_normas_rows  # store for metadata
+
+                # Find relationships where new normas modify existing normas
+                # We want outgoing relationships: new norma → existing norma
+                cur.execute(
+                    """
+                    SELECT norma_origen_infoleg_id, norma_destino_infoleg_id, tipo_relacion
+                    FROM normas_relaciones
+                    WHERE norma_origen_infoleg_id = ANY(%s)
+                    """,
+                    (new_infoleg_ids,),
+                )
+
+                relations = cur.fetchall()
+                logger.info("Found %d relationships where new normas modify existing normas", len(relations))
+
+                # Collect the destination normas (the ones being modified)
+                for rel in relations:
+                    modified_norma_ids.add(rel['norma_destino_infoleg_id'])
+
+        if not modified_norma_ids:
+            logger.info("No modified norma ids found for this batch window; nothing to notify")
+            return {"success": True, "notified": 0, "message": "No modified normas found"}
+
+        logger.info("Total modified norma ids to check favorites: %d", len(modified_norma_ids))
+
+        # Step C: Find favorites for those norma ids
+        notifications_created = 0
+        with reconstructor.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # fetch favorites for the modified normas
+                cur.execute(
+                    "SELECT user_id, norma_id FROM favorites WHERE is_deleted = false AND norma_id = ANY(%s)",
+                    (list(modified_norma_ids),),
+                )
+
+                fav_rows = cur.fetchall()
+                logger.info("Found %d favorite entries referencing complemented normas", len(fav_rows))
+
+                # Insert notifications for each favorite
+                for fav in fav_rows:
+                    user_id = fav['user_id']
+                    saved_norma_id = fav['norma_id']
+
+                    # Find which new normas modify this saved norma using the relations we fetched
+                    with reconstructor.get_connection() as conn2:
+                        with conn2.cursor(cursor_factory=RealDictCursor) as cur2:
+                            cur2.execute(
+                                """
+                                SELECT norma_origen_infoleg_id, tipo_relacion
+                                FROM normas_relaciones
+                                WHERE norma_destino_infoleg_id = %s 
+                                AND norma_origen_infoleg_id = ANY(%s)
+                                """,
+                                (saved_norma_id, new_infoleg_ids),
+                            )
+                            modifying_relations = cur2.fetchall()
+
+                    # Build metadata: include the list of new normas that modify this saved norma
+                    modifying_new_normas = []
+                    for rel in modifying_relations:
+                        # Find the new norma details
+                        for new_norma in new_normas:
+                            if new_norma['infoleg_id'] == rel['norma_origen_infoleg_id']:
+                                modifying_new_normas.append({
+                                    "id": new_norma['id'], 
+                                    "infoleg_id": new_norma['infoleg_id'],
+                                    "titulo": new_norma['titulo_resumido'] or new_norma['titulo_sumario'],
+                                    "tipo_relacion": rel['tipo_relacion']
+                                })
+                                break
+
+                    # create a friendly title/body
+                    title = "Posible modificación en una norma guardada"
+                    body = f"Se publicó una norma nueva que podría modificar o complementar la norma que guardaste (ID {saved_norma_id})."
+                    link = f"/normas/{saved_norma_id}"
+                    metadata = {
+                        "type": "norm_update",
+                        "saved_norma_id": saved_norma_id,
+                        "modifying_normas": modifying_new_normas
+                    }
+
+                    try:
+                        cur.execute(
+                            """
+                            INSERT INTO notifications (user_id, title, body, type, link, metadata)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            """,
+                            (user_id, title, body, 'norm_update', link, json.dumps(metadata)),
+                        )
+                        notifications_created += 1
+                    except Exception as e:
+                        logger.error("Failed to insert notification for user %s: %s", user_id, str(e))
+
+                conn.commit()
+
+        logger.info("Notifications created: %d", notifications_created)
+        return {"success": True, "notified": notifications_created}
+
+    except Exception as e:
+        logger.error(f"Error processing daily batch complete: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing daily batch complete: {str(e)}"
         )
