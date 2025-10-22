@@ -469,3 +469,9 @@ export function useConversations() {
   }
   return context;
 }
+
+// Optional version that returns undefined instead of throwing
+export function useConversationsOptional() {
+  const context = useContext(ConversationsContext);
+  return context;
+}

@@ -17,7 +17,7 @@ import React from 'react';
 import { Separator } from '../ui/separator';
 import { FeedbackButton } from '@/features/feedback/components/feedback-button';
 import NotificationInbox from '@/features/notifications/inbox';
-import { useConversations } from '@/features/conversations/context/conversations-context';
+import { useConversationsOptional } from '@/features/conversations/context/conversations-context';
 
 function renderBreadcrumb(pathname: string, conversations: Array<{ id: string; title: string }>) {
   const segments = pathname.split('/').filter(Boolean);
@@ -52,6 +52,7 @@ function renderBreadcrumb(pathname: string, conversations: Array<{ id: string; t
     folders: 'Carpetas',
     settings: 'Configuración',
     conversaciones: 'Conversaciones',
+    notificaciones: 'Notificaciones',
   };
 
   return segments.reduce<React.ReactNode[]>((acc, segment, idx) => {
@@ -95,7 +96,8 @@ function renderBreadcrumb(pathname: string, conversations: Array<{ id: string; t
 export default function AppHeader() {
   const pathname = usePathname();
   const { state } = useSidebar();
-  const { state: conversationsState } = useConversations();
+  const conversationsContext = useConversationsOptional();
+  const conversationsState = conversationsContext?.state;
 
   return (
     <header
@@ -119,14 +121,14 @@ export default function AppHeader() {
         </Link>
 
         <Breadcrumb className='truncate hidden sm:flex'>
-          <BreadcrumbList>{renderBreadcrumb(pathname, conversationsState.conversations)}</BreadcrumbList>
+          <BreadcrumbList>{renderBreadcrumb(pathname, conversationsState?.conversations || [])}</BreadcrumbList>
         </Breadcrumb>
       </div>
 
       {/* User actions */}
       <div className='ml-auto flex items-center gap-2'>
-        <FeedbackButton />
         <NotificationInbox />
+        <FeedbackButton />
         <ThemeToggle />
       </div>
     </header>

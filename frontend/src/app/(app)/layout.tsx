@@ -11,7 +11,6 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { BookmarksProvider } from '@/features/bookmark';
-import { ConversationsProvider } from '@/features/conversations';
 
 export default function AppLayout({
   children,
@@ -37,19 +36,17 @@ export default function AppLayout({
 
   return (
     <BookmarksProvider>
-      <ConversationsProvider>
-        <SidebarProvider defaultOpen={true}>
-          <AppSidebar />
-          <div className="flex flex-1 flex-col">
-            <AppHeader />
-            <SidebarInset>
-              <div className="flex flex-1 flex-col gap-4">
-                {children}
-              </div>
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
-      </ConversationsProvider>
+      <SidebarProvider defaultOpen={true}>
+        <AppSidebar />
+        <div className="flex flex-1 flex-col">
+          <AppHeader />
+          <SidebarInset>
+            <div className="flex flex-1 flex-col gap-4">
+              {children}
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
     </BookmarksProvider>
   );
 }

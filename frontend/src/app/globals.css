@@ -8,18 +8,6 @@
   /* Prevent scroll bounce effect */
   overscroll-behavior: none;
   
-  /* Neutral scale — custom grayscale foundation */
-  --neutral-50: #f8f9fc;
-  --neutral-100: #f1f3f9;
-  --neutral-200: #e2e5f0;
-  --neutral-300: #cbd0e1;
-  --neutral-400: #949cb8;
-  --neutral-500: #646d8b;
-  --neutral-600: #474f69;
-  --neutral-700: #333b55;
-  --neutral-800: #1e253b;
-  --neutral-900: #0f152a;
-  --neutral-950: #020717;
   --background: oklch(0.9791 0 0);
   --foreground: oklch(0.3564 0.0391 248.9745);
   --card: oklch(1.0000 0 0);
@@ -303,7 +291,11 @@ body {
   }
 }
 
-
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+}
 
 ::-moz-selection { /* Code for Firefox */
   color: rgba(4, 75, 206, 0.923);

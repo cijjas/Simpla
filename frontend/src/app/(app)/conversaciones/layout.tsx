@@ -1,9 +1,17 @@
+'use client';
+
+import { ConversationsProvider } from '@/features/conversations';
+
 export default function ConversacionesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <ConversationsProvider>
+      {children}
+    </ConversationsProvider>
+  );
 }
 
 

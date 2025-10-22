@@ -8,6 +8,7 @@ import {
   Bookmark,
   Compass,
   MessageSquare,
+  Bell,
 } from 'lucide-react';
 import SvgEstampa from '@/components/icons/Estampa';
 import { forwardRef } from 'react';
@@ -76,6 +77,11 @@ const data = {
       name: 'Carpetas',
       url: '/carpetas',
       icon: Folder,
+    },
+    {
+      name: 'Notificaciones',
+      url: '/notificaciones',
+      icon: Bell,
     },
   ],
 };
