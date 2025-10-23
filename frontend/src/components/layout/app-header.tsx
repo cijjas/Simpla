@@ -16,7 +16,7 @@ import SvgEstampa from '../icons/Estampa';
 import React from 'react';
 import { Separator } from '../ui/separator';
 import { FeedbackButton } from '@/features/feedback/components/feedback-button';
-import NotificationInbox from '@/features/notifications/inbox';
+import { NotificationsPopover } from '@/features/notifications/notifications-popover';
 import { useConversationsOptional } from '@/features/conversations/context/conversations-context';
 
 function renderBreadcrumb(pathname: string, conversations: Array<{ id: string; title: string }>) {
@@ -127,7 +127,9 @@ export default function AppHeader() {
 
       {/* User actions */}
       <div className='ml-auto flex items-center gap-2'>
-        <NotificationInbox />
+        <div className='mr-3'>
+          <NotificationsPopover />
+        </div>
         <FeedbackButton />
         <ThemeToggle />
       </div>

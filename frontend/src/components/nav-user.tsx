@@ -8,6 +8,7 @@ import {
   Loader2,
   Settings,
 } from "lucide-react"
+import { Kbd } from "@/components/ui/kbd"
 import { useAuth } from "@/features/auth/hooks/use-auth"
 
 import {
@@ -105,9 +106,12 @@ export function NavUser({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/configuracion" className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configuración
+                <Link href="/configuracion" className="flex items-center justify-between w-full">
+                  <div className="flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Configuración
+                  </div>
+                  <Kbd>⌘⇧,</Kbd>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

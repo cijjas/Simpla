@@ -1,3 +1,3 @@
-export { NotificationInbox } from './inbox';
+export { NotificationsPopover } from './notifications-popover';
 export { NotificationsPage } from './notifications-page';
 

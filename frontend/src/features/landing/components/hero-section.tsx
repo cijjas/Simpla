@@ -1,25 +1,29 @@
 'use client';
 
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import LandModified from '@/../public/svgs/land-modified.svg';
 
 export function HeroSection() {
   return (
     <section className='relative h-screen flex items-center overflow-hidden'>
       {/* Background Image */}
       <div className='absolute inset-0 z-0'>
-        <Image
-          src='/images/land-modified.png'
-          alt='Paisaje argentino - naturaleza y tradición'
-          fill
-          className='object-cover'
-          priority
+        <LandModified
+          className='absolute inset-0 w-full h-full'
+          preserveAspectRatio='xMidYMid slice'
+          style={{ fill: 'currentColor' }} // or any color you want
         />
         <div className='absolute inset-0 bg-gradient-to-t from-white/40 via-transparent to-transparent' />
-        <div className='absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent' style={{ top: '80%' }} />
-        <div className='absolute top-0 left-0 right-0 bg-gradient-to-b from-background to-transparent' style={{ height: '40%' }} />
+        <div
+          className='absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent'
+          style={{ top: '80%' }}
+        />
+        <div
+          className='absolute top-0 left-0 right-0 bg-gradient-to-b from-background to-transparent'
+          style={{ height: '40%' }}
+        />
       </div>
 
       {/* Content */}
@@ -30,11 +34,12 @@ export function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
           >
-            <h1 className='text-5xl md:text-7xl font-bold mb-6 font-serif tracking-tight drop-shadow-lg'>
-              Donde buscar legislación se vuelve simple
+            <h1 className='text-5xl md:text-7xl font-bold mb-6 font-serif tracking-tight '>
+              Claridad y Precisión en la Búsqueda Normativa.
             </h1>
             <p className='text-xl mb-8 max-w-2xl mx-auto drop-shadow-sm'>
-              IA que entiende tu consulta legal y encuentra la norma exacta en la legislación argentina
+              Una herramienta impulsada por inteligencia artificial para acceder
+              fácilmente a la legislación
             </p>
           </motion.div>
 
@@ -45,14 +50,11 @@ export function HeroSection() {
             className='flex justify-center'
           >
             <Button size='lg' asChild className='drop-shadow-lg'>
-              <Link href='/iniciar-sesion'>
-                Comenzar
-              </Link>
+              <Link href='/iniciar-sesion'>Comenzar</Link>
             </Button>
           </motion.div>
         </div>
       </div>
-
     </section>
   );
 }

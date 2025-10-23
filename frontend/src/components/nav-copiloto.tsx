@@ -14,18 +14,20 @@ import {
 
 export function NavCopiloto({
   copilotoItems,
+  sectionLabel = "Copiloto",
 }: {
   copilotoItems: {
     name: string
     url: string
     icon: LucideIcon
   }[]
+  sectionLabel?: string
 }) {
   const pathname = usePathname()
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Copiloto</SidebarGroupLabel>
+      <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">{sectionLabel}</SidebarGroupLabel>
       <SidebarMenu>
         {copilotoItems.map((item) => {
           const isActive = pathname.startsWith(item.url)

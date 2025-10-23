@@ -2,39 +2,71 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { useSubscriptionContext } from '@/features/subscription/context/subscription-context';
 import { UsageChart } from '@/features/subscription/components/usage-chart';
+import { Badge } from '@/components/ui/badge';
 
 export function OverviewSection() {
   const { status: subscriptionStatus, usageHistory, isLoading } = useSubscriptionContext();
+
+  const calculatePercentage = (current: number, limit: number | null) => {
+    if (!limit) return 0;
+    return Math.min((current / limit) * 100, 100);
+  };
 
   return (
     <div className="space-y-6">
       {/* Plan Features */}
       {subscriptionStatus && (
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>Características del Plan</CardTitle>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Plan Actual</CardTitle>
             <CardDescription>
-              Funciones incluidas en tu plan actual
+              {subscriptionStatus.tier.display_name}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h4 className="font-medium">Límites Diarios</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Tokens: {subscriptionStatus.limits.tokens_per_day?.toLocaleString() || 'Ilimitados'}</li>
-                  <li>• Mensajes: {subscriptionStatus.limits.messages_per_day || 'Ilimitados'}</li>
-                  <li>• Chats simultáneos: {subscriptionStatus.limits.concurrent_chats || 'Ilimitados'}</li>
-                </ul>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Límites Diarios</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tokens</span>
+                    <span className="font-medium">
+                      {subscriptionStatus.limits.tokens_per_day?.toLocaleString() || 'Ilimitados'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mensajes</span>
+                    <span className="font-medium">
+                      {subscriptionStatus.limits.messages_per_day || 'Ilimitados'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Chats simultáneos</span>
+                    <span className="font-medium">
+                      {subscriptionStatus.limits.concurrent_chats || 'Ilimitados'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <h4 className="font-medium">Límites Mensuales</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Tokens: {subscriptionStatus.limits.tokens_per_month?.toLocaleString() || 'Ilimitados'}</li>
-                  <li>• Mensajes por hora: {subscriptionStatus.limits.messages_per_hour || 'Ilimitados'}</li>
-                </ul>
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">Límites Mensuales</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tokens</span>
+                    <span className="font-medium">
+                      {subscriptionStatus.limits.tokens_per_month?.toLocaleString() || 'Ilimitados'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mensajes por hora</span>
+                    <span className="font-medium">
+                      {subscriptionStatus.limits.messages_per_hour || 'Ilimitados'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -43,69 +75,79 @@ export function OverviewSection() {
 
       {/* Current Usage Status */}
       {subscriptionStatus && (
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle>
-              Estado Actual del Uso
-            </CardTitle>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Uso Actual</CardTitle>
             <CardDescription>
-              Tu uso actual y límites del plan
+              Tu uso en tiempo real
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
+            <div className="space-y-6">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Tokens Hoy</span>
-                  <span className="text-sm text-muted-foreground">
-                    {subscriptionStatus.current_usage.tokens_today.toLocaleString()} / {subscriptionStatus.limits.tokens_per_day?.toLocaleString() || '∞'}
-                  </span>
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Tokens Hoy</div>
+                    <div className="text-xs text-muted-foreground">
+                      {subscriptionStatus.current_usage.tokens_today.toLocaleString()} de {subscriptionStatus.limits.tokens_per_day?.toLocaleString() || '∞'}
+                    </div>
+                  </div>
+                  <Badge variant="secondary">
+                    {subscriptionStatus.limits.tokens_per_day 
+                      ? `${calculatePercentage(subscriptionStatus.current_usage.tokens_today, subscriptionStatus.limits.tokens_per_day).toFixed(0)}%`
+                      : '0%'}
+                  </Badge>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${subscriptionStatus.limits.tokens_per_day ? 
-                        Math.min((subscriptionStatus.current_usage.tokens_today / subscriptionStatus.limits.tokens_per_day) * 100, 100) : 0}%` 
-                    }}
-                  ></div>
-                </div>
+                <Progress 
+                  value={calculatePercentage(
+                    subscriptionStatus.current_usage.tokens_today, 
+                    subscriptionStatus.limits.tokens_per_day
+                  )} 
+                />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Mensajes Hoy</span>
-                  <span className="text-sm text-muted-foreground">
-                    {subscriptionStatus.current_usage.messages_today} / {subscriptionStatus.limits.messages_per_day || '∞'}
-                  </span>
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Mensajes Hoy</div>
+                    <div className="text-xs text-muted-foreground">
+                      {subscriptionStatus.current_usage.messages_today} de {subscriptionStatus.limits.messages_per_day || '∞'}
+                    </div>
+                  </div>
+                  <Badge variant="secondary">
+                    {subscriptionStatus.limits.messages_per_day 
+                      ? `${calculatePercentage(subscriptionStatus.current_usage.messages_today, subscriptionStatus.limits.messages_per_day).toFixed(0)}%`
+                      : '0%'}
+                  </Badge>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${subscriptionStatus.limits.messages_per_day ? 
-                        Math.min((subscriptionStatus.current_usage.messages_today / subscriptionStatus.limits.messages_per_day) * 100, 100) : 0}%` 
-                    }}
-                  ></div>
-                </div>
+                <Progress 
+                  value={calculatePercentage(
+                    subscriptionStatus.current_usage.messages_today, 
+                    subscriptionStatus.limits.messages_per_day
+                  )} 
+                />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Mensajes Esta Hora</span>
-                  <span className="text-sm text-muted-foreground">
-                    {subscriptionStatus.current_usage.messages_this_hour} / {subscriptionStatus.limits.messages_per_hour || '∞'}
-                  </span>
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Mensajes Esta Hora</div>
+                    <div className="text-xs text-muted-foreground">
+                      {subscriptionStatus.current_usage.messages_this_hour} de {subscriptionStatus.limits.messages_per_hour || '∞'}
+                    </div>
+                  </div>
+                  <Badge variant="secondary">
+                    {subscriptionStatus.limits.messages_per_hour 
+                      ? `${calculatePercentage(subscriptionStatus.current_usage.messages_this_hour, subscriptionStatus.limits.messages_per_hour).toFixed(0)}%`
+                      : '0%'}
+                  </Badge>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${subscriptionStatus.limits.messages_per_hour ? 
-                        Math.min((subscriptionStatus.current_usage.messages_this_hour / subscriptionStatus.limits.messages_per_hour) * 100, 100) : 0}%` 
-                    }}
-                  ></div>
-                </div>
+                <Progress 
+                  value={calculatePercentage(
+                    subscriptionStatus.current_usage.messages_this_hour, 
+                    subscriptionStatus.limits.messages_per_hour
+                  )} 
+                />
               </div>
             </div>
           </CardContent>

@@ -60,6 +60,8 @@
   --shadow-2xl: 0px 2px 4px 0px hsl(0 0% 40% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  --notification: oklch(0.6171 0.1375 39.0427);
+  --notification-foreground: oklch(1.0000 0 0);
 }
 
 .dark {
@@ -69,7 +71,7 @@
   --card-foreground: oklch(0.9795 0.0098 87.4702);
   --popover: oklch(0.3092 0 0);
   --popover-foreground: oklch(0.9189 0 0);
-  --primary: oklch(0.4110 0.0652 259.4095);
+  --primary: #2e68af;
   --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.9795 0.0098 87.4702);
   --secondary-foreground: oklch(0.3092 0 0);
@@ -79,6 +81,8 @@
   --accent-foreground: oklch(0.9698 0.0095 93.5682);
   --destructive: oklch(0.6402 0.2098 25.3836);
   --destructive-foreground: oklch(0.2949 0.0341 249.0494);
+  --notification: oklch(0.6724 0.1308 38.7559);
+  --notification-foreground: oklch(1.0000 0 0);
   --border: oklch(0.3618 0.0101 106.8928);
   --input: oklch(0.4303 0.0098 99.0765);
   --ring: oklch(0.5905 0.1695 252.8266);
@@ -132,6 +136,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-notification: var(--notification);
+  --color-notification-foreground: var(--notification-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

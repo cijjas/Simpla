@@ -14,18 +14,20 @@ import {
 
 export function NavProjects({
   projects,
+  sectionLabel = "Proyectos",
 }: {
   projects: {
     name: string
     url: string
     icon: LucideIcon
   }[]
+  sectionLabel?: string
 }) {
   const pathname = usePathname()
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Proyectos</SidebarGroupLabel>
+      <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">{sectionLabel}</SidebarGroupLabel>
       <SidebarMenu>
         {projects.map((item) => {
           const isActive = pathname.startsWith(item.url)

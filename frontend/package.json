@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -67,12 +67,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-plugin-unused-imports": "^4.1.4",
+    "svgo": "^4.0.0",
     "tailwindcss": "^4.1.4",
     "typescript": "^5"
   }

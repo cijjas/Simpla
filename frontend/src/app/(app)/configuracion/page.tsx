@@ -6,7 +6,7 @@ import { SubscriptionProvider } from '@/features/subscription/context/subscripti
 export default function ConfiguracionPage() {
   return (
     <SubscriptionProvider>
-        <SettingsPage />
+      <SettingsPage />
     </SubscriptionProvider>
   );
 }

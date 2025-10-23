@@ -9,6 +9,8 @@ import {
   Compass,
   MessageSquare,
   Bell,
+  Loader,
+  BookOpen,
 } from 'lucide-react';
 import SvgEstampa from '@/components/icons/Estampa';
 import { forwardRef } from 'react';
@@ -50,33 +52,33 @@ const data = {
     {
       title: 'Inicio',
       url: '/inicio',
-      icon: Compass,
+      icon: BookOpen,
       isActive: true,
     },
     {
-      title: "Normas",
+      title: "Búsqueda",
       url: "/normas",
       icon: Search,
       commandId: "search-normas", // Will automatically show ⌘K on Mac, Ctrl+K on Windows
     },
-  ],
-  copiloto: [
     {
-      name: 'Conversaciones',
-      url: '/conversaciones',
-      icon: MessageSquare,
+      title: 'Carpetas',
+      url: '/carpetas',
+      icon: Folder,
     },
   ],
-  projects: [
+  motor: [
+    {
+      name: 'Themis',
+      url: '/conversaciones',
+      icon: Loader,
+    },
+  ],
+  control: [
     {
       name: 'Guardados',
       url: '/bookmark',
       icon: Bookmark,
-    },
-    {
-      name: 'Carpetas',
-      url: '/carpetas',
-      icon: Folder,
     },
     {
       name: 'Notificaciones',
@@ -104,8 +106,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavCopiloto copilotoItems={data.copiloto} />
-        <NavProjects projects={data.projects} />
+        <NavCopiloto copilotoItems={data.motor} sectionLabel="Conversaciones" />
+        <NavProjects projects={data.control} sectionLabel="Control" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />

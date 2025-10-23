@@ -2,64 +2,59 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { 
   CreditCard, 
-  Settings as SettingsIcon, 
+  User,
   BarChart3, 
-  Edit,
   Clock,
 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { useSubscriptionContext } from '@/features/subscription/context/subscription-context';
-import { EditNameDialog } from './edit-name-dialog';
 import { OverviewSection } from './overview-section';
 import { SettingsSection } from './settings-section';
 import { UsageSection } from './usage-section';
 import { PlansSection } from './plans-section';
 
+type SectionId = 'overview' | 'account' | 'usage' | 'plans';
+
+interface SettingsSection {
+  id: SectionId;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 export function SettingsPage() {
   const { user } = useAuth();
-  const { status: subscriptionStatus } = useSubscriptionContext();
   const searchParams = useSearchParams();
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState<SectionId>('overview');
 
   // Handle tab query parameter
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (tab && ['overview', 'settings', 'usage', 'plans'].includes(tab)) {
+    const tab = searchParams.get('tab') as SectionId;
+    if (tab && ['overview', 'account', 'usage', 'plans'].includes(tab)) {
       setActiveSection(tab);
     }
   }, [searchParams]);
 
-  const handleNameUpdated = (_newName: string) => {
-    // The user data will be updated automatically by the auth context
-    // when the API call succeeds, so we don't need to do anything here
-  };
-
-  const settingsSections = [
+  const settingsSections: SettingsSection[] = [
     {
       id: 'overview',
       title: 'Resumen',
-      description: 'Resumen general de tu cuenta',
       icon: Clock,
     },
     {
-      id: 'settings',
-      title: 'Configuración',
-      description: 'Configuración general',
-      icon: SettingsIcon,
+      id: 'account',
+      title: 'Cuenta',
+      icon: User,
     },
     {
       id: 'usage',
       title: 'Uso',
-      description: 'Uso y límites',
       icon: BarChart3,
     },
     {
       id: 'plans',
       title: 'Planes',
-      description: 'Planes disponibles',
       icon: CreditCard,
     },
   ];
@@ -68,7 +63,7 @@ export function SettingsPage() {
     switch (activeSection) {
       case 'overview':
         return <OverviewSection />;
-      case 'settings':
+      case 'account':
         return <SettingsSection />;
       case 'usage':
         return <UsageSection />;
@@ -79,58 +74,59 @@ export function SettingsPage() {
     }
   };
 
+  const getSectionTitle = () => {
+    const section = settingsSections.find(s => s.id === activeSection);
+    return section?.title || 'Configuración';
+  };
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="flex gap-6">
-        {/* Sidebar */}
-        <div className="w-80 flex flex-col">
-          {/* User Info Header */}
-          <div className="p-6 border-b border-border">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">{user?.name || 'Usuario'}</h2>
-                <EditNameDialog 
-                  currentName={user?.name || ''} 
-                  onNameUpdated={handleNameUpdated}
-                >
-                  <Button variant="ghost" size="sm">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </EditNameDialog>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {subscriptionStatus?.tier.display_name || 'Free'} · {user?.email}
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Menu */}
-          <div className="flex-1 p-4">
-            <nav className="space-y-2">
-              {settingsSections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.id;
-                
-                return (
-                  <Button
-                    key={section.id}
-                    variant={isActive ? "secondary" : "ghost"}
-                    onClick={() => setActiveSection(section.id)}
-                    className="w-full justify-start gap-3 h-auto py-2 hover:bg-secondary"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{section.title}</span>
-                  </Button>
-                );
-              })}
-            </nav>
-          </div>
-
+    <div className="flex h-[calc(100vh-4rem)] w-full">
+      {/* Sidebar */}
+      <div className=" border-r border-border bg-background flex flex-col shrink-0">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-border">
+          <h1 className="text-3xl font-bold font-serif">Configuración</h1>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 pt-6">
-          {renderContent()}
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-3 py-3 overflow-y-auto">
+          <div className="space-y-1">
+            {settingsSections.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive 
+                      ? "bg-primary text-primary-foreground" 
+                      : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{section.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Content Header */}
+        <div className="px-8 py-5 border-b border-border bg-background shrink-0">
+          <h2 className="text-xl font-semibold">{getSectionTitle()}</h2>
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto bg-muted/30">
+          <div className="px-8 py-6 ">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>

@@ -6,12 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronRight } from 'lucide-react';
+import { EditNameDialog } from './edit-name-dialog';
+import { useSubscriptionContext } from '@/features/subscription/context/subscription-context';
 
 export function SettingsSection() {
   const { user, logout, accessToken } = useAuth();
+  const { status: subscriptionStatus } = useSubscriptionContext();
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
@@ -53,98 +58,129 @@ export function SettingsSection() {
     }
   };
 
+  const handleNameUpdated = (_newName: string) => {
+    // The user data will be updated automatically by the auth context
+  };
+
   return (
     <div className="space-y-6">
-      {/* Account Settings */}
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle>Información de Cuenta</CardTitle>
+      {/* Profile */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Perfil</CardTitle>
           <CardDescription>
-            Gestiona tu información personal y configuración de cuenta
+            Información básica de tu cuenta
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Nombre</label>
-              <p className="text-sm">{user?.name || 'No especificado'}</p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-normal text-muted-foreground">Nombre completo</Label>
+                <p className="text-sm font-medium">{user?.name || 'No especificado'}</p>
+              </div>
+              <EditNameDialog 
+                currentName={user?.name || ''} 
+                onNameUpdated={handleNameUpdated}
+              >
+                <Button variant="ghost" size="sm">
+                  Editar
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </EditNameDialog>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Email</label>
-              <p className="text-sm">{user?.email}</p>
+            
+            <Separator />
+            
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-normal text-muted-foreground">Email</Label>
+                <p className="text-sm font-medium">{user?.email}</p>
+              </div>
+              <Badge variant={user?.email_verified ? 'default' : 'secondary'} className="text-xs">
+                {user?.email_verified ? 'Verificado' : 'Pendiente'}
+              </Badge>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Proveedor</label>
-              <p className="text-sm capitalize">{user?.provider || 'email'}</p>
+            
+            <Separator />
+            
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-normal text-muted-foreground">Plan</Label>
+                <p className="text-sm font-medium">{subscriptionStatus?.tier.display_name || 'Free'}</p>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Estado de Verificación</label>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant={user?.email_verified ? 'default' : 'secondary'} className="text-xs">
-                  {user?.email_verified ? 'Verificado' : 'Pendiente'}
-                </Badge>
+            
+            <Separator />
+            
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-normal text-muted-foreground">Proveedor de autenticación</Label>
+                <p className="text-sm font-medium capitalize">{user?.provider || 'email'}</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Security Settings */}
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle>Seguridad</CardTitle>
+      {/* Security */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Seguridad</CardTitle>
           <CardDescription>
             Configuración de seguridad y acceso
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium">Cambiar Contraseña</h4>
-                <p className="text-sm text-muted-foreground">Actualiza tu contraseña de acceso</p>
-              </div>
-              <Button variant="outline" size="sm">
-                Cambiar
-              </Button>
+        <CardContent>
+          <div className="flex items-center justify-between py-2">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-normal">Cambiar contraseña</Label>
+              <p className="text-xs text-muted-foreground">Actualiza tu contraseña de acceso</p>
             </div>
+            <Button variant="ghost" size="sm">
+              Cambiar
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Data & Privacy */}
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle>Datos y Privacidad</CardTitle>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Datos y Privacidad</CardTitle>
           <CardDescription>
             Gestiona tus datos y configuraciones de privacidad
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium">Exportar Datos</h4>
-                <p className="text-sm text-muted-foreground">Descarga todos tus datos</p>
-              </div>
-              <Button variant="outline" size="sm">
-                Exportar
-              </Button>
+          <div className="flex items-center justify-between py-2">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-normal">Exportar datos</Label>
+              <p className="text-xs text-muted-foreground">Descarga todos tus datos personales</p>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-destructive">Eliminar Cuenta</h4>
-                <p className="text-sm text-muted-foreground">Elimina permanentemente tu cuenta</p>
-              </div>
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                Eliminar
-              </Button>
+            <Button variant="ghost" size="sm">
+              Exportar
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+          
+          <Separator />
+          
+          <div className="flex items-center justify-between py-2">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-normal text-destructive">Eliminar cuenta</Label>
+              <p className="text-xs text-muted-foreground">Elimina permanentemente tu cuenta y datos</p>
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              Eliminar
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -154,26 +190,25 @@ export function SettingsSection() {
         <DialogContent>
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
               <DialogTitle>Eliminar Cuenta</DialogTitle>
             </div>
             <DialogDescription className="pt-3">
               Esta acción es <span className="font-semibold text-destructive">permanente e irreversible</span>. 
-              Se eliminarán todos tus datos, conversaciones, y configuraciones.
+              Se eliminarán todos tus datos, conversaciones y configuraciones.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <div className="pb-3">
-                <label className="text-sm font-medium ">
-                  Para confirmar, escribe: <span className="font-mono text-destructive">{CONFIRMATION_PHRASE}</span>
-                </label>
-              </div>
+              <Label htmlFor="confirmation" className="text-sm">
+                Para confirmar, escribe: <span className="font-mono text-destructive">{CONFIRMATION_PHRASE}</span>
+              </Label>
               
               <Input
+                id="confirmation"
                 value={confirmationText}
                 onChange={(e) => {
                   setConfirmationText(e.target.value);
@@ -206,7 +241,7 @@ export function SettingsSection() {
               onClick={handleDeleteAccount}
               disabled={isDeleting || confirmationText !== CONFIRMATION_PHRASE}
             >
-              {isDeleting ? 'Eliminando...' : 'Eliminar Cuenta Permanentemente'}
+              {isDeleting ? 'Eliminando...' : 'Eliminar Permanentemente'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Bell, CheckCheck, Loader2, ExternalLink, Clock, AlertCircle } from 'lucide-react';
+import { Bell, CheckCheck, Loader2, ExternalLink, Clock, AlertCircle, Check, ListCheck, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useApi } from '@/features/auth/hooks/use-api';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import Estampa from '@/components/icons/Estampa';
 
 type Notification = {
   id: string;
@@ -20,46 +21,48 @@ type Notification = {
   link?: string;
   is_read: boolean;
   created_at: string;
+  read_at?: string;
   metadata?: any;
 };
 
-const TYPE_CONFIG: Record<string, { color: string; bgColor: string; label: string; icon?: React.ComponentType<{ className?: string }> }> = {
+type NotificationsResponse = {
+  notifications: Notification[];
+  total_count: number;
+  unread_count: number;
+  page: number;
+  page_size: number;
+  has_more: boolean;
+};
+
+const TYPE_CONFIG: Record<string, { label: string; icon?: React.ComponentType<{ className?: string }> }> = {
   norm_update: {
-    color: 'bg-primary',
-    bgColor: 'bg-primary/5',
     label: 'Actualización',
-    icon: Bell,
+    icon: Estampa,
   },
   subscription_warning: {
-    color: 'bg-orange-500',
-    bgColor: 'bg-orange-500/5',
     label: 'Suscripción',
     icon: AlertCircle,
   },
   system: {
-    color: 'bg-destructive',
-    bgColor: 'bg-destructive/5',
     label: 'Sistema',
     icon: AlertCircle,
   },
   free_tier_limit: {
-    color: 'bg-green-500',
-    bgColor: 'bg-green-500/5',
     label: 'Límite',
     icon: AlertCircle,
   },
   other: {
-    color: 'bg-muted-foreground',
-    bgColor: 'bg-muted/30',
     label: 'General',
   },
 };
 
-export function NotificationInbox() {
+export function NotificationsPopover() {
   const api = useApi();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [initialLoading, setInitialLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [markAllSuccess, setMarkAllSuccess] = useState(false);
   const isFetchingRef = React.useRef(false);
   const hasFetchedRef = React.useRef(false);
 
@@ -73,11 +76,29 @@ export function NotificationInbox() {
       setInitialLoading(true);
     }
     try {
-      const data = await api.get<Notification[]>('/api/notifications/');
-      const sortedData = (data || [])
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 12);
-      setNotifications(sortedData);
+      // Get only unread notifications (up to 10)
+      const data = await api.get<NotificationsResponse>('/api/notifications/?page=1&page_size=10&unread_only=true');
+      
+      // Store the total unread count from the API
+      setTotalUnreadCount(data.unread_count || 0);
+      
+      if (!isBackgroundRefresh) {
+        // Initial load - just set the notifications
+        setNotifications(data.notifications || []);
+      } else {
+        // Background refresh - merge with existing to keep marked-as-read visible
+        setNotifications(prev => {
+          const newNotifications = data.notifications || [];
+          const newIds = new Set(newNotifications.map(n => n.id));
+          
+          // Keep existing notifications that were marked as read (not in new fetch)
+          const readNotifications = prev.filter(n => n.is_read && !newIds.has(n.id));
+          
+          // Combine: new unread + existing read, limit to 10 total
+          return [...newNotifications, ...readNotifications].slice(0, 10);
+        });
+      }
+      
       hasFetchedRef.current = true;
     } catch (err) {
       console.error('Error fetching notifications', err);
@@ -107,142 +128,85 @@ export function NotificationInbox() {
     };
   }, [fetchNotifications]);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
   const markRead = async (id: string) => {
     try {
       await api.post(`/api/notifications/${id}/mark-read`);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      // Decrement the total unread count
+      setTotalUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Error marking notification read', err);
     }
   };
 
   const handleNotificationClick = async (n: Notification) => {
+    // Mark as read but keep it visible in the list
     if (!n.is_read) {
       await markRead(n.id);
     }
-    setOpen(false);
+    // Close popover when navigating to link
+    if (n.link) {
+      setOpen(false);
+    }
   };
 
   const markAllRead = async () => {
     try {
-      await Promise.all(
-        notifications.filter(n => !n.is_read).map(n => api.post(`/api/notifications/${n.id}/mark-read`))
-      );
+      // Use the new mark-all-read endpoint for better performance
+      await api.post('/api/notifications/mark-all-read');
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      // Reset the total unread count to 0
+      setTotalUnreadCount(0);
+      
+      // Show success feedback
+      setMarkAllSuccess(true);
+      setTimeout(() => {
+        setMarkAllSuccess(false);
+      }, 2000);
     } catch (err) {
       console.error('Error marking all notifications read', err);
     }
   };
 
   const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse UTC date and convert to Argentina time (UTC-3)
+    const utcDate = new Date(dateString);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
+    const diffMs = now.getTime() - utcDate.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
-    if (diffDays === 1) return 'Ayer';
-    if (diffDays < 7) return `Hace ${diffDays} días`;
     
-    return date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+    // After 24 hours, show the actual date in Argentina timezone
+    return utcDate.toLocaleDateString('es-AR', { 
+      day: '2-digit', 
+      month: 'short',
+      timeZone: 'America/Argentina/Buenos_Aires'
+    });
   };
 
   const renderNotification = (n: Notification) => {
-    const config = TYPE_CONFIG[n.type] || TYPE_CONFIG['other'];
-    const Icon = config.icon;
-
-    if (n.type === 'norm_update' && n.metadata) {
-      const modList = n.metadata.modifying_normas || [];
-      const first = modList[0] || {};
-      const savedId = n.metadata?.saved_norma_id;
-      const hasMoreMods = modList.length > 1;
-
-      return (
-        <Link 
-          href={n.link || '#'} 
-          onClick={() => handleNotificationClick(n)} 
-          className={cn(
-            'block transition-colors hover:bg-accent/50',
-            !n.is_read && config.bgColor
-          )}
-        >
-          <div className='flex gap-3 p-3'>
-            <div className={cn('w-1 rounded-full flex-shrink-0', config.color)} />
-            
-            <div className='flex-1 min-w-0 space-y-2'>
-              <div className='flex items-start justify-between gap-2'>
-                <div className='flex items-center gap-2'>
-                  {Icon && <Icon className='h-3.5 w-3.5 text-primary flex-shrink-0' />}
-                  <span className='font-semibold text-sm'>Modificación de Norma</span>
-                  {!n.is_read && (
-                    <div className='w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0' />
-                  )}
-                </div>
-                <div className='flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0'>
-                  <Clock className='h-3 w-3' />
-                  {formatRelativeTime(n.created_at)}
-                </div>
-              </div>
-
-              <div className='space-y-1.5'>
-                <div className='flex items-center gap-2 flex-wrap'>
-                  <Badge variant='outline' className='font-mono text-xs'>
-                    {first.infoleg_id || first.id || '-'}
-                  </Badge>
-                  <span className='text-muted-foreground'>→</span>
-                  <Badge variant='outline' className='font-mono text-xs bg-primary/10'>
-                    {savedId}
-                  </Badge>
-                  {hasMoreMods && (
-                    <Badge variant='secondary' className='text-xs'>
-                      +{modList.length - 1} más
-                    </Badge>
-                  )}
-                </div>
-                
-                {n.body && (
-                  <p className='text-xs text-muted-foreground line-clamp-2'>{n.body}</p>
-                )}
-              </div>
-
-              {n.link && (
-                <div className='flex items-center gap-1 text-xs text-primary font-medium'>
-                  <span>Ver detalles</span>
-                  <ExternalLink className='h-3 w-3' />
-                </div>
-              )}
-            </div>
-          </div>
-        </Link>
-      );
-    }
-
-    // Generic notification
     return (
       <Link 
         href={n.link || '#'} 
         onClick={() => handleNotificationClick(n)} 
         className={cn(
           'block transition-colors hover:bg-accent/50',
-          !n.is_read && config.bgColor
+          !n.is_read ? 'bg-notification/5' : 'opacity-60'
         )}
       >
         <div className='flex gap-3 p-3'>
-          <div className={cn('w-1 rounded-full flex-shrink-0', config.color)} />
+          <div className='w-1 rounded-full flex-shrink-0 bg-notification' />
           
           <div className='flex-1 min-w-0 space-y-2'>
             <div className='flex items-start justify-between gap-2'>
               <div className='flex items-center gap-2 flex-1 min-w-0'>
-                {Icon && <Icon className={cn('h-3.5 w-3.5 flex-shrink-0', config.color.replace('bg-', 'text-'))} />}
                 <span className='font-semibold text-sm truncate'>{n.title}</span>
                 {!n.is_read && (
-                  <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', config.color)} />
+                  <div className='w-1.5 h-1.5 rounded-full flex-shrink-0 bg-notification' />
                 )}
               </div>
               <div className='flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0'>
@@ -256,8 +220,8 @@ export function NotificationInbox() {
             )}
 
             {n.link && (
-              <div className={cn('flex items-center gap-1 text-xs font-medium', config.color.replace('bg-', 'text-'))}>
-                <span>Ver más</span>
+              <div className='flex items-center gap-1 text-xs font-medium text-notification'>
+                <span>Ver detalles</span>
                 <ExternalLink className='h-3 w-3' />
               </div>
             )}
@@ -272,9 +236,9 @@ export function NotificationInbox() {
       <DropdownMenuTrigger asChild>
         <Button variant='ghost' size='icon' className='h-8 w-8 relative group'>
           <Bell className='h-4 w-4 group-hover:animate-[shake_0.5s_ease-in-out]' />
-          {unreadCount > 0 && (
-            <span className='absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] text-primary-foreground bg-destructive rounded-full'>
-              {unreadCount}
+          {totalUnreadCount > 0 && (
+            <span className='absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] text-notification-foreground bg-notification rounded-full'>
+              {totalUnreadCount}
             </span>
           )}
         </Button>
@@ -285,25 +249,27 @@ export function NotificationInbox() {
         <div className='flex items-center justify-between p-4 pb-3'>
           <div className='flex items-center gap-2'>
             <h4 className='font-bold font-serif'>Notificaciones</h4>
-            {unreadCount > 0 && (
-              <Badge variant='secondary' className='text-xs'>
-                {unreadCount} nueva{unreadCount !== 1 ? 's' : ''}
-              </Badge>
+            {totalUnreadCount > 0 && (
+              <div className='flex items-center gap-1.5'>
+                <div className='w-1.5 h-1.5 rounded-full bg-notification' />
+                <span className='text-sm font-medium text-notification'>
+                  {totalUnreadCount} nueva{totalUnreadCount !== 1 ? 's' : ''}
+                </span>
+              </div>
             )}
           </div>
           
-          {unreadCount > 0 && (
+          {totalUnreadCount > 0 && !markAllSuccess && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 
                     variant='ghost' 
-                    size='sm' 
+                    size='icon' 
                     onClick={markAllRead}
-                    className='h-8 px-2 hover:bg-accent'
+                    className='h-8 w-8'
                   >
-                    <CheckCheck className='h-4 w-4 mr-1' />
-                    <span className='text-xs'>Marcar todas</span>
+                    <ListChecks className='h-4 w-4' />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -311,6 +277,13 @@ export function NotificationInbox() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          )}
+          
+          {markAllSuccess && (
+            <div className='flex items-center gap-1.5 text-notification animate-in fade-in duration-200'>
+              <Check className='h-4 w-4' />
+              <span className='text-xs font-medium'>Marcadas como leídas</span>
+            </div>
           )}
         </div>
 
@@ -366,4 +339,4 @@ export function NotificationInbox() {
   );
 }
 
-export default NotificationInbox;
+export default NotificationsPopover;

@@ -31,6 +31,16 @@ export const commands: Command[] = [
     category: 'chat',
   },
   
+  {
+    id: 'open-settings',
+    key: ',',
+    modifiers: ['cmd', 'ctrl', 'shift'],
+    action: { type: 'navigate', route: '/configuracion' },
+    description: 'Abrir configuración',
+    enabled: true,
+    category: 'navigation',
+  },
+  
   // Example commands (disabled by default - uncomment to enable):
   
   // {
