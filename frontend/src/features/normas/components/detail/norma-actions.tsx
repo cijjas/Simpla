@@ -395,7 +395,7 @@ export function NormaActions({ norma }: NormaActionsProps) {
       <AddToFolderDialog
         isOpen={isAddToFolderOpen}
         onClose={() => setIsAddToFolderOpen(false)}
-        normaId={norma?.id || 0}
+        normaId={norma?.infoleg_id || 0}
         normaTitle={norma?.titulo_sumario || norma?.titulo_resumido || ''}
       />
     </TooltipProvider>

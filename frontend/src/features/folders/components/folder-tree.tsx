@@ -382,17 +382,14 @@ export function FolderTree({
               <div className='text-center max-w-xs'>
                 <div className='mb-4 flex justify-center'>
                   <div className='rounded-full bg-primary/10 p-4'>
-                    {searchQuery.trim() ? (
-                      <Search className='h-8 w-8 text-primary/60' />
-                    ) : (
-                      <Sparkles className='h-8 w-8 text-primary/60' />
-                    )}
+                    
+                      <Folder className='h-8 w-8 text-primary/60' />
                   </div>
                 </div>
-                <h3 className='text-sm font-semibold mb-2'>
+                <h3 className='text-md font-bold font-serif mb-2'>
                   {searchQuery.trim()
                     ? 'No se encontraron carpetas'
-                    : '¡Comienza a organizar!'}
+                    : 'Comienza a organizar'}
                 </h3>
                 <p className='text-xs text-muted-foreground mb-4'>
                   {searchQuery.trim()
