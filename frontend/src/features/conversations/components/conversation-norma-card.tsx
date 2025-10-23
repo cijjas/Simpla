@@ -14,7 +14,7 @@ interface ConversationNormaCardProps {
 export function ConversationNormaCard({ norma }: ConversationNormaCardProps) {
   return (
     <Link
-      href={`/norma/${norma.id}`}
+      href={`/normas/${norma.id}`}
       className='group block h-full rounded-lg border bg-card transition hover:bg-accent hover:shadow-md no-underline'
     >
       <Card className='flex h-full flex-col border-none bg-transparent p-0 shadow-none'>
