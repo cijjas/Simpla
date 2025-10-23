@@ -33,7 +33,7 @@ export function NormasPage() {
           </div>
 
           {/* Desktop: Sticky sidebar */}
-          <div className='hidden lg:block overflow-y-auto h-full'>
+          <div className='hidden lg:block overflow-y-auto h-full bg-background'>
             <div className='p-6'>
               <NormasFilter loading={loading} />
             </div>

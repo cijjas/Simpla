@@ -168,7 +168,7 @@ export function BookmarkPage() {
         {/* Results Container - Scrollable */}
         {loading && bookmarks.length === 0 ? (
           view === 'grid' ? (
-            <div className='flex-1 overflow-y-auto px-4 md:px-6 py-4'>
+            <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
               <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <Card
@@ -279,7 +279,7 @@ export function BookmarkPage() {
             </div>
           </section>
         ) : view === 'grid' ? (
-          <div className='flex-1 overflow-y-auto px-4 md:px-6 py-4'>
+          <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
             <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'>
               {bookmarks.map(norma => (
                 <NormaCard

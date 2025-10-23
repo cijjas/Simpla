@@ -23,7 +23,7 @@ export function FoldersPage() {
   return (
     <div className='flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden'>
       {/* Header Section - Fixed */}
-      <div className='flex-shrink-0 border-b bg-background px-4 md:px-6 py-4'>
+      <div className='flex-shrink-0 border-b bg-background px-4 md:px-6 py-4 '>
         <div className='text-start space-y-1'>
           <h1 className='text-2xl md:text-3xl font-bold font-serif'>
             Mis Carpetas

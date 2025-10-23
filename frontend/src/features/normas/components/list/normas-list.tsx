@@ -162,7 +162,7 @@ export function NormasList() {
   const renderLoadingContent = () => {
     if (view === 'grid') {
       return (
-        <div className='flex-1 overflow-y-auto px-4 md:px-6 py-4'>
+        <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
           <section
             className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
             style={{
@@ -435,7 +435,7 @@ export function NormasList() {
       {loading ? (
         renderLoadingContent()
       ) : view === 'grid' ? (
-        <div className='flex-1 overflow-y-auto px-4 md:px-6 py-4'>
+        <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
           <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'>
             {data?.normas.map(norma => (
               <NormaCard 

@@ -85,6 +85,7 @@ const FolderInfoPopover = ({
     </PopoverTrigger>
     <PopoverContent className='w-80'>
       <div className='space-y-3'>
+        <h3 className='font-medium text-sm text-foreground'>Información de carpeta</h3>
         {folderPath.length > 0 && (
           <div className='space-y-2'>
             <h4 className='font-medium text-sm'>Ruta de carpeta</h4>
@@ -170,10 +171,7 @@ const FolderHeader = ({
           currentFolder={currentFolder}
           onFolderSelect={onFolderSelect}
         />
-        <Button size='sm' className='gap-2' disabled={addButtonDisabled}>
-          <Plus className='h-4 w-4' />
-          Agregar norma
-        </Button>
+        
       </div>
     </div>
   </div>
@@ -271,7 +269,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
   const getMainContent = () => {
     if (loading) {
       return (
-        <div className='space-y-6'>
+        <div className='space-y-6 '>
           {/* Subfolders skeleton */}
           <div>
             <div className='bg-background border-b'>
@@ -296,7 +294,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
           
           {/* Normas skeleton */}
           <div>
-            <div className='bg-background border-t'>
+            <div className='bg-background border-t border-b'>
               <Skeleton className='h-5 w-40 mx-4 my-2' />
             </div>
             <div className='p-4'>
@@ -388,7 +386,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
 
         {/* Normas Section */}
         <>
-          <div className='sticky top-0 z-10 bg-background border-b'>
+          <div className='sticky top-0 z-10 bg-background border-b border-t'>
             <h3 className='text-md font-medium font-serif text-start px-4 py-2'>
               Normas en esta carpeta
             </h3>
@@ -433,7 +431,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
           addButtonDisabled={loading || !!error}
         />
 
-        <div className='flex-1 overflow-y-auto'>
+        <div className='flex-1 overflow-y-auto bg-muted/30'>
           {getMainContent()}
         </div>
       </div>

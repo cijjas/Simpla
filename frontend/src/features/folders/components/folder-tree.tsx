@@ -288,7 +288,7 @@ export function FolderTree({
   // Enhanced loading skeleton
   if (loading) {
     return (
-      <div className='h-full flex flex-col gap-0'>
+      <div className='h-full flex flex-col gap-0 bg-background'>
         <div className='p-4 border-b border-border/50'>
           <div className='flex items-center gap-2'>
             <div className='relative flex-1'>
@@ -314,7 +314,7 @@ export function FolderTree({
   // Enhanced error state
   if (error) {
     return (
-      <div className='h-full flex flex-col gap-0'>
+      <div className='h-full flex flex-col gap-0 bg-background'>
         <div className='p-6 flex-1 flex items-center justify-center'>
           <div className='text-center max-w-sm'>
             <div className='mb-4 flex justify-center'>
@@ -343,7 +343,7 @@ export function FolderTree({
 
   return (
     <>
-      <div className='h-full flex flex-col gap-0 overflow-hidden'>
+      <div className='h-full flex flex-col gap-0 overflow-hidden bg-background'>
         {/* Enhanced Header */}
         <div className='p-4 border-b border-border'>
           {/* Compact toolbar: search + create button */}
@@ -376,13 +376,12 @@ export function FolderTree({
         </div>
 
         {/* Content Area */}
-        <div className='p-4 flex-1 flex flex-col min-h-0 overflow-y-auto'>
+        <div className='p-4 flex-1 flex flex-col min-h-0 overflow-y-auto bg-background'>
           {treeData.length === 0 ? (
             <div className='flex-1 flex items-center justify-center p-6'>
               <div className='text-center max-w-xs'>
                 <div className='mb-4 flex justify-center'>
                   <div className='rounded-full bg-primary/10 p-4'>
-                    
                       <Folder className='h-8 w-8 text-primary/60' />
                   </div>
                 </div>
