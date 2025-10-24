@@ -1,12 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { ProgressiveText } from '@/components/ui/progressive-text';
 import SvgEstampa from '@/components/icons/Estampa';
 
 export function AboutUsSection() {
   return (
     <section className='py-40 bg-background'>
-      <div className='mx-auto max-w-7xl px-4'>
+      <div className='mx-auto max-w-6xl px-6'>
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-16 items-center'>
           {/* Content */}
           <motion.div
@@ -16,15 +17,23 @@ export function AboutUsSection() {
             viewport={{ once: true }}
             className='space-y-6'
           >
-            <h2 className='text-4xl md:text-5xl font-bold leading-tight font-serif tracking-tight'>
+            <ProgressiveText
+              className='text-4xl md:text-5xl font-bold leading-tight font-serif tracking-tight'
+              delay={0.1}
+              stagger={0.04}
+            >
               La manera más simple<br />
               de entender las leyes.
-            </h2>
-            <p className='text-lg leading-relaxed tracking-tight'>
+            </ProgressiveText>
+            <ProgressiveText
+              className='text-lg leading-relaxed tracking-tight'
+              delay={0.2}
+              stagger={0.03}
+            >
               Busca normas, regulaciones, y artículos de<br />
               forma clara. Ideal para ciudadanos,<br />
               emprendedores y empresas.
-            </p>
+            </ProgressiveText>
           </motion.div>
 
           {/* Estampa SVG */}

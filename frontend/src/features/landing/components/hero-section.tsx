@@ -1,8 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ProgressiveText } from '@/components/ui/progressive-text';
 import LandModified from '@/../public/svgs/land-modified.svg';
 
 export function HeroSection() {
@@ -27,32 +27,31 @@ export function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className='relative z-10 mx-auto max-w-7xl px-4 w-full flex items-end justify-center h-screen'>
+      <div className='relative z-10 mx-auto max-w-6xl px-6 w-full flex items-end justify-center h-screen'>
         <div className='text-center max-w-4xl mb-20'>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          >
-            <h1 className='text-5xl md:text-7xl font-bold mb-6 font-serif tracking-tight '>
+          <div>
+            <ProgressiveText
+              className='text-5xl md:text-7xl font-bold mb-6 font-serif tracking-tight'
+              delay={0.1}
+              stagger={0.05}
+            >
               Claridad y Precisión en la Búsqueda Normativa.
-            </h1>
-            <p className='text-xl mb-8 max-w-2xl mx-auto drop-shadow-sm'>
+            </ProgressiveText>
+            <ProgressiveText
+              className='text-xl mb-8 max-w-2xl mx-auto drop-shadow-sm'
+              delay={0.3}
+              stagger={0.03}
+            >
               Una herramienta impulsada por inteligencia artificial para acceder
               fácilmente a la legislación
-            </p>
-          </motion.div>
+            </ProgressiveText>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6, ease: 'easeOut' }}
-            className='flex justify-center'
-          >
+          <div className='flex justify-center'>
             <Button size='lg' asChild className='drop-shadow-lg'>
               <Link href='/iniciar-sesion'>Comenzar</Link>
             </Button>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

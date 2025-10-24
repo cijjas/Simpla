@@ -11,6 +11,8 @@ import { HeroSection } from './hero-section';
 import { FeaturesSection } from './features-section';
 import { AboutUsSection } from './about-us-section';
 import { BentoGridSection, defaultServicesCards } from './bento-grid-section';
+import { Footer } from './footer';
+import { ProgressiveText } from '@/components/ui/progressive-text';
 import Image from 'next/image';
 
 export default function LandingPage() {
@@ -19,6 +21,7 @@ export default function LandingPage() {
     'idle' | 'success' | 'error'
   >('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+
 
   // Auto-reset form after success
   useEffect(() => {
@@ -138,7 +141,7 @@ export default function LandingPage() {
 
       {/* Logo Section */}
       <section className='py-20 bg-background'>
-        <div className='mx-auto max-w-7xl px-4 flex justify-center'>
+        <div className='mx-auto max-w-6xl px-6 flex justify-center'>
           <Image
             src='/images/logo_completo_light.png'
             alt='Simpla Logo'
@@ -165,15 +168,24 @@ export default function LandingPage() {
 
       {/* Contact Section */}
       <section id='contact' className='py-40 bg-background'>
-        <div className='mx-auto max-w-2xl px-4'>
+        <div className='mx-auto max-w-6xl px-6'>
+          <div className='max-w-3xl mx-auto'>
           <div className='text-center mb-16'>
-            <h2 className='text-4xl font-bold text-gray-900 dark:text-white mb-4'>
+            <ProgressiveText
+              className='text-4xl font-bold font-serif'
+              delay={0.1}
+              stagger={0.04}
+            >
               ¿Listo para transformar tu estudio jurídico?
-            </h2>
-            <p className='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'>
+            </ProgressiveText>
+            <ProgressiveText
+              className='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'
+              delay={0.2}
+              stagger={0.03}
+            >
               Contactanos para una demostración personalizada o resolvé tus
               dudas.
-            </p>
+            </ProgressiveText>
           </div>
 
           <AnimatePresence mode='wait'>
@@ -279,8 +291,12 @@ export default function LandingPage() {
               </motion.form>
             )}
           </AnimatePresence>
+          </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <Footer />
     </main>
   );
 }

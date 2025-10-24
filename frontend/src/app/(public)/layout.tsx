@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import { LandHeader } from '@/features/landing';
 import { Footer } from '@/components/layout/Footer';
-import { LandFooter } from '@/features/landing';
 import { FeedbackFloater } from '@/features/feedback/components/feedback-floater';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 
@@ -34,13 +33,12 @@ export default function PublicLayout({
   // Use LandHeader and LandFooter for home page, regular Header and Footer for other routes
   const isHomePage = pathname === '/';
   const HeaderComponent = isHomePage ? LandHeader : Header;
-  const FooterComponent = isHomePage ? LandFooter : Footer;
+ 
 
   return (
     <>
       <HeaderComponent />
       <main className='flex-1'>{children}</main>
-      <FooterComponent />
       <FeedbackFloater />
     </>
   );
