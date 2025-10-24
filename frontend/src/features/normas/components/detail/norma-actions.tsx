@@ -396,7 +396,7 @@ export function NormaActions({ norma }: NormaActionsProps) {
         isOpen={isAddToFolderOpen}
         onClose={() => setIsAddToFolderOpen(false)}
         normaId={norma?.infoleg_id || 0}
-        normaTitle={norma?.titulo_sumario || norma?.titulo_resumido || ''}
+        normaTitle={norma?.titulo_resumido  || norma?.titulo_sumario|| ''}
       />
     </TooltipProvider>
   );

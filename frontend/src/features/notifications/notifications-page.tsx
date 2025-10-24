@@ -400,12 +400,12 @@ export function NotificationsPage() {
 
   return (
     <div className='flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden'>
-      <div className='flex-shrink-0 border-b bg-background px-6 py-6'>
-        <div className='space-y-1.5'>
-          <h1 className='text-3xl font-bold font-serif tracking-tight'>
+      <div className='flex-shrink-0 border-b bg-background px-4 md:px-6 py-4'>
+        <div className='text-start space-y-1'>
+          <h1 className='text-2xl md:text-3xl font-bold font-serif'>
             Notificaciones
           </h1>
-          <p className='text-muted-foreground text-sm'>
+          <p className='text-muted-foreground text-xs md:text-sm'>
             Actualizaciones de tus normas guardadas
           </p>
         </div>

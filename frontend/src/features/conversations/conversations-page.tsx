@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown, Loader } from 'lucide-react';
 import SvgEstampa from '@/components/icons/Estampa';
 import ReactMarkdown from 'react-markdown';
 import { LoadingMessage } from '@/features/conversations/components/loading-message';
@@ -207,9 +207,16 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
       {/* Sidebar */}
       <div className="w-80 border-r  flex flex-col h-full">
         {/* Fixed Header */}
-        <div className="p-4 border-b flex-shrink-0 ">
-            <h2 className="text-2xl md:text-3xl font-bold font-serif text-foreground  ">Conversaciones</h2>
-        </div>
+        <div className='flex-shrink-0 border-b bg-background px-4 md:px-6 py-4'>
+          <div className='text-start space-y-1'>
+            <h1 className='text-2xl md:text-3xl font-bold font-serif'>
+              Themis
+            </h1>
+            <p className='text-muted-foreground text-xs md:text-sm'>
+              Tu asistente legal.
+            </p>
+          </div>
+          </div>
         <div className="p-4 border-b bg-muted">
         <Button
               onClick={handleNewConversation}
@@ -335,7 +342,7 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 bg-muted/30">
 
         {/* Messages */}
         <div className="flex-1 min-h-0 p-4">

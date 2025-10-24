@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Request, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func, and_
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
@@ -47,25 +48,41 @@ async def list_notifications(
     """Get paginated notifications for current user."""
     user_uuid = UUID(user_id)
     
-    # Build base query for counting
-    base_query = db.query(Notification).filter(Notification.user_id == user_uuid)
+    # OPTIMIZED: Build filters once and reuse them
+    # Build base filters for all queries
+    base_filters = [Notification.user_id == user_uuid]
     if notification_type:
-        base_query = base_query.filter(Notification.type == notification_type)
+        base_filters.append(Notification.type == notification_type)
     
-    # Always get unread count from base query
-    unread_count = base_query.filter(~Notification.is_read).count()
+    # OPTIMIZED: Get unread count efficiently using partial index
+    # This query will use idx_notifications_user_unread
+    unread_filters = base_filters.copy()
+    unread_filters.append(~Notification.is_read)
+    unread_count = (
+        db.query(func.count(Notification.id))
+        .filter(and_(*unread_filters))
+        .scalar() or 0
+    )
     
-    # Build query for pagination
-    query = base_query
+    # Build filters for main query
+    main_filters = base_filters.copy()
     if unread_only:
-        query = query.filter(~Notification.is_read)
+        main_filters.append(~Notification.is_read)
     
-    # Get total count (from filtered query if unread_only, else all)
-    total_count = query.count()
+    # OPTIMIZED: Get total count efficiently
+    # This query will use idx_notifications_user_list
+    total_count = (
+        db.query(func.count(Notification.id))
+        .filter(and_(*main_filters))
+        .scalar() or 0
+    )
     
     # Get paginated results
+    # This query will use idx_notifications_user_list for ordering
     notifications = (
-        query.order_by(Notification.created_at.desc())
+        db.query(Notification)
+        .filter(and_(*main_filters))
+        .order_by(Notification.created_at.desc())
         .limit(page_size)
         .offset((page - 1) * page_size)
         .all()

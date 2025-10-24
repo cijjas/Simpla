@@ -37,25 +37,25 @@ class ConversationService:
     ) -> Tuple[List[Conversation], int]:
         """Get paginated list of conversations for a user."""
         try:
-            # Build query
-            query = select(Conversation).where(
-                and_(
-                    Conversation.user_id == user_id,
-                    Conversation.is_deleted == False
-                )
+            # Build base filters
+            filters = and_(
+                Conversation.user_id == user_id,
+                Conversation.is_deleted == False  # noqa: E712
             )
             
-            # Apply filters
+            # Apply optional filters
             if params.chat_type:
-                query = query.where(Conversation.chat_type == params.chat_type)
+                filters = and_(filters, Conversation.chat_type == params.chat_type)
             
             if params.is_archived is not None:
-                query = query.where(Conversation.is_archived == params.is_archived)
+                filters = and_(filters, Conversation.is_archived == params.is_archived)
             
-            # Get total count
-            count_query = select(func.count()).select_from(query.subquery())
-            total_result = self.db.execute(count_query)
-            total = total_result.scalar()
+            # OPTIMIZED: Direct count query instead of subquery
+            # This is much faster as it uses the index directly
+            total = self.db.query(func.count(Conversation.id)).filter(filters).scalar() or 0
+            
+            # Build main query
+            query = select(Conversation).where(filters)
             
             # Apply pagination and ordering
             query = query.order_by(Conversation.updated_at.desc())

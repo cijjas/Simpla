@@ -103,8 +103,20 @@ function SidebarProvider({
         _setOpen(openState)
       }
 
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      // Debounce cookie updates to reduce DOM manipulation
+      if (typeof window !== 'undefined') {
+        // Store the timeout handle on a symbol to avoid TS errors about window property
+        const SIDEBAR_COOKIE_TIMEOUT = Symbol.for('sidebarCookieTimeout');
+        // @ts-ignore
+        if (window[SIDEBAR_COOKIE_TIMEOUT]) {
+          // @ts-ignore
+          clearTimeout(window[SIDEBAR_COOKIE_TIMEOUT]);
+        }
+        // @ts-ignore
+        window[SIDEBAR_COOKIE_TIMEOUT] = setTimeout(() => {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        }, 100);
+      }
     },
     [setOpenProp, open]
   )

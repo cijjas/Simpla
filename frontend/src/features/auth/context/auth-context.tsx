@@ -429,7 +429,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         clearInterval(refreshInterval);
       }
-    }, 5 * 60 * 1000); // Check every 5 minutes instead of 14
+    }, 10 * 60 * 1000); // Check every 10 minutes instead of 5 to reduce frequency
 
     return () => clearInterval(refreshInterval);
   }, [authState.accessToken, authState.isAuthenticated, refreshToken]);

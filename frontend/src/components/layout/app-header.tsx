@@ -1,15 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from '../ui/theme-toggle';
 import SvgEstampa from '../icons/Estampa';
@@ -17,87 +9,10 @@ import React from 'react';
 import { Separator } from '../ui/separator';
 import { FeedbackButton } from '@/features/feedback/components/feedback-button';
 import { NotificationsPopover } from '@/features/notifications/notifications-popover';
-import { useConversationsOptional } from '@/features/conversations/context/conversations-context';
 
-function renderBreadcrumb(pathname: string, conversations: Array<{ id: string; title: string }>) {
-  const segments = pathname.split('/').filter(Boolean);
-
-  if (pathname.startsWith('/norma/') && segments.length === 2) {
-    return (
-      <>
-        <BreadcrumbItem key='busqueda'>
-          <BreadcrumbLink asChild>
-            <Link href='/busqueda'>Búsqueda</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator key='sep-norma' />
-        <BreadcrumbItem key='norma'>
-          <BreadcrumbLink className='text-muted-foreground cursor-default'>
-            Norma {segments[1]}
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-      </>
-    );
-  }
-
-  const segmentLabelMap: Record<string, string> = {
-    dashboard: 'Dashboard',
-    busqueda: 'Búsqueda',
-    norma: 'Norma',
-    normas: 'Normas',
-    chat: 'Chat',
-    constitucion: 'Constituciones',
-    constituciones: 'Constituciones',
-    carpetas: 'Carpetas',
-    folders: 'Carpetas',
-    settings: 'Configuración',
-    conversaciones: 'Conversaciones',
-    notificaciones: 'Notificaciones',
-  };
-
-  return segments.reduce<React.ReactNode[]>((acc, segment, idx) => {
-    const href = '/' + segments.slice(0, idx + 1).join('/');
-    const isLast = idx === segments.length - 1;
-
-    // Special handling for conversation IDs
-    let label = segmentLabelMap[segment] || segment;
-    if (idx > 0 && segments[idx - 1] === 'conversaciones') {
-      // This is a conversation ID, try to get the title
-      if (segment === 'new') {
-        label = 'Nueva conversación';
-      } else {
-        const conversation = conversations.find(c => c.id === segment);
-        label = conversation?.title || 'Conversación';
-      }
-    }
-
-    acc.push(
-      <BreadcrumbItem key={`item-${href}`}>
-        {isLast ? (
-          <BreadcrumbLink className='text-muted-foreground cursor-default'>
-            {label}
-          </BreadcrumbLink>
-        ) : (
-          <BreadcrumbLink asChild>
-            <Link href={href}>{label}</Link>
-          </BreadcrumbLink>
-        )}
-      </BreadcrumbItem>,
-    );
-
-    if (!isLast) {
-      acc.push(<BreadcrumbSeparator key={`sep-${href}`} />);
-    }
-
-    return acc;
-  }, []);
-}
 
 export default function AppHeader() {
-  const pathname = usePathname();
   const { state } = useSidebar();
-  const conversationsContext = useConversationsOptional();
-  const conversationsState = conversationsContext?.state;
 
   return (
     <header
@@ -108,7 +23,7 @@ export default function AppHeader() {
 
       <Separator orientation='vertical' decorative className='mr-2 !h-4 ' />
 
-      {/* Logo + Breadcrumb */}
+      {/* Logo */}
       <div className='flex items-center gap-4 overflow-hidden'>
         <Link
           href='/inicio'
@@ -119,10 +34,6 @@ export default function AppHeader() {
             SIMPLA
           </span>
         </Link>
-
-        <Breadcrumb className='truncate hidden sm:flex'>
-          <BreadcrumbList>{renderBreadcrumb(pathname, conversationsState?.conversations || [])}</BreadcrumbList>
-        </Breadcrumb>
       </div>
 
       {/* User actions */}

@@ -49,7 +49,7 @@ def build_folder_tree(folders: List[Folder]) -> List[FolderTreeResponse]:
         "color": folder.color,
         "icon": folder.icon,
         "order_index": folder.order_index,
-        "norma_count": len(folder.folder_normas),
+        "norma_count": getattr(folder, 'norma_count', 0),  # OPTIMIZED: Use attached count
         "subfolders": []
     } for folder in folders}
     
@@ -79,11 +79,39 @@ async def get_user_folders(
     """Get all folders for the current user in hierarchical tree structure."""
     logger.info(f"Fetching folders for user {user_id}")
     
-    folders = db.query(Folder).filter(
-        Folder.user_id == user_id
-    ).options(
-        joinedload(Folder.folder_normas)
+    # OPTIMIZED: Use subquery to get norma count instead of loading all normas
+    # This dramatically reduces data transfer and query time
+    from sqlalchemy import select as sa_select
+    from features.folders.folder_models import FolderNorma
+    
+    norma_count_subquery = (
+        sa_select(func.count(FolderNorma.id))
+        .where(
+            and_(
+                FolderNorma.folder_id == Folder.id,
+                FolderNorma.is_deleted == False  # noqa: E712
+            )
+        )
+        .correlate(Folder)
+        .scalar_subquery()
+    )
+    
+    # Query folders with computed norma count
+    folders_with_counts = db.query(
+        Folder,
+        norma_count_subquery.label('norma_count')
+    ).filter(
+        and_(
+            Folder.user_id == user_id,
+            Folder.is_deleted == False  # ADDED: Filter soft-deleted folders
+        )
     ).order_by(Folder.order_index).all()
+    
+    # Attach norma_count to folder objects for build_folder_tree
+    folders = []
+    for folder, norma_count in folders_with_counts:
+        folder.norma_count = norma_count
+        folders.append(folder)
     
     return build_folder_tree(folders)
 

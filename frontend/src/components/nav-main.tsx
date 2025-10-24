@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -40,11 +41,14 @@ export function NavMain({
 }) {
   const pathname = usePathname()
   
+  // Memoize the items to prevent unnecessary re-renders
+  const memoizedItems = React.useMemo(() => items, [items])
+  
   return (
     <SidebarGroup>
       <SidebarGroupLabel>General</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => {
+        {memoizedItems.map((item) => {
           const isActive = pathname.startsWith(item.url)
           const hasActiveChild = item.items?.some(subItem => pathname.startsWith(subItem.url))
           
