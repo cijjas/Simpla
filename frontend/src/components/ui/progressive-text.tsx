@@ -45,10 +45,6 @@ export function ProgressiveText({
       opacity: 1,
       filter: 'blur(0px)',
       x: 0,
-      transition: {
-        duration,
-        ease: 'easeOut',
-      },
     },
   };
 
@@ -62,7 +58,10 @@ export function ProgressiveText({
         whileInView="visible"
         viewport={{ once: true, margin: '-100px' }}
       >
-        <motion.div variants={wordVariants}>
+        <motion.div 
+          variants={wordVariants}
+          transition={{ duration, ease: "easeOut" }}
+        >
           {children}
         </motion.div>
       </motion.div>
@@ -81,6 +80,7 @@ export function ProgressiveText({
         <motion.span
           key={index}
           variants={wordVariants}
+          transition={{ duration, ease: "easeOut" }}
           className="inline-block mr-2"
         >
           {word}
