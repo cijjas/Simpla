@@ -1,5 +1,16 @@
 // Types for conversations feature
 
+export type FeedbackType = 'like' | 'dislike';
+
+export interface MessageFeedback {
+  id: string;
+  message_id: string;
+  user_id: string;
+  feedback_type: FeedbackType;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -7,12 +18,14 @@ export interface Message {
   tokens_used: number;
   metadata?: Record<string, unknown>;
   created_at: string;
+  feedback?: FeedbackType;  // User's feedback on this message
+  relevant_docs?: number[];  // Relevant document/norma IDs used as context for this message
 }
 
 export interface Conversation {
   id: string;
   title: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
+  chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
   snippet: string;
   create_time: string;
   update_time: string;
@@ -37,14 +50,15 @@ export interface ConversationListResponse {
 
 export interface CreateConversationRequest {
   title?: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
+  chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
   system_prompt?: string;
 }
 
 export interface SendMessageRequest {
   content: string;
   session_id?: string;
-  chat_type: 'normativa_nacional' | 'constituciones';
+  chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
+  tone?: ToneType;
 }
 
 export interface SendMessageResponse {
@@ -52,6 +66,14 @@ export interface SendMessageResponse {
   session_id: string;
   done?: boolean;
   error?: boolean;
+  norma_ids?: number[];
 }
 
-export type ChatType = 'normativa_nacional' | 'constituciones';
+export interface FeedbackCreateRequest {
+  message_id: string;
+  feedback_type: FeedbackType;
+}
+
+export type ChatType = 'normativa_nacional' | 'constituciones' | 'norma_chat';
+
+export type ToneType = 'default' | 'formal' | 'academico' | 'conciso';

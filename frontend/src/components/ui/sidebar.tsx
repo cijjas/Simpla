@@ -32,6 +32,23 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+// Helper function to read sidebar state from cookies
+function getSidebarStateFromCookie(): boolean | null {
+  if (typeof document === 'undefined') return null
+  
+  const cookies = document.cookie.split(';')
+  const sidebarCookie = cookies.find(cookie => 
+    cookie.trim().startsWith(`${SIDEBAR_COOKIE_NAME}=`)
+  )
+  
+  if (sidebarCookie) {
+    const value = sidebarCookie.split('=')[1]
+    return value === 'true'
+  }
+  
+  return null
+}
+
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
   open: boolean
@@ -71,7 +88,11 @@ function SidebarProvider({
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  // Initialize with cookie state if available, otherwise use defaultOpen
+  const [_open, _setOpen] = React.useState(() => {
+    const cookieState = getSidebarStateFromCookie()
+    return cookieState !== null ? cookieState : defaultOpen
+  })
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -82,8 +103,20 @@ function SidebarProvider({
         _setOpen(openState)
       }
 
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      // Debounce cookie updates to reduce DOM manipulation
+      if (typeof window !== 'undefined') {
+        // Store the timeout handle on a symbol to avoid TS errors about window property
+        const SIDEBAR_COOKIE_TIMEOUT = Symbol.for('sidebarCookieTimeout');
+        // @ts-ignore
+        if (window[SIDEBAR_COOKIE_TIMEOUT]) {
+          // @ts-ignore
+          clearTimeout(window[SIDEBAR_COOKIE_TIMEOUT]);
+        }
+        // @ts-ignore
+        window[SIDEBAR_COOKIE_TIMEOUT] = setTimeout(() => {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        }, 100);
+      }
     },
     [setOpenProp, open]
   )
@@ -229,7 +262,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          "fixed inset-y-0 z-100 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem, FolderUpdate } from '../types';
-import { Folder, FolderPlus, Archive, BookOpen, FileText, Star, Tag, Users } from 'lucide-react';
+import { Folder, FolderPlus, Archive, BookOpen, FileText, Tag, Users } from 'lucide-react';
 
 interface EditFolderDialogProps {
   open: boolean;
@@ -23,13 +23,12 @@ const FOLDER_ICONS = [
   { value: 'archive', label: 'Archivo', icon: Archive },
   { value: 'book-open', label: 'Libro', icon: BookOpen },
   { value: 'file-text', label: 'Documento', icon: FileText },
-  { value: 'star', label: 'Favoritos', icon: Star },
   { value: 'tag', label: 'Etiqueta', icon: Tag },
   { value: 'users', label: 'Equipo', icon: Users },
 ];
 
 const PRESET_COLORS = [
-  '#FFFFFF', // No color (white/transparent)
+  null, // No color
   '#3B82F6', // Blue
   '#10B981', // Green
   '#F59E0B', // Yellow
@@ -44,7 +43,7 @@ export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialo
   const [formData, setFormData] = useState<FolderUpdate>({
     name: '',
     description: '',
-    color: '#FFFFFF',
+    color: null,
     icon: 'folder',
   });
 
@@ -82,7 +81,7 @@ export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialo
     }
   };
 
-  const handleColorChange = (color: string) => {
+  const handleColorChange = (color: string | null) => {
     setFormData(prev => ({ ...prev, color }));
   };
 
@@ -157,11 +156,11 @@ export function EditFolderDialog({ open, onOpenChange, folder }: EditFolderDialo
                   className={`w-8 h-8 rounded-full border-2 transition-all relative ${
                     formData.color === color ? 'border-black' : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: color || '#f0f0f0' }}
                   onClick={() => handleColorChange(color)}
-                  title={color === '#FFFFFF' ? 'Sin color' : color}
+                  title={color === null ? 'Sin color' : color}
                 >
-                  {color === '#FFFFFF' && (
+                  {color === null && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-6 h-0.5 bg-gray-400 rotate-45"></div>
                     </div>

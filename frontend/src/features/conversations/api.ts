@@ -26,7 +26,10 @@ import type {
   CreateConversationRequest,
   SendMessageRequest,
   SendMessageResponse,
-  ChatType
+  ChatType,
+  FeedbackType,
+  FeedbackCreateRequest,
+  MessageFeedback
 } from './types';
 
 // Re-export types for convenience
@@ -38,7 +41,10 @@ export type {
   CreateConversationRequest,
   SendMessageRequest,
   SendMessageResponse,
-  ChatType
+  ChatType,
+  FeedbackType,
+  FeedbackCreateRequest,
+  MessageFeedback
 };
 
 // API Functions
@@ -54,7 +60,7 @@ export class ConversationsAPI {
   static async getConversations(params?: {
     limit?: number;
     offset?: number;
-    chat_type?: 'normativa_nacional' | 'constituciones';
+    chat_type?: 'normativa_nacional' | 'constituciones' | 'norma_chat';
     is_archived?: boolean;
   }): Promise<ConversationListResponse> {
     const searchParams = new URLSearchParams();
@@ -165,6 +171,54 @@ export class ConversationsAPI {
       }
     } catch (error) {
       onError(error instanceof Error ? error : new Error('Unknown error'));
+    }
+  }
+
+  // Feedback endpoints
+  static async createOrUpdateFeedback(
+    messageId: string,
+    feedbackType: FeedbackType
+  ): Promise<MessageFeedback> {
+    const response = await fetch(`${API_BASE}/conversations/feedback/`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        message_id: messageId,
+        feedback_type: feedbackType,
+      }),
+    });
+    return this.handleResponse<MessageFeedback>(response);
+  }
+
+  static async getFeedback(messageId: string): Promise<MessageFeedback | null> {
+    const response = await fetch(`${API_BASE}/conversations/feedback/${messageId}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (response.status === 404) {
+      return null;
+    }
+    
+    return this.handleResponse<MessageFeedback>(response);
+  }
+
+  static async getFeedbacksBatch(messageIds: string[]): Promise<Record<string, FeedbackType>> {
+    const response = await fetch(`${API_BASE}/conversations/feedback/batch`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ message_ids: messageIds }),
+    });
+    return this.handleResponse<Record<string, FeedbackType>>(response);
+  }
+
+  static async deleteFeedback(messageId: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/conversations/feedback/${messageId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok && response.status !== 404) {
+      const errorText = await response.text();
+      throw new Error(`API Error: ${response.status} - ${errorText}`);
     }
   }
 }

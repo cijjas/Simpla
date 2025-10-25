@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupTextarea,
+} from '@/components/ui/input-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
@@ -15,56 +18,75 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, Bot, User, MessageSquare, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil } from 'lucide-react';
-import { toast } from 'sonner';
+import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown, Loader } from 'lucide-react';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 import ReactMarkdown from 'react-markdown';
+import { LoadingMessage } from '@/features/conversations/components/loading-message';
 import { 
-  ConversationsAPI, 
-  type Message, 
-  type Conversation, 
-  type ConversationDetail,
-  formatTime,
+  useConversations,
+  type Conversation,
   formatDate 
 } from './index';
+import { ConversationNormasDisplay, ToneSelector } from './components';
 
-export default function ConversacionesPage() {
-  // State
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<ConversationDetail | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+interface ConversacionesPageProps {
+  conversationId: string;
+}
+
+export default function ConversacionesPage({ conversationId }: ConversacionesPageProps) {
+  const router = useRouter();
+
+  // Use conversations context
+  const {
+    state,
+    sendMessage,
+    archiveConversation,
+    deleteConversation,
+    updateConversationTitle,
+    setTone,
+    submitFeedback,
+    removeFeedback,
+  } = useConversations();
+
+  // Local state for UI
   const [inputMessage, setInputMessage] = useState('');
-  const [chatType, setChatType] = useState<'normativa_nacional' | 'constituciones'>('normativa_nacional');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingMessage, setStreamingMessage] = useState('');
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  // Local state for editing conversation title (moved from Context)
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
-  const [tempTitle, setTempTitle] = useState<string>('');
+  const [tempTitle, setTempTitle] = useState('');
+
+  // Destructure state for easier access
+  const {
+    conversations,
+    messages,
+    tone,
+    isLoading,
+    isStreaming,
+    streamingMessage,
+    isLoadingConversations,
+  } = state;
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const hasLoadedConversations = useRef(false);
-  const isLoadingRef = useRef(false);
-  const streamingContentRef = useRef('');
+  const lastScrollTimeRef = useRef<number>(0);
 
-  // Load conversations on mount
-  useEffect(() => {
-    if (!hasLoadedConversations.current) {
-      hasLoadedConversations.current = true;
-      loadConversations();
-    }
-  }, []);
-
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (throttled during streaming)
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const now = Date.now();
+      // Throttle scroll during streaming to every 100ms, always scroll for new messages
+      const shouldScroll = !isStreaming || (now - lastScrollTimeRef.current > 100);
+
+      if (shouldScroll) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        lastScrollTimeRef.current = now;
+      }
     }
-  }, [messages, streamingMessage]);
+  }, [messages, streamingMessage, isStreaming]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -74,222 +96,73 @@ export default function ConversacionesPage() {
     }
   }, [inputMessage]);
 
-  const loadConversations = async () => {
-    // Prevent multiple simultaneous calls
-    if (isLoadingRef.current) {
-      return;
-    }
-    
-    try {
-      isLoadingRef.current = true;
-      setIsLoadingConversations(true);
-      const data = await ConversationsAPI.getConversations();
-      setConversations(data.items);
-    } catch (error) {
-      toast.error('Error loading conversations');
-      console.error(error);
-    } finally {
-      isLoadingRef.current = false;
-      setIsLoadingConversations(false);
-    }
-  };
-
-  const loadConversation = async (id: string) => {
-    try {
-      setIsLoading(true);
-      const conversation = await ConversationsAPI.getConversation(id);
-      setCurrentConversation(conversation);
-      setMessages(conversation.messages);
-      setCurrentSessionId(id);
-      setChatType(conversation.chat_type);
-    } catch (error) {
-      toast.error('Error loading conversation');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createNewConversation = async () => {
-    try {
-      setIsLoading(true);
-      const conversation = await ConversationsAPI.createConversation({
-        chat_type: chatType,
-        title: 'Nueva conversación',
-      });
-      setCurrentConversation(conversation);
-      setMessages([]);
-      setCurrentSessionId(conversation.id);
-      // Add the new conversation to the conversations list
-      setConversations(prev => [conversation, ...prev]);
-      toast.success('Nueva conversación creada');
-    } catch (error) {
-      toast.error('Error creating conversation');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleArchiveClick = async (conv: Conversation) => {
-    try {
-      await ConversationsAPI.updateConversation(conv.id, { is_archived: true });
-      // Remove from conversations list
-      setConversations(prev => prev.filter(c => c.id !== conv.id));
-      // If this was the current conversation, clear it
-      if (currentSessionId === conv.id) {
-        setCurrentConversation(null);
-        setMessages([]);
-        setCurrentSessionId(null);
-      }
-      toast.success('Conversación archivada');
-    } catch (error) {
-      toast.error('Error archiving conversation');
-      console.error(error);
-    }
-  };
-
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
     setDeleteDialogOpen(true);
   };
 
-  const confirmDeleteConversation = async () => {
-    if (!conversationToDelete) return;
-    
-    try {
-      await ConversationsAPI.deleteConversation(conversationToDelete.id);
-      if (currentSessionId === conversationToDelete.id) {
-        setCurrentConversation(null);
-        setMessages([]);
-        setCurrentSessionId(null);
-      }
-      await loadConversations();
-      toast.success('Conversación eliminada');
-    } catch (error) {
-      toast.error('Error deleting conversation');
-      console.error(error);
-    } finally {
-      setDeleteDialogOpen(false);
-      setConversationToDelete(null);
-    }
-  };
-
-  const handleRenameStart = (conv: Conversation) => {
+  // Handle renaming conversation (local state management)
+  const handleStartRename = (conv: Conversation) => {
     setEditingConversationId(conv.id);
     setTempTitle(conv.title);
   };
 
-  const handleRenameSave = async (convId: string) => {
+  const handleSaveRename = async (conversationId: string) => {
     if (!tempTitle.trim()) {
-      // If empty, cancel rename
       setEditingConversationId(null);
       setTempTitle('');
       return;
     }
 
-    try {
-      await ConversationsAPI.updateConversation(convId, { title: tempTitle.trim() });
-      
-      // Update the conversation in the list
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === convId 
-            ? { ...conv, title: tempTitle.trim() }
-            : conv
-        )
-      );
-
-      // Update current conversation if it's the one being edited
-      if (currentConversation && currentConversation.id === convId) {
-        setCurrentConversation(prev => prev ? { ...prev, title: tempTitle.trim() } : null);
-      }
-
-      toast.success('Título actualizado');
-    } catch (error) {
-      toast.error('Error updating title');
-      console.error(error);
-    } finally {
-      setEditingConversationId(null);
-      setTempTitle('');
-    }
-  };
-
-  const handleRenameCancel = () => {
+    await updateConversationTitle(conversationId, tempTitle.trim());
     setEditingConversationId(null);
     setTempTitle('');
+  };
+
+  const handleCancelRename = () => {
+    setEditingConversationId(null);
+    setTempTitle('');
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+    
+    const wasCurrentConversation = conversationToDelete.id === conversationId;
+    await deleteConversation(conversationToDelete);
+    setDeleteDialogOpen(false);
+    setConversationToDelete(null);
+    
+    // If we deleted the current conversation, navigate to new conversation
+    if (wasCurrentConversation) {
+      router.push('/conversaciones/new');
+    }
   };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isStreaming) return;
 
-    const userMessage: Message = {
-      id: `temp-${Date.now()}`,
-      role: 'user',
-      content: inputMessage,
-      tokens_used: 0,
-      created_at: new Date().toISOString(),
-    };
-
-    // Add user message immediately
-    setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputMessage;
     setInputMessage('');
-    setIsStreaming(true);
-    setStreamingMessage('');
-    streamingContentRef.current = '';
 
-    try {
-      await ConversationsAPI.sendMessage(
-        {
-          content: inputMessage,
-          session_id: currentSessionId || undefined,
-          chat_type: chatType,
-        },
-        (chunk) => {
-          if (chunk.content) {
-            streamingContentRef.current += chunk.content;
-            setStreamingMessage(streamingContentRef.current);
-          }
-        },
-        (sessionId) => {
-          // Add the completed streamed message to the messages array
-          setMessages(prev => [
-            ...prev,
-            {
-              id: `assistant-${Date.now()}`,
-              role: 'assistant',
-              content: streamingContentRef.current,
-              tokens_used: 0,
-              created_at: new Date().toISOString(),
-            }
-          ]);
-          
-          setCurrentSessionId(sessionId);
-          setIsStreaming(false);
-          setStreamingMessage('');
-          streamingContentRef.current = '';
-          
-          // Update the conversation in the list to reflect the latest update
-          if (!currentSessionId && sessionId) {
-            // New conversation was created, refresh the list
-            loadConversations();
-          }
-        },
-        (error) => {
-          toast.error('Error sending message');
-          console.error(error);
-          setIsStreaming(false);
-          setStreamingMessage('');
-          streamingContentRef.current = '';
-        }
-      );
-    } catch (error) {
-      toast.error('Error sending message');
-      console.error(error);
-      setIsStreaming(false);
-      setStreamingMessage('');
-      streamingContentRef.current = '';
-    }
+    // Pass current conversationId and navigation callback
+    await sendMessage(
+      messageContent,
+      conversationId, // Pass 'new' as-is, let Context handle the logic
+      (newSessionId) => {
+        // Navigate to new conversation when created
+        router.replace(`/conversaciones/${newSessionId}`);
+      }
+    );
+  };
+
+  // Handle conversation selection - navigate to conversation URL
+  const handleLoadConversation = (id: string) => {
+    router.push(`/conversaciones/${id}`);
+  };
+
+  // Handle new conversation - navigate to 'new' URL
+  const handleNewConversation = () => {
+    router.push('/conversaciones/new');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -299,285 +172,388 @@ export default function ConversacionesPage() {
     }
   };
 
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handleLikeMessage = async (messageId: string, currentFeedback?: string) => {
+    if (currentFeedback === 'like') {
+      // If already liked, remove the feedback
+      await removeFeedback(messageId);
+    } else {
+      // Otherwise, submit like feedback
+      await submitFeedback(messageId, 'like');
+    }
+  };
+
+  const handleDislikeMessage = async (messageId: string, currentFeedback?: string) => {
+    if (currentFeedback === 'dislike') {
+      // If already disliked, remove the feedback
+      await removeFeedback(messageId);
+    } else {
+      // Otherwise, submit dislike feedback
+      await submitFeedback(messageId, 'dislike');
+    }
+  };
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] bg-background">
       {/* Sidebar */}
-      <div className="w-80 border-r bg-background flex flex-col">
-        <div className="p-4 border-b bg-background">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground mb-3">Conversaciones</h2>
-            <Button 
-              onClick={createNewConversation} 
-              size="sm" 
+      <div className="w-80 border-r  flex flex-col h-full">
+        {/* Fixed Header */}
+        <div className='flex-shrink-0 border-b bg-background px-4 md:px-6 py-4'>
+          <div className='text-start space-y-1'>
+            <h1 className='text-2xl md:text-3xl font-bold font-serif'>
+              Themis
+            </h1>
+            <p className='text-muted-foreground text-xs md:text-sm'>
+              Tu asistente legal.
+            </p>
+          </div>
+          </div>
+        <div className="p-4 border-b bg-muted">
+        <Button
+              onClick={handleNewConversation}
+              size="sm"
               disabled={isLoading}
-              className="w-full rounded-md bg-primary hover:bg-primary/90 shadow-sm"
+              className="w-full cursor-pointer"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="size-4 mr-2" />
               Nueva conversación
             </Button>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Tipo de chat</label>
-            <Select value={chatType} onValueChange={(value: 'normativa_nacional' | 'constituciones') => setChatType(value)}>
-              <SelectTrigger className="rounded-lg border-border/50 bg-background/50">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-lg">
-                <SelectItem value="normativa_nacional">Normativa Nacional</SelectItem>
-                <SelectItem value="constituciones">Constituciones</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        <ScrollArea className="flex-1">
-          <div className="p-0">
-            {isLoadingConversations ? (
-              <div className="flex flex-col items-center justify-center py-12 px-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">Cargando conversaciones...</p>
-              </div>
-            ) : (
-              conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`cursor-pointer transition-colors duration-150 border-b border-border/30 last:border-b-0 ${
-                  currentSessionId === conv.id 
-                    ? 'bg-primary/10 border-l-4 border-l-primary' 
-                    : 'hover:bg-muted/30'
-                }`}
-                onClick={() => loadConversation(conv.id)}
-              >
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {editingConversationId === conv.id ? (
-                          <input
-                            type="text"
-                            value={tempTitle}
-                            onChange={(e) => setTempTitle(e.target.value)}
-                            onBlur={() => handleRenameSave(conv.id)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                handleRenameSave(conv.id);
-                              } else if (e.key === 'Escape') {
-                                handleRenameCancel();
-                              }
-                            }}
-                            className="w-full border-none bg-transparent p-0 text-sm font-medium text-foreground focus:ring-0 focus:outline-none"
-                            autoFocus
-                            onFocus={(e) => e.target.select()}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        ) : (
-                          <h3 className="font-medium text-sm truncate text-foreground">
-                            {conv.title}
-                          </h3>
-                        )}
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs px-2 py-0.5 h-5 shrink-0"
-                        >
-                          {conv.chat_type === 'normativa_nacional' ? 'Normativa' : 'Constituciones'}
-                        </Badge>
+        {/* Scrollable Conversations List */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-0">
+              {isLoadingConversations ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">Cargando conversaciones...</p>
+                </div>
+              ) : (
+                conversations
+                  .filter((conv) => conv.chat_type !== 'norma_chat')
+                  .map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`cursor-pointer transition-colors duration-150 border-b border-border/60 last:border-b-0 ${
+                    conversationId === conv.id 
+                      ? 'bg-primary/10 border-l-4 border-l-primary' 
+                      : 'hover:bg-muted/30'
+                  }`}
+                  onClick={() => handleLoadConversation(conv.id)}
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {editingConversationId === conv.id ? (
+                            <input
+                              type="text"
+                              value={tempTitle}
+                              onChange={(e) => setTempTitle(e.target.value)}
+                              onBlur={() => handleSaveRename(conv.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleSaveRename(conv.id);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelRename();
+                                }
+                              }}
+                              className="w-full border-none bg-transparent p-0 text-sm font-medium text-foreground focus:ring-0 focus:outline-none"
+                              autoFocus
+                              onFocus={(e) => e.target.select()}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <h3 className="font-medium text-sm text-foreground line-clamp-1 leading-snug">
+                              {conv.title}
+                            </h3>
+                          )}
+                          {/* <Badge 
+                            variant="outline" 
+                            className="text-xs px-2 py-0.5 h-5 shrink-0"
+                          >
+                            {conv.chat_type === 'normativa_nacional' ? 'Normativa' : 'Constituciones'}
+                          </Badge> */}
+                        </div>
+                        <span className="text-xs text-muted-foreground/70">
+                          {formatDate(conv.update_time || (conv as Conversation & { updated_at?: string }).updated_at || '')}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-2">
-                        {conv.snippet}
-                      </p>
-                      <span className="text-xs text-muted-foreground/70">
-                        {formatDate(conv.update_time || (conv as Conversation & { updated_at?: string }).updated_at || '')}
-                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground shrink-0"
+                          >
+                            <MoreHorizontal className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartRename(conv);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              archiveConversation(conv);
+                            }}
+                          >
+                            <Archive className="h-4 w-4 mr-2" />
+                            Archivar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(conv);
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2 text-destructive" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground shrink-0"
-                        >
-                          <MoreHorizontal className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRenameStart(conv);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleArchiveClick(conv);
-                          }}
-                        >
-                          <Archive className="h-4 w-4 mr-2" />
-                          Archivar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(conv);
-                          }}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2 text-destructive" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
                 </div>
-              </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {currentConversation ? (
-          <>
-            {/* Chat Header */}
-            <div className="border-b p-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-xl font-semibold">{currentConversation.title}</h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">
-                      {currentConversation.chat_type === 'normativa_nacional' ? 'Normativa Nacional' : 'Constituciones'}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {currentConversation.total_tokens} tokens
-                    </span>
-                  </div>
+      <div className="flex-1 flex flex-col min-h-0 bg-muted/30">
+
+        {/* Messages */}
+        <div className="flex-1 min-h-0 p-0">
+          {isLoading ? (
+            /* Loading state when switching conversations */
+            <div className="h-full flex flex-col items-center justify-center text-center p-4">
+              <div className="max-w-md space-y-4">
+                <div className="flex justify-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Cargando conversación...
+                  </p>
                 </div>
               </div>
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 min-h-0 p-4">
-              <ScrollArea className="h-full">
-                <div className="max-w-4xl mx-auto space-y-4">
-                {messages.map((message) => (
+          ) : messages.length === 0 && !isStreaming ? (
+            /* Welcome message when no messages - full height centering */
+            <div className="h-full flex flex-col items-center justify-center text-center p-4">
+              <div className="max-w-md space-y-4">
+                <div className="flex justify-center">
+                  <SvgEstampa className="h-24 w-24 " fill="currentColor"/>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-serif text-3xl font-bold text-foreground">
+                    Bienvenido
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Puedes preguntarme sobre normativa nacional o constituciones. 
+                    Empieza escribiendo tu pregunta abajo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Messages area with scroll */
+            <ScrollArea className="h-full">
+              <div className="max-w-4xl mx-auto space-y-4 p-4">
+            
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}
+              >
+                <div
+                  className={`flex gap-3 max-w-[80%] ${
+                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row items-start'
+                  }`}
+                >
+                  <div className={`flex-shrink-0 ${message.role === 'user' ? '' : 'pt-4'}`}>
+                    {message.role === 'user' ? (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
+                        <User className="h-4 w-4" />
+                      </div>
+                    ) : (
+                      <SvgEstampa className="h-6 w-6 " fill='currentColor'/>
+                    )}
+                  </div>
                   <div
-                    key={message.id}
-                    className={`flex gap-3 ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    className={`rounded-lg p-3 group ${
+                      message.role === 'user'
+                        ? 'bg-accent'
+                        : ''
                     }`}
                   >
-                    <div
-                      className={`flex gap-3 max-w-[80%] ${
-                        message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                      }`}
-                    >
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            message.role === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted text-muted-foreground'
+                    <div className={`prose-chat text-md ${message.role === 'user' ? 'text-accent-foreground' : 'tracking-wide leading-relaxed'}`}>
+                      <ReactMarkdown 
+                        components={{
+                          p: ({ children }) => <p className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</p>,
+                          strong: ({ children }) => <strong className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</strong>,
+                          em: ({ children }) => <em className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</em>,
+                          code: ({ children }) => <code className={message.role === 'user' ? 'text-accent-foreground bg-accent-foreground/20' : 'bg-muted-foreground/20'}>{children}</code>,
+                          pre: ({ children }) => <pre className={message.role === 'user' ? 'text-accent-foreground bg-accent-foreground/20' : 'bg-muted-foreground/20'}>{children}</pre>,
+                          ul: ({ children }) => <ul className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</ul>,
+                          ol: ({ children }) => <ol className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</ol>,
+                          li: ({ children }) => <li className={message.role === 'user' ? 'text-accent-foreground' : ''}>{children}</li>,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                      
+                      {/* Display normas used as context if available */}
+                      {message.role === 'assistant' && message.relevant_docs && message.relevant_docs.length > 0 && (
+                        <ConversationNormasDisplay normaIds={message.relevant_docs} />
+                      )}
+                    </div>
+                    {message.role === 'assistant' && (
+                      <div className="flex items-center gap-1 mt-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyMessage(message.content, message.id)}
+                          className="h-7 w-7 p-1"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <div className="h-3 w-3 rounded-full bg-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleLikeMessage(message.id, message.feedback)}
+                          className={`h-7 w-7 p-1 ${
+                            message.feedback === 'like' 
+                              ? 'bg-muted' 
+                              : ''
                           }`}
                         >
-                          {message.role === 'user' ? (
-                            <User className="h-4 w-4" />
-                          ) : (
-                            <Bot className="h-4 w-4" />
-                          )}
-                        </div>
+                          <ThumbsUp className={`h-3 w-3 ${message.feedback === 'like' ? 'fill-current' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDislikeMessage(message.id, message.feedback)}
+                          className={`h-7 w-7 p-1 ${
+                            message.feedback === 'dislike' 
+                              ? 'bg-muted' 
+                              : ''
+                          }`}
+                        >
+                          <ThumbsDown className={`h-3 w-3 ${message.feedback === 'dislike' ? 'fill-current' : ''}`} />
+                        </Button>
                       </div>
-                      <div
-                        className={`rounded-lg p-3 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <div className="prose-chat">
-                          <ReactMarkdown>{message.content}</ReactMarkdown>
-                        </div>
-                        <p className="text-xs opacity-70 mt-1">
-                          {formatTime(message.created_at)}
-                        </p>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                ))}
-                
-                {/* Streaming message */}
-                {isStreaming && streamingMessage && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="flex gap-3 max-w-[80%]">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
-                          <Bot className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="rounded-lg p-3 bg-muted">
-                        <div className="prose-chat">
-                          <ReactMarkdown>{streamingMessage}</ReactMarkdown>
-                          <span className="animate-pulse inline-block ml-1">|</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                  <div ref={messagesEndRef} />
                 </div>
-              </ScrollArea>
-            </div>
+              </div>
+            ))}
+            
+            {/* Loading indicator when streaming starts but no content yet */}
+            {isStreaming && !streamingMessage && (
+              <LoadingMessage />
+            )}
+            
+            {/* Streaming message */}
+            {isStreaming && streamingMessage && (
+              <div className="flex gap-3 justify-start">
+                <div className="flex gap-3 max-w-[80%]">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+                      <SvgEstampa className="h-4 w-4" fill='currentColor' />
+                    </div>
+                  </div>
+                  <div className="rounded-lg p-3">
+                    <div className="prose-chat text-md tracking-wide leading-relaxed">
+                      <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                      <span className="animate-pulse inline-block ml-1">|</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+          )}
+        </div>
 
-            {/* Input Area */}
-            <div className="border-t p-4 flex-shrink-0">
-              <div className="max-w-4xl mx-auto">
-                <div className="flex gap-2">
-                  <Textarea
-                    ref={textareaRef}
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Escribe tu mensaje..."
-                    className="min-h-[60px] max-h-[120px] resize-none"
+        {/* Input Area - always visible */}
+        <div className="p-4 pt-0 flex-shrink-0">
+          <div className="max-w-4xl mx-auto">
+            <InputGroup className="rounded-3xl  bg-card border border-border focus-visible:ring-transparent">
+                <InputGroupTextarea
+                  ref={textareaRef}
+                  data-slot="input-group-control"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Escribe tu mensaje..."
+                  className="p-4 max-h-[220px]   "
+                  disabled={isStreaming}
+                />
+              
+              <InputGroupAddon align="block-end">
+                <div className="flex items-center justify-between w-full">
+                  <ToneSelector
+                    selectedTone={tone}
+                    onToneChange={setTone}
                     disabled={isStreaming}
                   />
                   <Button
+                    className="h-8 w-8 rounded-full p-0 ml-2"
+                    size="sm"
+                    variant="default"
                     onClick={handleSendMessage}
                     disabled={!inputMessage.trim() || isStreaming}
-                    size="lg"
                   >
-                    <Send className="h-4 w-4" />
+                    {isStreaming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ArrowUp className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          /* Empty State */
-          <div className="flex-1 flex items-center justify-center min-h-0">
-            <div className="text-center space-y-4">
-              <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto" />
-              <div>
-                <h2 className="text-2xl font-semibold">Selecciona una conversación</h2>
-                <p className="text-muted-foreground mt-2">
-                  Elige una conversación existente o crea una nueva para comenzar
-                </p>
-              </div>
-              <Button onClick={createNewConversation} disabled={isLoading}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva conversación
-              </Button>
+              </InputGroupAddon>
+            </InputGroup>
+            
+            {/* Disclaimer text */}
+            <div className="flex justify-center mt-2">
+              <p className="text-xs text-muted-foreground text-center">
+                La IA puede cometer errores. Verifica la información importante.
+              </p>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}

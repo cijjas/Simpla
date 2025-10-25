@@ -8,12 +8,13 @@ from core.database.base import get_db
 from features.folders.folder_models import Folder, FolderNorma
 from features.folders.folder_schemas import (
     FolderCreate, FolderUpdate, FolderMove, FolderResponse, FolderTreeResponse,
-    FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma,
+    FolderNormaCreate, FolderNormaUpdate, FolderNormaWithNorma, FolderNormaResponse,
     FolderWithNormasResponse, FolderCreateResponse
 )
 from features.auth.auth_utils import verify_token
 from core.utils.logging_config import get_logger
 import uuid
+from uuid import UUID
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -48,7 +49,7 @@ def build_folder_tree(folders: List[Folder]) -> List[FolderTreeResponse]:
         "color": folder.color,
         "icon": folder.icon,
         "order_index": folder.order_index,
-        "norma_count": len(folder.folder_normas),
+        "norma_count": getattr(folder, 'norma_count', 0),  # OPTIMIZED: Use attached count
         "subfolders": []
     } for folder in folders}
     
@@ -78,11 +79,39 @@ async def get_user_folders(
     """Get all folders for the current user in hierarchical tree structure."""
     logger.info(f"Fetching folders for user {user_id}")
     
-    folders = db.query(Folder).filter(
-        Folder.user_id == user_id
-    ).options(
-        joinedload(Folder.folder_normas)
+    # OPTIMIZED: Use subquery to get norma count instead of loading all normas
+    # This dramatically reduces data transfer and query time
+    from sqlalchemy import select as sa_select
+    from features.folders.folder_models import FolderNorma
+    
+    norma_count_subquery = (
+        sa_select(func.count(FolderNorma.id))
+        .where(
+            and_(
+                FolderNorma.folder_id == Folder.id,
+                FolderNorma.is_deleted == False  # noqa: E712
+            )
+        )
+        .correlate(Folder)
+        .scalar_subquery()
+    )
+    
+    # Query folders with computed norma count
+    folders_with_counts = db.query(
+        Folder,
+        norma_count_subquery.label('norma_count')
+    ).filter(
+        and_(
+            Folder.user_id == user_id,
+            Folder.is_deleted == False  # ADDED: Filter soft-deleted folders
+        )
     ).order_by(Folder.order_index).all()
+    
+    # Attach norma_count to folder objects for build_folder_tree
+    folders = []
+    for folder, norma_count in folders_with_counts:
+        folder.norma_count = norma_count
+        folders.append(folder)
     
     return build_folder_tree(folders)
 
@@ -442,6 +471,9 @@ async def get_folder_normas(
     """Get all normas in a specific folder."""
     logger.info(f"Fetching normas in folder {folder_id} for user {user_id}")
     
+    # TODO: Remove this when normas table is available
+    logger.info("NOTE: Normas functionality is temporarily disabled - returning empty list until normas table is available")
+    
     folder = db.query(Folder).filter(
         and_(
             Folder.id == folder_id,
@@ -455,32 +487,33 @@ async def get_folder_normas(
             detail="Folder not found"
         )
     
-    # Get folder-norma relationships with norma details
+    # Get folder-norma relationships
+    # TODO: Add norma details when normas table is implemented
     folder_normas = db.query(FolderNorma).filter(
         FolderNorma.folder_id == folder_id
-    ).options(
-        joinedload(FolderNorma.norma)
     ).order_by(FolderNorma.order_index).all()
     
+    # TODO: When normas table is available, replace this with actual norma data
     normas_with_details = []
     for fn in folder_normas:
-        if fn.norma:  # Ensure norma exists
-            normas_with_details.append(FolderNormaWithNorma(
-                id=str(fn.id),
-                norma={
-                    "id": fn.norma.id,
-                    "infoleg_id": fn.norma.infoleg_id,
-                    "titulo_resumido": fn.norma.titulo_resumido,
-                    "jurisdiccion": fn.norma.jurisdiccion,
-                    "tipo_norma": fn.norma.tipo_norma,
-                    "sancion": fn.norma.sancion.isoformat() if fn.norma.sancion else None,
-                    "publicacion": fn.norma.publicacion.isoformat() if fn.norma.publicacion else None,
-                    "estado": fn.norma.estado
-                },
-                added_at=fn.added_at,
-                order_index=fn.order_index,
-                notes=fn.notes
-            ))
+        # Create simplified norma response for now
+        # TODO: Add full norma details when normas table is implemented
+        normas_with_details.append(FolderNormaWithNorma(
+            id=str(fn.id),
+            norma={
+                "id": fn.norma_id,
+                "infoleg_id": fn.norma_id,  # Using norma_id as fallback
+                "titulo_resumido": f"Norma {fn.norma_id}",  # Placeholder
+                "jurisdiccion": "Nacional",  # Placeholder
+                "tipo_norma": "LEY",  # Placeholder
+                "sancion": None,
+                "publicacion": None,
+                "estado": "VIGENTE"
+            },
+            added_at=fn.added_at,
+            order_index=fn.order_index,
+            notes=fn.notes
+        ))
     
     return FolderWithNormasResponse(
         folder=FolderResponse(
@@ -511,84 +544,97 @@ async def add_norma_to_folder(
     """Add a norma to a folder."""
     logger.info(f"Adding norma {norma_data.norma_id} to folder {folder_id} for user {user_id}")
     
-    # Check if folder exists and belongs to user
-    folder = db.query(Folder).filter(
-        and_(
-            Folder.id == folder_id,
-            Folder.user_id == user_id
+    try:
+        # Convert string folder_id to UUID
+        folder_uuid = UUID(folder_id)
+        
+        # Check if folder exists and belongs to user
+        folder = db.query(Folder).filter(
+            and_(
+                Folder.id == folder_uuid,
+                Folder.user_id == user_id
+            )
+        ).first()
+        
+        if not folder:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Folder not found"
+            )
+        
+        # Check if norma exists - skipped for now
+        # TODO: Add norma validation when normas table is implemented
+        
+        # Check if norma is already in folder
+        existing = db.query(FolderNorma).filter(
+            and_(
+                FolderNorma.folder_id == folder_uuid,
+                FolderNorma.norma_id == norma_data.norma_id
+            )
+        ).first()
+        
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Norma is already in this folder"
+            )
+        
+        # Get next order index
+        max_order = db.query(func.max(FolderNorma.order_index)).filter(
+            FolderNorma.folder_id == folder_uuid
+        ).scalar() or 0
+        
+        # Create folder-norma relationship
+        folder_norma = FolderNorma(
+            id=str(uuid.uuid4()),
+            folder_id=folder_uuid,
+            norma_id=norma_data.norma_id,
+            added_by=user_id,
+            notes=norma_data.notes,
+            order_index=norma_data.order_index if norma_data.order_index is not None else max_order + 1
         )
-    ).first()
-    
-    if not folder:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Folder not found"
+        
+        db.add(folder_norma)
+        db.commit()
+        db.refresh(folder_norma)
+        
+        logger.info(f"Added norma {norma_data.norma_id} to folder {folder_id}")
+        
+        # Return simplified response without norma details for now
+        # TODO: Add full norma details when normas table is implemented
+        return FolderNormaWithNorma(
+            id=str(folder_norma.id),
+            norma={
+                "id": norma_data.norma_id,
+                "infoleg_id": norma_data.norma_id,  # Using norma_id as fallback
+                "titulo_resumido": f"Norma {norma_data.norma_id}",  # Placeholder
+                "jurisdiccion": "Nacional",  # Placeholder
+                "tipo_norma": "LEY",  # Placeholder
+                "sancion": None,
+                "publicacion": None,
+                "estado": "VIGENTE"
+            },
+            added_at=folder_norma.added_at,
+            order_index=folder_norma.order_index,
+            notes=folder_norma.notes
         )
-    
-    # Check if norma exists
-    norma = db.query(NormaStructured).filter(
-        NormaStructured.id == norma_data.norma_id
-    ).first()
-    
-    if not norma:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Norma not found"
-        )
-    
-    # Check if norma is already in folder
-    existing = db.query(FolderNorma).filter(
-        and_(
-            FolderNorma.folder_id == folder_id,
-            FolderNorma.norma_id == norma_data.norma_id
-        )
-    ).first()
-    
-    if existing:
+        
+    except ValueError as e:
+        logger.error(f"Invalid UUID format for folder_id {folder_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Norma is already in this folder"
+            detail="Invalid folder ID format"
         )
-    
-    # Get next order index
-    max_order = db.query(func.max(FolderNorma.order_index)).filter(
-        FolderNorma.folder_id == folder_id
-    ).scalar() or 0
-    
-    # Create folder-norma relationship
-    folder_norma = FolderNorma(
-        id=str(uuid.uuid4()),
-        folder_id=folder_id,
-        norma_id=norma_data.norma_id,
-        added_by=user_id,
-        notes=norma_data.notes,
-        order_index=norma_data.order_index if norma_data.order_index is not None else max_order + 1
-    )
-    
-    db.add(folder_norma)
-    db.commit()
-    db.refresh(folder_norma)
-    
-    logger.info(f"Added norma {norma_data.norma_id} to folder {folder_id}")
-    return FolderNormaWithNorma(
-        id=str(folder_norma.id),
-        norma={
-            "id": norma.id,
-            "infoleg_id": norma.infoleg_id,
-            "titulo_resumido": norma.titulo_resumido,
-            "jurisdiccion": norma.jurisdiccion,
-            "tipo_norma": norma.tipo_norma,
-            "sancion": norma.sancion.isoformat() if norma.sancion else None,
-            "publicacion": norma.publicacion.isoformat() if norma.publicacion else None,
-            "estado": norma.estado
-        },
-        added_at=folder_norma.added_at,
-        order_index=folder_norma.order_index,
-        notes=folder_norma.notes
-    )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error adding norma {norma_data.norma_id} to folder {folder_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error adding norma to folder"
+        )
 
 
-@router.put("/folders/{folder_id}/normas/{norma_id}/", response_model=FolderNormaWithNorma)
+@router.put("/folders/{folder_id}/normas/{norma_id}/", response_model=FolderNormaResponse)
 async def update_folder_norma(
     folder_id: str,
     norma_id: int,
@@ -614,13 +660,13 @@ async def update_folder_norma(
             detail="Folder not found"
         )
     
-    # Find folder-norma relationship
+    # Find folder-norma relationship (without norma details until normas table is available)
     folder_norma = db.query(FolderNorma).filter(
         and_(
             FolderNorma.folder_id == folder_id,
             FolderNorma.norma_id == norma_id
         )
-    ).options(joinedload(FolderNorma.norma)).first()
+    ).first()
     
     if not folder_norma:
         raise HTTPException(
@@ -637,18 +683,9 @@ async def update_folder_norma(
     db.refresh(folder_norma)
     
     logger.info(f"Updated norma {norma_id} in folder {folder_id}")
-    return FolderNormaWithNorma(
+    return FolderNormaResponse(
         id=str(folder_norma.id),
-        norma={
-            "id": folder_norma.norma.id,
-            "infoleg_id": folder_norma.norma.infoleg_id,
-            "titulo_resumido": folder_norma.norma.titulo_resumido,
-            "jurisdiccion": folder_norma.norma.jurisdiccion,
-            "tipo_norma": folder_norma.norma.tipo_norma,
-            "sancion": folder_norma.norma.sancion.isoformat() if folder_norma.norma.sancion else None,
-            "publicacion": folder_norma.norma.publicacion.isoformat() if folder_norma.norma.publicacion else None,
-            "estado": folder_norma.norma.estado
-        },
+        norma_id=folder_norma.norma_id,
         added_at=folder_norma.added_at,
         order_index=folder_norma.order_index,
         notes=folder_norma.notes
@@ -666,35 +703,214 @@ async def remove_norma_from_folder(
     """Remove a norma from a folder."""
     logger.info(f"Removing norma {norma_id} from folder {folder_id} for user {user_id}")
     
-    # Check if folder exists and belongs to user
-    folder = db.query(Folder).filter(
-        and_(
-            Folder.id == folder_id,
-            Folder.user_id == user_id
-        )
-    ).first()
-    
-    if not folder:
+    try:
+        # Convert string folder_id to UUID
+        folder_uuid = UUID(folder_id)
+        
+        # Check if folder exists and belongs to user
+        folder = db.query(Folder).filter(
+            and_(
+                Folder.id == folder_uuid,
+                Folder.user_id == user_id
+            )
+        ).first()
+        
+        if not folder:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Folder not found"
+            )
+        
+        # Find and delete folder-norma relationship
+        folder_norma = db.query(FolderNorma).filter(
+            and_(
+                FolderNorma.folder_id == folder_uuid,
+                FolderNorma.norma_id == norma_id
+            )
+        ).first()
+        
+        if not folder_norma:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Norma not found in this folder"
+            )
+        
+        db.delete(folder_norma)
+        db.commit()
+        
+        logger.info(f"Removed norma {norma_id} from folder {folder_id}")
+        
+    except ValueError as e:
+        logger.error(f"Invalid UUID format for folder_id {folder_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Folder not found"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid folder ID format"
         )
-    
-    # Find and delete folder-norma relationship
-    folder_norma = db.query(FolderNorma).filter(
-        and_(
-            FolderNorma.folder_id == folder_id,
-            FolderNorma.norma_id == norma_id
-        )
-    ).first()
-    
-    if not folder_norma:
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error removing norma {norma_id} from folder {folder_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Norma not found in this folder"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error removing norma from folder"
         )
+
+
+@router.get("/folders/normas/{norma_id}/", response_model=List[str])
+async def get_norma_folders(
+    norma_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get list of folder IDs that contain a specific norma for the current user."""
+    logger.info(f"Checking which folders contain norma {norma_id} for user {user_id}")
     
-    db.delete(folder_norma)
-    db.commit()
+    try:
+        # Get all folder-norma relationships for this norma where the folder belongs to the user
+        folder_normas = db.query(FolderNorma).join(Folder).filter(
+            and_(
+                FolderNorma.norma_id == norma_id,
+                Folder.user_id == user_id
+            )
+        ).all()
+        
+        folder_ids = [str(fn.folder_id) for fn in folder_normas]  # Convert UUID to string
+        logger.info(f"Found norma {norma_id} in folders: {folder_ids}")
+        
+        return folder_ids
+        
+    except Exception as e:
+        logger.error(f"Error getting folders for norma {norma_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving folder information: {str(e)}"
+        )
+
+
+@router.post("/folders/normas/{norma_id}/bulk/", status_code=status.HTTP_200_OK)
+async def bulk_update_norma_folders(
+    norma_id: int,
+    folder_operations: dict,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Bulk add/remove a norma to/from multiple folders.
     
-    logger.info(f"Removed norma {norma_id} from folder {folder_id}")
+    Request body:
+    {
+        "add_to_folders": ["folder_id_1", "folder_id_2"],
+        "remove_from_folders": ["folder_id_3"],
+        "notes": "Optional notes for new additions"
+    }
+    """
+    logger.info(f"Bulk updating norma {norma_id} folders for user {user_id}")
+    
+    add_to_folders = folder_operations.get("add_to_folders", [])
+    remove_from_folders = folder_operations.get("remove_from_folders", [])
+    notes = folder_operations.get("notes", "")
+    
+    results = {"added": [], "removed": [], "errors": []}
+    
+    try:
+        # Remove from folders first
+        for folder_id in remove_from_folders:
+            try:
+                # Convert string folder_id to UUID
+                folder_uuid = UUID(folder_id)
+                
+                # Check if folder exists and belongs to user
+                folder = db.query(Folder).filter(
+                    and_(
+                        Folder.id == folder_uuid,
+                        Folder.user_id == user_id
+                    )
+                ).first()
+                
+                if not folder:
+                    results["errors"].append(f"Folder {folder_id} not found")
+                    continue
+                
+                # Find and delete folder-norma relationship
+                folder_norma = db.query(FolderNorma).filter(
+                    and_(
+                        FolderNorma.folder_id == folder_uuid,
+                        FolderNorma.norma_id == norma_id
+                    )
+                ).first()
+                
+                if folder_norma:
+                    db.delete(folder_norma)
+                    results["removed"].append(folder_id)
+                    logger.info(f"Removed norma {norma_id} from folder {folder_id}")
+                
+            except Exception as e:
+                results["errors"].append(f"Error removing from folder {folder_id}: {str(e)}")
+                logger.error(f"Error in bulk operation for norma {norma_id}: {str(e)}")
+        
+        # Add to folders
+        for folder_id in add_to_folders:
+            try:
+                # Convert string folder_id to UUID
+                folder_uuid = UUID(folder_id)
+                
+                # Check if folder exists and belongs to user
+                folder = db.query(Folder).filter(
+                    and_(
+                        Folder.id == folder_uuid,
+                        Folder.user_id == user_id
+                    )
+                ).first()
+                
+                if not folder:
+                    results["errors"].append(f"Folder {folder_id} not found")
+                    continue
+                
+                # Check if norma is already in folder
+                existing = db.query(FolderNorma).filter(
+                    and_(
+                        FolderNorma.folder_id == folder_uuid,
+                        FolderNorma.norma_id == norma_id
+                    )
+                ).first()
+                
+                if existing:
+                    # Already exists, skip
+                    continue
+                
+                # Get next order index
+                max_order = db.query(func.max(FolderNorma.order_index)).filter(
+                    FolderNorma.folder_id == folder_uuid
+                ).scalar() or 0
+                
+                # Create folder-norma relationship
+                folder_norma = FolderNorma(
+                    id=str(uuid.uuid4()),
+                    folder_id=folder_uuid,
+                    norma_id=norma_id,
+                    added_by=user_id,
+                    notes=notes,
+                    order_index=max_order + 1
+                )
+                
+                db.add(folder_norma)
+                results["added"].append(folder_id)
+                logger.info(f"Added norma {norma_id} to folder {folder_id}")
+                
+            except Exception as e:
+                results["errors"].append(f"Error adding to folder {folder_id}: {str(e)}")
+                logger.error(f"Error in bulk operation for norma {norma_id}: {str(e)}")
+        
+        db.commit()
+        logger.info(f"Bulk operation completed for norma {norma_id}")
+        
+        return results
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error in bulk operation for norma {norma_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error performing bulk folder operations"
+        )

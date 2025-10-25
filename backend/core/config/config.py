@@ -43,7 +43,15 @@ class Settings:
     
     # RAG Configuration
     K_RETRIEVE: int = int(os.getenv('K_RETRIEVE', '5'))
-    
+
+    # Relational Microservice Configuration
+    RELATIONAL_API_HOST: str = os.getenv('RELATIONAL_API_HOST', 'localhost')
+    RELATIONAL_API_PORT: int = int(os.getenv('RELATIONAL_API_PORT', '8090'))
+
+    # Vectorial Microservice Configuration
+    VECTORIAL_API_HOST: str = os.getenv('VECTORIAL_API_HOST', 'localhost')
+    VECTORIAL_API_PORT: int = int(os.getenv('VECTORIAL_API_PORT', '8080'))
+
     # JWT Configuration
     JWT_SECRET_KEY: str = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
     JWT_ALGORITHM: str = os.getenv('JWT_ALGORITHM', 'HS256')

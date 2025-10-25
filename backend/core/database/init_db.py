@@ -9,6 +9,7 @@ from core.database.base import Base
 from features.auth.auth_models import User, RefreshToken
 from features.folders.folder_models import Folder, FolderNorma
 from features.chat.chat_database_models import ChatSession, Message
+from features.bookmarks.bookmarks_models import Bookmark
 
 logger = logging.getLogger(__name__)
 

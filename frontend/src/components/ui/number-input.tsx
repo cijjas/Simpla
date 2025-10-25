@@ -63,7 +63,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       const handleKeyDown = (e: KeyboardEvent) => {
         if (
           document.activeElement ===
-          (ref as React.RefObject<HTMLInputElement>).current
+          (ref as React.RefObject<HTMLInputElement | null>).current
         ) {
           if (e.key === 'ArrowUp') {
             handleIncrement();
@@ -102,11 +102,11 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       if (value !== undefined) {
         if (value < min) {
           setValue(min);
-          (ref as React.RefObject<HTMLInputElement>).current!.value =
+          (ref as React.RefObject<HTMLInputElement | null>).current!.value =
             String(min);
         } else if (value > max) {
           setValue(max);
-          (ref as React.RefObject<HTMLInputElement>).current!.value =
+          (ref as React.RefObject<HTMLInputElement | null>).current!.value =
             String(max);
         }
       }

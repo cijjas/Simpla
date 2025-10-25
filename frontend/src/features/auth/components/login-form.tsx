@@ -107,7 +107,7 @@ export function LoginForm({
   return (
     <div className={cn('flex flex-col gap-6', className)}>
       <div className='text-center mb-8'>
-        <h1 className='text-2xl font-bold'>Iniciá sesión en tu cuenta</h1>
+        <h1 className='text-2xl font-bold font-serif mb-2'>Iniciá sesión en tu cuenta</h1>
         <p className='text-sm text-muted-foreground'>
           Ingresá tu email para acceder
         </p>

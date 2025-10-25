@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from .message_pipeline import MessagePipeline
 from core.database.base import get_db
 from features.auth.auth_utils import verify_token
 from .service import ConversationService
@@ -18,6 +19,7 @@ from .schemas import (
     SendMessageRequest
 )
 from core.utils.logging_config import get_logger
+from core.clients.relational import fetch_norm_by_infoleg_id
 
 logger = get_logger(__name__)
 
@@ -161,46 +163,18 @@ async def send_message(
 ):
     """
     Send a message and stream AI response using Server-Sent Events.
-    
+
     Sends a user message and streams the AI response back in real-time.
     If no session_id is provided, creates a new conversation.
     """
     try:
         user_id = get_current_user_id(request)
         
-        service = ConversationService(db)
-        
-        async def generate_stream():
-            """Generate streaming response."""
-            try:
-                # Stream the AI response
-                async for chunk in service.stream_message_response(
-                    user_id=user_id,
-                    content=data.content,
-                    session_id=str(data.session_id) if data.session_id else None,
-                    chat_type=data.chat_type
-                ):
-                    # Format as Server-Sent Events
-                    response_data = {
-                        "content": chunk,
-                        "session_id": str(data.session_id) if data.session_id else "new-session"  # Convert UUID to string
-                    }
-                    yield f"data: {json.dumps(response_data)}\n\n"
-                
-                # Send final chunk to indicate completion
-                yield f"data: {json.dumps({'content': '', 'session_id': str(data.session_id) if data.session_id else 'new-session', 'done': True})}\n\n"
-                
-            except Exception as e:
-                logger.error(f"Error in message streaming: {str(e)}")
-                error_data = {
-                    "content": f"Error: {str(e)}",
-                    "session_id": str(data.session_id) if data.session_id else "new-session",
-                    "error": True
-                }
-                yield f"data: {json.dumps(error_data)}\n\n"
+        # Initialize and run the message processing pipeline
+        pipeline = MessagePipeline(db)
         
         return StreamingResponse(
-            generate_stream(),
+            pipeline.process_message(user_id, data),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -211,7 +185,7 @@ async def send_message(
         )
         
     except Exception as e:
-        logger.error(f"Error sending message: {str(e)}")
+        logger.error(f"Error in message endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -253,22 +227,49 @@ async def update_conversation(
 ):
     """
     Update a conversation.
-    
+
     Updates conversation metadata like title and archived status.
     """
     try:
         user_id = get_current_user_id(request)
-        
+
         service = ConversationService(db)
         conversation = service.update_conversation(conversation_id, user_id, data)
-        
+
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
-        
+
         return ConversationDetailResponse.model_validate(conversation)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error updating conversation {conversation_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/test/grpc-norm")
+async def test_grpc_norm(
+    infoleg_id: int = Query(default=183532, description="Infoleg ID to fetch"),
+    grpc_host: str = Query(default="localhost", description="gRPC server host"),
+    grpc_port: int = Query(default=50051, description="gRPC server port")
+):
+    """
+    Test endpoint to fetch norm data via gRPC.
+
+    Calls the ReconstructNorm RPC on the relational microservice.
+    """
+    try:
+        logger.info(f"Testing gRPC call for infoleg_id={infoleg_id}")
+        result = fetch_norm_by_infoleg_id(infoleg_id, grpc_host, grpc_port)
+
+        return {
+            "success": result["success"],
+            "message": result["message"],
+            "norma_json": result["norma_json"],
+            "grpc_endpoint": f"{grpc_host}:{grpc_port}"
+        }
+
+    except Exception as e:
+        logger.error(f"Error testing gRPC: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"gRPC test failed: {str(e)}")

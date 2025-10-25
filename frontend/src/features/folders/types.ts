@@ -7,7 +7,7 @@ export interface FolderTreeItem {
   name: string;
   description?: string;
   level: number;
-  color: string;
+  color: string | null;
   icon: string;
   order_index: number;
   norma_count: number;
@@ -20,7 +20,7 @@ export interface FolderResponse {
   description?: string;
   parent_folder_id?: string;
   level: number;
-  color: string;
+  color: string | null;
   icon: string;
   order_index: number;
   created_at: string;
@@ -32,14 +32,14 @@ export interface FolderCreate {
   name: string;
   description?: string;
   parent_folder_id?: string;
-  color: string;
+  color: string | null;
   icon: string;
 }
 
 export interface FolderUpdate {
   name?: string;
   description?: string;
-  color?: string;
+  color?: string | null;
   icon?: string;
   parent_folder_id?: string;
 }

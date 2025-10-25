@@ -54,3 +54,42 @@ export function findFolderById(folders: FolderTreeItem[], folderId: string): Fol
   
   return null;
 }
+
+/**
+ * Finds the parent folder of a given folder
+ * @param folders - The complete folder tree
+ * @param targetFolderId - The ID of the folder to find the parent of
+ * @returns The parent folder if found, null if the folder is at root level or not found
+ */
+export function findParentFolder(folders: FolderTreeItem[], targetFolderId: string): FolderTreeItem | null {
+  for (const folder of folders) {
+    // Check if the target is a direct child
+    if (folder.subfolders.some(subfolder => subfolder.id === targetFolderId)) {
+      return folder;
+    }
+    
+    // Recursively search in subfolders
+    if (folder.subfolders.length > 0) {
+      const found = findParentFolder(folder.subfolders, targetFolderId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Gets the first available folder from the folder tree
+ * Prioritizes root level folders (level 0)
+ * @param folders - The complete folder tree
+ * @returns The first available folder or null if no folders exist
+ */
+export function getFirstAvailableFolder(folders: FolderTreeItem[]): FolderTreeItem | null {
+  if (folders.length === 0) return null;
+  
+  // Return the first root folder (level 0)
+  const rootFolders = folders.filter(folder => folder.level === 0);
+  return rootFolders.length > 0 ? rootFolders[0] : folders[0];
+}

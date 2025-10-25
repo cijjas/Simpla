@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field, validator
 
 
 # Chat types
-ChatType = Literal["normativa_nacional", "constituciones"]
+ChatType = Literal["normativa_nacional", "constituciones", "norma_chat"]
+
+# Tone types for AI responses
+ToneType = Literal["default", "formal", "academico", "conciso"]
 
 
 # Base schemas
@@ -151,6 +154,7 @@ class SendMessageRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=10000)
     session_id: Optional[UUID] = None
     chat_type: ChatType
+    tone: ToneType = "default"
 
 
 class SendMessageResponse(BaseModel):
@@ -192,6 +196,11 @@ SYSTEM_PROMPTS = {
         "Eres un asistente legal especializado en derecho constitucional. "
         "Proporciona análisis basados en constituciones y jurisprudencia constitucional. "
         "Siempre cita las fuentes cuando sea posible y mantén un tono profesional y claro."
+    ),
+    "norma_chat": (
+        "Eres un asistente legal especializado en normativa argentina. "
+        "Responde preguntas específicas sobre normas individuales basándote en su contenido exacto. "
+        "Sé preciso, cita artículos específicos cuando sea relevante y mantén un tono profesional pero accesible."
     )
 }
 

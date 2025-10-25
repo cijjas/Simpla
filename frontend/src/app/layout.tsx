@@ -6,6 +6,8 @@ import './globals.css';
 import { AuthProvider } from '@/features/auth/context/auth-context';
 import { ThemeProvider } from 'next-themes';
 import { Analytics } from '@vercel/analytics/react';
+import { CommandProvider } from '@/features/command-center/context/command-provider';
+import { Toaster } from '@/components/ui/sonner';
 
 // ⟵ fonts
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
@@ -58,7 +60,10 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-            {children}
+            <CommandProvider>
+              {children}
+            </CommandProvider>
+            <Toaster />
           </ThemeProvider>
         </AuthProvider>
         <Analytics />

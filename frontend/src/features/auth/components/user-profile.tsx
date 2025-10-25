@@ -62,7 +62,7 @@ export function UserProfile() {
 
   if (error) {
     return (
-      <div className="p-4 text-center text-red-600">
+      <div className="p-4 text-center text-destructive">
         <p>Error: {error}</p>
         <button 
           onClick={fetchUserProfile}
@@ -105,7 +105,7 @@ export function UserProfile() {
           
           <div>
             <label className="block text-sm font-medium text-gray-600">Email Verified</label>
-            <p className={`font-medium ${user.email_verified ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`font-medium ${user.email_verified ? 'text-green-600' : 'text-destructive'}`}>
               {user.email_verified ? 'Verified' : 'Not verified'}
             </p>
           </div>

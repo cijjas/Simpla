@@ -45,8 +45,58 @@ export function useFolders() {
     try {
       operationRef.current = true;
       const newFolder = await api.post<FolderResponse>('/api/folders/', folderData);
-      await fetchFolders(); // Refresh the folder list
+      
+      // Optimistically update local state instead of refetching
+      setFolders(prevFolders => {
+        const addFolderToTree = (folders: FolderTreeItem[], parentId?: string): FolderTreeItem[] => {
+          if (!parentId) {
+            // Add as root folder
+            return [...folders, {
+              id: newFolder.id,
+              name: newFolder.name,
+              description: newFolder.description,
+              color: newFolder.color,
+              icon: newFolder.icon,
+              level: 0,
+              order_index: newFolder.order_index,
+              norma_count: 0,
+              subfolders: [],
+            }];
+          }
+          
+          // Add as subfolder
+          return folders.map(folder => {
+            if (folder.id === parentId) {
+              return {
+                ...folder,
+                subfolders: [...folder.subfolders, {
+                  id: newFolder.id,
+                  name: newFolder.name,
+                  description: newFolder.description,
+                  color: newFolder.color,
+                  icon: newFolder.icon,
+                  level: folder.level + 1,
+                  order_index: newFolder.order_index,
+                  norma_count: 0,
+                  subfolders: [],
+                }]
+              };
+            }
+            return {
+              ...folder,
+              subfolders: addFolderToTree(folder.subfolders, parentId)
+            };
+          });
+        };
+        
+        return addFolderToTree(prevFolders, folderData.parent_folder_id);
+      });
+      
       return newFolder;
+    } catch (error) {
+      // On error, refetch to ensure consistency
+      await fetchFolders();
+      throw error;
     } finally {
       operationRef.current = false;
     }
@@ -60,8 +110,36 @@ export function useFolders() {
     try {
       operationRef.current = true;
       const updatedFolder = await api.put<FolderResponse>(`/api/folders/${folderId}/`, folderData);
-      await fetchFolders(); // Refresh the folder list
+      
+      // Optimistically update local state instead of refetching
+      setFolders(prevFolders => {
+        const updateFolderInTree = (folders: FolderTreeItem[]): FolderTreeItem[] => {
+          return folders.map(folder => {
+            if (folder.id === folderId) {
+              return {
+                ...folder,
+                name: updatedFolder.name,
+                description: updatedFolder.description,
+                color: updatedFolder.color,
+                icon: updatedFolder.icon,
+                updated_at: updatedFolder.updated_at,
+              };
+            }
+            return {
+              ...folder,
+              subfolders: updateFolderInTree(folder.subfolders)
+            };
+          });
+        };
+        
+        return updateFolderInTree(prevFolders);
+      });
+      
       return updatedFolder;
+    } catch (error) {
+      // On error, refetch to ensure consistency
+      await fetchFolders();
+      throw error;
     } finally {
       operationRef.current = false;
     }
@@ -75,8 +153,80 @@ export function useFolders() {
     try {
       operationRef.current = true;
       const movedFolder = await api.patch<FolderResponse>(`/api/folders/${folderId}/move/`, moveData);
-      await fetchFolders(); // Refresh the folder list
+      
+      // Optimistically update local state instead of refetching
+      setFolders(prevFolders => {
+        // First, remove the folder from its current location
+        const removeFolderFromTree = (folders: FolderTreeItem[]): { folders: FolderTreeItem[], removedFolder: FolderTreeItem | null } => {
+          for (let i = 0; i < folders.length; i++) {
+            if (folders[i].id === folderId) {
+              const removedFolder = folders[i];
+              return {
+                folders: [...folders.slice(0, i), ...folders.slice(i + 1)],
+                removedFolder
+              };
+            }
+            const result = removeFolderFromTree(folders[i].subfolders);
+            if (result.removedFolder) {
+              return {
+                folders: folders.map((folder, index) => 
+                  index === i 
+                    ? { ...folder, subfolders: result.folders }
+                    : folder
+                ),
+                removedFolder: result.removedFolder
+              };
+            }
+          }
+          return { folders, removedFolder: null };
+        };
+        
+        const { folders: foldersWithoutMoved, removedFolder } = removeFolderFromTree(prevFolders);
+        
+        if (!removedFolder) {
+          // If folder not found, fallback to refetch
+          return prevFolders;
+        }
+        
+        // Update the removed folder's properties
+        const updatedFolder = {
+          ...removedFolder,
+          parent_folder_id: moveData.parent_folder_id || null,
+          level: moveData.parent_folder_id ? 
+            (prevFolders.find(f => f.id === moveData.parent_folder_id)?.level || 0) + 1 : 0,
+          updated_at: movedFolder.updated_at,
+        };
+        
+        // Add the folder to its new location
+        const addFolderToTree = (folders: FolderTreeItem[], parentId?: string): FolderTreeItem[] => {
+          if (!parentId) {
+            // Add as root folder
+            return [...folders, updatedFolder];
+          }
+          
+          // Add as subfolder
+          return folders.map(folder => {
+            if (folder.id === parentId) {
+              return {
+                ...folder,
+                subfolders: [...folder.subfolders, updatedFolder]
+              };
+            }
+            return {
+              ...folder,
+              subfolders: addFolderToTree(folder.subfolders, parentId)
+            };
+          });
+        };
+        
+        return addFolderToTree(foldersWithoutMoved, moveData.parent_folder_id);
+      });
+      
       return movedFolder;
+    } catch (error) {
+      // On error, refetch to ensure consistency
+      await fetchFolders();
+      throw error;
     } finally {
       operationRef.current = false;
     }
@@ -90,7 +240,24 @@ export function useFolders() {
     try {
       operationRef.current = true;
       await api.delete(`/api/folders/${folderId}/`);
-      await fetchFolders(); // Refresh the folder list
+      
+      // Optimistically update local state instead of refetching
+      setFolders(prevFolders => {
+        const removeFolderFromTree = (folders: FolderTreeItem[]): FolderTreeItem[] => {
+          return folders
+            .filter(folder => folder.id !== folderId)
+            .map(folder => ({
+              ...folder,
+              subfolders: removeFolderFromTree(folder.subfolders)
+            }));
+        };
+        
+        return removeFolderFromTree(prevFolders);
+      });
+    } catch (error) {
+      // On error, refetch to ensure consistency
+      await fetchFolders();
+      throw error;
     } finally {
       operationRef.current = false;
     }

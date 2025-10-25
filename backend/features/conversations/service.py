@@ -37,25 +37,25 @@ class ConversationService:
     ) -> Tuple[List[Conversation], int]:
         """Get paginated list of conversations for a user."""
         try:
-            # Build query
-            query = select(Conversation).where(
-                and_(
-                    Conversation.user_id == user_id,
-                    Conversation.is_deleted == False
-                )
+            # Build base filters
+            filters = and_(
+                Conversation.user_id == user_id,
+                Conversation.is_deleted == False  # noqa: E712
             )
             
-            # Apply filters
+            # Apply optional filters
             if params.chat_type:
-                query = query.where(Conversation.chat_type == params.chat_type)
+                filters = and_(filters, Conversation.chat_type == params.chat_type)
             
             if params.is_archived is not None:
-                query = query.where(Conversation.is_archived == params.is_archived)
+                filters = and_(filters, Conversation.is_archived == params.is_archived)
             
-            # Get total count
-            count_query = select(func.count()).select_from(query.subquery())
-            total_result = self.db.execute(count_query)
-            total = total_result.scalar()
+            # OPTIMIZED: Direct count query instead of subquery
+            # This is much faster as it uses the index directly
+            total = self.db.query(func.count(Conversation.id)).filter(filters).scalar() or 0
+            
+            # Build main query
+            query = select(Conversation).where(filters)
             
             # Apply pagination and ordering
             query = query.order_by(Conversation.updated_at.desc())
@@ -304,7 +304,9 @@ class ConversationService:
         user_id: str,
         content: str,
         session_id: Optional[str] = None,
-        chat_type: str = "normativa_nacional"
+        chat_type: str = "normativa_nacional",
+        norma_ids: Optional[List[int]] = None,
+        enhanced_prompt: Optional[str] = None
     ):
         """Stream AI response for a message."""
         try:
@@ -322,6 +324,9 @@ class ConversationService:
                 conversation = self.create_conversation(user_id, conversation_data)
                 session_id = str(conversation.id)
             
+            # Yield the session_id first so the router knows what it is
+            yield ("session_id", session_id)
+            
             # Create user message
             user_message_data = MessageCreate(
                 role="user",
@@ -337,8 +342,10 @@ class ConversationService:
                 if not msg.is_deleted
             ]
             
-            # Add the new user message to history
-            history_messages.append(AIMessage(role="user", content=content))
+            # Add the new user message to history for context
+            # Use enhanced_prompt if provided, otherwise use original content
+            user_content_for_ai = enhanced_prompt if enhanced_prompt else content
+            history_messages.append(AIMessage(role="user", content=user_content_for_ai))
             
             # Generate AI response
             system_prompt = conversation.system_prompt or get_system_prompt(chat_type)
@@ -353,11 +360,15 @@ class ConversationService:
                 yield chunk
             
             # Create assistant message after streaming is complete
+            metadata = {"relevant_docs": []}
+            if norma_ids:
+                metadata["relevant_docs"] = norma_ids
+                
             assistant_message_data = MessageCreate(
                 role="assistant",
                 content=ai_response_content,
                 tokens_used=self.ai_service.count_tokens(ai_response_content),
-                metadata={"relevant_docs": []}  # TODO: Add RAG integration
+                metadata=metadata
             )
             assistant_message = self.create_message(session_id, assistant_message_data)
             

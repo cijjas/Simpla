@@ -36,6 +36,8 @@ export interface DateRangePickerProps {
   /** Placeholder text for the date range picker */
   placeholder?: string;
   error?: string;
+  /** Optional className for the trigger button */
+  className?: string;
 }
 
 const getDateAdjustedForTimezone = (
@@ -67,7 +69,6 @@ const PRESETS: Preset[] = [
   { name: 'lastWeek', label: 'Semana pasada' },
   { name: 'thisMonth', label: 'Este mes' },
   { name: 'last7', label: 'Últimos 7 días' },
-  { name: 'last14', label: 'Últimos 14 días' },
   { name: 'last30', label: 'Últimos 30 días' },
   { name: 'lastYear', label: 'Último año' },
   { name: 'last4Years', label: 'Últimos 4 años' },
@@ -107,7 +108,7 @@ export const DateRangePicker = forwardRef<
   DateRangePickerProps
 >(
   (
-    { initialDateFrom, initialDateTo, placeholder, error, onUpdate, ...props },
+    { initialDateFrom, initialDateTo, placeholder, error, onUpdate, className, ...props },
     ref,
   ) => {
     /* ---------------------------------------------------------------------
@@ -222,11 +223,7 @@ export const DateRangePicker = forwardRef<
           from.setHours(0, 0, 0, 0);
           to.setHours(23, 59, 59, 999);
           break;
-        case 'last14':
-          from.setDate(from.getDate() - 13);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
+        
         case 'last30':
           from.setDate(from.getDate() - 29);
           from.setHours(0, 0, 0, 0);
@@ -298,19 +295,31 @@ export const DateRangePicker = forwardRef<
       label: string;
       isSelected: boolean;
     }): JSX.Element => (
-      <Button
-        variant='ghost'
-        className={cn(
-          'justify-start w-full',
-          isSelected && 'pointer-events-none',
-        )}
-        onClick={() => setPreset(preset)}
-      >
-        <span className={cn('pr-2 opacity-0', isSelected && 'opacity-70')}>
-          <CheckIcon width={18} height={18} />
-        </span>
-        {label}
-      </Button>
+      isSelected ? (
+        <Button
+          variant='default'
+          className={cn(
+            'justify-start w-full transition-all duration-200',
+            'bg-primary text-primary-foreground pointer-events-none',
+            'shadow-sm'
+          )}
+        >
+          <CheckIcon width={16} height={16} className="mr-2" />
+          {label}
+        </Button>
+      ) : (
+        <Button
+          variant='ghost'
+          className={cn(
+            'justify-start w-full transition-all duration-200',
+            'hover:bg-accent hover:text-accent-foreground',
+          )}
+          onClick={() => setPreset(preset)}
+        >
+          <span className="w-4 mr-2" />
+          {label}
+        </Button>
+      )
     );
 
     /* ---------------------------------------------------------------------
@@ -327,6 +336,7 @@ export const DateRangePicker = forwardRef<
             variant='outline'
             className={cn(
               'bg-card hover:bg-card cursor-pointer w-full max-w-full justify-between overflow-hidden text-ellipsis',
+              className,
             )}
           >
             <div className='flex flex-col text-left w-full overflow-hidden p-0 m-0'>
@@ -355,34 +365,28 @@ export const DateRangePicker = forwardRef<
          * Dialog Content
          * ---------------------------------------------------------------*/}
         <DialogContent
-          className='bg-card w-full max-w-[95vw] sm:min-w-[768px]'
+          className='bg-card w-full max-w-[95vw] sm:min-w-[768px] p-0 gap-0'
           onOpenAutoFocus={e => e.preventDefault()}
         >
-          <DialogHeader>
+          <DialogHeader className='p-6 border-b bg-muted/30'>
             <DialogTitle>Seleccionar fecha o rango de fechas</DialogTitle>
           </DialogHeader>
-          <Separator className='my-2' />
 
-          {/* Calendar & Presets */}
-          <div
-            className={cn(
-              'flex py-2',
-              isSmallScreen ? 'justify-center' : 'justify-center',
-            )}
-          >
-            {/* Draft selectors (calendars & inputs) */}
-            <div className='flex'>
-              <div className='flex flex-col'>
-                <div className='flex flex-col lg:flex-row gap-2 px-3 justify-center items-center lg:items-start pb-4 lg:pb-0'>
-                  <div className='flex gap-2'>
+          {/* Main Content */}
+          <div className=''>
+            {/* Desktop Layout */}
+            {!isSmallScreen && (
+              <div className='flex gap-6'>
+                {/* Left Section: Date Inputs + Calendar */}
+                <div className='flex-1 p-4'>
+                  {/* Date Range Inputs */}
+                  <div className='flex items-center justify-center gap-2 pb-2'>
                     <DateInput
                       value={draftRange.from}
                       onChange={date => {
-                        if (isFuture(date)) return; // ignore
+                        if (isFuture(date)) return;
                         const toDate =
-                          !draftRange.to || date > draftRange.to
-                            ? date
-                            : draftRange.to;
+                          !draftRange.to || date > draftRange.to ? date : draftRange.to;
                         setDraftRange({
                           ...draftRange,
                           from: date,
@@ -390,15 +394,13 @@ export const DateRangePicker = forwardRef<
                         });
                       }}
                     />
-                    <div className='py-1'>→</div>
+                    <div className='text-muted-foreground font-medium'>→</div>
                     <DateInput
                       value={draftRange.to}
                       onChange={date => {
                         if (isFuture(date)) return;
                         const fromDate =
-                          date < (draftRange.from as Date)
-                            ? date
-                            : draftRange.from;
+                          date < (draftRange.from as Date) ? date : draftRange.from;
                         setDraftRange({
                           ...draftRange,
                           from: fromDate,
@@ -407,70 +409,40 @@ export const DateRangePicker = forwardRef<
                       }}
                     />
                   </div>
+
+                  {/* Calendar */}
+                  <div className='flex justify-center'>
+                    <Calendar
+                      mode='range'
+                      selected={
+                        draftRange.from && draftRange.to
+                          ? { from: draftRange.from, to: draftRange.to }
+                          : undefined
+                      }
+                      onSelect={v => {
+                        if (v?.from && !isFuture(v.from)) {
+                          const safeTo = v.to && !isFuture(v.to) ? v.to : v.from;
+                          setDraftRange({ from: v.from, to: safeTo });
+                        }
+                      }}
+                      numberOfMonths={2}
+                      defaultMonth={
+                        new Date(TODAY_BA.getFullYear(), TODAY_BA.getMonth() - 1)
+                      }
+                      disabled={isFuture}
+                      showOutsideDays={false}
+                      styles={{
+                        cell: { minWidth: '32px' },
+                      }}
+                      locale={es}
+                    />
+                  </div>
                 </div>
 
-                {/* Mobile preset select */}
-                {isSmallScreen && (
-                  <Select
-                    defaultValue={selectedPreset}
-                    onValueChange={value => setPreset(value)}
-                  >
-                    <SelectTrigger className='w-[180px] mx-auto mb-2'>
-                      <SelectValue placeholder='Select...' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRESETS.map(p => (
-                        <SelectItem key={p.name} value={p.name}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                {/* Separator */}
 
-                {/* Desktop calendars */}
-                {!isSmallScreen && (
-                  <Calendar
-                    mode='range'
-                    selected={
-                      draftRange.from && draftRange.to
-                        ? { from: draftRange.from, to: draftRange.to }
-                        : undefined
-                    }
-                    onSelect={v => {
-                      if (v?.from && !isFuture(v.from)) {
-                        /* `react‑day‑picker` already respects `disabled` but we
-                       re‑check here because users can ctrl‑click disabled days
-                       on some browsers. */
-                        const safeTo = v.to && !isFuture(v.to) ? v.to : v.from;
-                        setDraftRange({ from: v.from, to: safeTo });
-                      }
-                    }}
-                    numberOfMonths={2}
-                    defaultMonth={
-                      new Date(TODAY_BA.getFullYear(), TODAY_BA.getMonth() - 1)
-                    }
-                    /* 🚫 disable any date after today in BA */
-                    disabled={isFuture}
-                    /* 🚫 hide grey outside days */
-                    showOutsideDays={false}
-                    styles={{
-                      cell: { minWidth: '32px' },
-                    }}
-                    locale={es}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Desktop preset buttons */}
-            {!isSmallScreen && (
-              <div className='flex items-start'>
-                <Separator
-                  orientation='vertical'
-                  className='mx-4 h-auto self-stretch'
-                />
-                <div className='flex flex-col items-start w-44'>
+                {/* Right Section: Preset Buttons */}
+                <div className='min-w-[180px] flex flex-col gap-1 p-4' >
                   {PRESETS.map(p => (
                     <PresetButton
                       key={p.name}
@@ -482,10 +454,65 @@ export const DateRangePicker = forwardRef<
                 </div>
               </div>
             )}
+
+            {/* Mobile Layout */}
+            {isSmallScreen && (
+              <>
+                {/* Date Range Inputs */}
+                <div className='flex items-center justify-center gap-3 mb-6'>
+                  <DateInput
+                    value={draftRange.from}
+                    onChange={date => {
+                      if (isFuture(date)) return;
+                      const toDate =
+                        !draftRange.to || date > draftRange.to ? date : draftRange.to;
+                      setDraftRange({
+                        ...draftRange,
+                        from: date,
+                        to: toDate,
+                      });
+                    }}
+                  />
+                  <div className='text-muted-foreground font-medium'>→</div>
+                  <DateInput
+                    value={draftRange.to}
+                    onChange={date => {
+                      if (isFuture(date)) return;
+                      const fromDate =
+                        date < (draftRange.from as Date) ? date : draftRange.from;
+                      setDraftRange({
+                        ...draftRange,
+                        from: fromDate,
+                        to: date,
+                      });
+                    }}
+                  />
+                </div>
+
+                {/* Mobile Preset Select */}
+                <div className='mb-6'>
+                  <Select
+                    defaultValue={selectedPreset}
+                    onValueChange={value => setPreset(value)}
+                  >
+                    <SelectTrigger className='w-full'>
+                      <SelectValue placeholder='Seleccionar período...' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRESETS.map(p => (
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Footer buttons */}
-          <DialogFooter className='flex justify-end gap-2'>
+          <DialogFooter className='flex justify-end gap-2 p-4 border-t bg-muted/30'>
             <Button
               variant='outline'
               onClick={() => {
