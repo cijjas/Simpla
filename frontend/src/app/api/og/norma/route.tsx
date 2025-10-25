@@ -1,5 +1,5 @@
-import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
-import { NormaDetalladaResumen } from '@/features/infoleg/utils/types';
+import { normasAPI } from '@/features/normas/api/normas-api';
+import { NormaDetail } from '@/features/normas/api/normas-api';
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
@@ -25,16 +25,16 @@ export async function GET(req: Request) {
   const id = Number(searchParams.get('id'));
   if (!id) return new Response('Missing ID', { status: 400 });
 
-  const norma: NormaDetalladaResumen = await getNormaDetalladaResumen(id);
+  const norma: NormaDetail = await normasAPI.getNorma(id);
   if (!norma) return new Response('Norma no encontrada', { status: 404 });
 
-  const numero = norma.idNormas?.[0]?.numero ?? '';
-  const anio = norma.publicacion
-    ? new Date(norma.publicacion).getFullYear()
+  const numero = norma.referencia?.numero ?? '';
+  const anio = norma.sancion
+    ? new Date(norma.sancion).getFullYear()
     : '';
-  const title = `${norma.tipoNorma ?? 'Norma'} ${numero}/${anio}`;
+  const title = `${norma.tipo_norma ?? 'Norma'} ${numero}/${anio}`;
   const normaTitle =
-    norma.tituloSumarioFormateado ?? norma.tituloResumidoFormateado ?? '';
+    norma.titulo_sumario ?? norma.titulo_resumido ?? '';
   const fechaPublicacion = norma.publicacion
     ? new Date(norma.publicacion).toLocaleDateString('es-AR', {
         day: 'numeric',
@@ -43,8 +43,8 @@ export async function GET(req: Request) {
       })
     : '';
   const boletin =
-    norma.nroBoletin && norma.pagBoletin
-      ? `B.O.R.A ${norma.nroBoletin} • pág ${norma.pagBoletin}`
+    norma.nro_boletin && norma.pag_boletin
+      ? `B.O.R.A ${norma.nro_boletin} • pág ${norma.pag_boletin}`
       : '';
 
   return new ImageResponse(
