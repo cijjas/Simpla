@@ -39,7 +39,7 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className='py-40 bg-background'>
+    <section className='py-40 bg-background light'>
       <div className='mx-auto max-w-6xl px-6'>
         {/* KPIs Section */}
         <div className='mb-20'>
@@ -57,7 +57,7 @@ export function FeaturesSection() {
                   {kpi.description}
                 </div>
                 {index < kpis.length - 1 && (
-                  <div className='hidden md:block absolute top-1/2 right-0 w-px h-16 bg-gray-200 dark:bg-gray-700 transform -translate-y-1/2' />
+                  <div className='hidden md:block absolute top-1/2 right-0 w-px h-16 bg-gray-200 transform -translate-y-1/2' />
                 )}
               </div>
             ))}

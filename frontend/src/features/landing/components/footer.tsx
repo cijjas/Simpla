@@ -1,6 +1,6 @@
 'use client';
 
-import SvgEstampa from '@/components/icons/Estampa';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { Button } from '@/components/ui/button';
 import { ProgressiveText } from '@/components/ui/progressive-text';
 import { Mail, MessageCircle } from 'lucide-react';
@@ -11,7 +11,7 @@ import {
 
 export function Footer() {
   return (
-    <footer className="bg-primary text-primary-foreground">
+    <footer className="bg-primary text-primary-foreground light">
       {/* Call to Action Section */}
       <section className="bg-gradient-to-br from-primary via-primary to-primary/90">
         <div className="max-w-6xl mx-auto px-6 py-24 md:py-32">
@@ -94,10 +94,10 @@ export function Footer() {
               </h4>
               <div className="flex-1 h-px bg-primary-foreground/20"></div>
               <nav className="flex gap-x-8 ml-4">
-                <a href="#privacy" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors text-sm">
+                <a href="/privacidad" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors text-sm">
                   Política de privacidad
                 </a>
-                <a href="#terms" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors text-sm">
+                <a href="/terminos" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors text-sm">
                   Términos y condiciones
                 </a>
               </nav>
@@ -113,12 +113,33 @@ export function Footer() {
             {/* Logo and Copyright */}
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
-                <SvgEstampa className="size-7 text-primary-foreground" />
-                <span className="text-primary-foreground font-bold font-serif text-lg">Simpla</span>
+                <SvgEstampa className="size-7 text-primary-foreground" fill='currentColor'/>
+                <span className="text-primary-foreground font-bold font-serif text-2xl">Simpla</span>
               </div>
-              <span className="text-primary-foreground/50 text-xs">
-                Simpla 2025. All Rights Reserved
-              </span>
+              <div className="text-primary-foreground/50 text-xs space-y-1">
+                <p>© 2025 Simpla. Todos los derechos reservados.</p>
+                <p>
+                  Parte del contenido proviene de{' '}
+                  <a 
+                    href="https://www.infoleg.gob.ar" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="underline hover:text-primary-foreground transition-colors"
+                  >
+                    infoleg.gob.ar
+                  </a>
+                  , bajo licencia{' '}
+                  <a 
+                    href="https://creativecommons.org/licenses/by/2.5/ar/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="underline hover:text-primary-foreground transition-colors"
+                  >
+                    CC BY 2.5 AR
+                  </a>
+                  .
+                </p>
+              </div>
             </div>
 
             {/* Contact Icons */}

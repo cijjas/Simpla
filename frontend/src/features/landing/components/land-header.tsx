@@ -13,9 +13,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import SvgEstampa from '@/components/icons/Estampa';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export default function LandHeader() {
   const [activeSection, setActiveSection] = useState('hero');
@@ -59,16 +58,19 @@ export default function LandHeader() {
 
   return (
     <header className={cn(
-      'w-full fixed top-0 z-50 transition-all duration-300',
-      isScrolled ? 'bg-background/80 backdrop-blur-lg pt-4' : 'bg-transparent pt-4'
+      'w-full fixed top-0 z-50 transition-all duration-300 light',
+      isScrolled 
+        ? 'bg-background/20 backdrop-blur-xl border-b border-border/20  pt-4' 
+        : 'bg-transparent pt-4'
     )}>
       <div className='flex items-center justify-between px-6 pb-4'>
         {/* Logo */}
         <Link
           href='/'
           className='flex items-center gap-3 hover:opacity-80 transition'
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          <SvgEstampa className='h-[1.5rem] w-auto' />
+          <SvgEstampa className='h-[1.8rem] w-auto' fill='currentColor'/>
           <span className='font-serif text-xl font-bold'>SIMPLA</span>
         </Link>
 
@@ -92,7 +94,6 @@ export default function LandHeader() {
 
         {/* Desktop controls */}
         <div className='hidden md:flex items-center space-x-4'>
-          <ThemeToggle />
           <Link href='/iniciar-sesion'>
             <Button size="sm">Iniciar sesión</Button>
           </Link>
@@ -100,12 +101,17 @@ export default function LandHeader() {
 
         {/* Mobile menu */}
         <Sheet>
-          <SheetTrigger aria-label='Abrir menú' className='md:hidden'>
+          <SheetTrigger 
+            aria-label='Abrir menú' 
+            className='md:hidden'
+            suppressHydrationWarning
+          >
             <Menu className='h-6 w-6 text-navy-900' />
           </SheetTrigger>
           <SheetContent
             side='left'
-            className='w-64 border-r px-0 py-0 bg-white/95 backdrop-blur-lg'
+            className='w-64 border-r px-0 py-0 bg-background/95 backdrop-blur-lg light'
+            suppressHydrationWarning
           >
             <SheetHeader className='sr-only'>
               <SheetTitle>Menú principal</SheetTitle>
@@ -117,9 +123,10 @@ export default function LandHeader() {
                 <Link
                   href='/'
                   className='font-serif text-lg font-bold'
-                  onClick={() =>
-                    (document.activeElement as HTMLElement | null)?.blur()
-                  }
+                  onClick={() => {
+                    (document.activeElement as HTMLElement | null)?.blur();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                 >
                   SIMPLA
                 </Link>
@@ -147,8 +154,6 @@ export default function LandHeader() {
 
               {/* Sheet footer */}
               <div className='mt-auto flex flex-col gap-6 border-t px-6 py-6'>
-                <ThemeToggle />
-
                 {/* Contact */}
                 <div className='flex items-center gap-6'>
                   <Link

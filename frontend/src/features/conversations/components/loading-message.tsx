@@ -1,12 +1,12 @@
 import { Loader2Icon } from 'lucide-react';
-import SvgEstampa from '@/components/icons/Estampa';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 
 export function LoadingMessage() {
   return (
     <div className='flex justify-start px-2 sm:px-0'>
       <div className='max-w-[85%] sm:max-w-[70%] md:max-w-[60%] text-slate-800 dark:text-slate-200 text-sm'>
         <div className='flex items-center mb-1 gap-2 text-xs text-slate-500 dark:text-slate-400'>
-          <SvgEstampa className='h-4 w-4' />
+          <SvgEstampa className='h-4 w-4' fill='currentColor'/>
           <span className='font-medium'>Simpla</span>
         </div>
         <div className='flex items-center gap-2'>

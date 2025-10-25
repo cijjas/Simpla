@@ -19,7 +19,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNormasSearch } from '../../hooks/use-normas-search';
 import { NormaCard } from './norma-card';
-import SvgSearch from '@/components/icons/Search';
+import SvgSearch from '@/../public/svgs/search.svg';
 import { useBatchBookmarks } from '@/features/bookmark';
 
 export function NormasList() {
@@ -132,9 +132,13 @@ export function NormasList() {
 
         {/* Main Content */}
         <div className='relative z-10 w-full max-w-xl mx-auto'>
-          <div className='flex flex-col items-center text-center space-y-6 bg-background/95 backdrop-blur-sm rounded-2xl p-8 border shadow-lg'>
+          <div className='flex flex-col items-center text-center space-y-6 bg-background rounded-2xl p-8 border shadow-sm'>
             {/* Icon */}
-            <SvgSearch className='size-56 text-muted-foreground/60' />
+
+            <SvgSearch  
+              className='size-60'
+              fill='currentColor'
+              />
             {/* Text Content */}
             <div className='space-y-3 max-w-md'>
               <h2 className='text-2xl sm:text-3xl font-serif font-bold tracking-tight'>
@@ -164,7 +168,7 @@ export function NormasList() {
       return (
         <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
           <section
-            className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'
             style={{
               WebkitMaskImage:
                 'linear-gradient(to bottom, black 70%, transparent 100%)',

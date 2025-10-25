@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ConversationNormaCard } from './conversation-norma-card';
-import { getNormaDetalladaResumen } from '@/features/infoleg/utils/api';
-import { NormaDetalladaResumen } from '@/features/infoleg/utils/types';
+import { normasAPI, type NormaSummary } from '@/features/normas';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ConversationNormasDisplayProps {
@@ -11,7 +10,7 @@ interface ConversationNormasDisplayProps {
 }
 
 export function ConversationNormasDisplay({ normaIds }: ConversationNormasDisplayProps) {
-  const [normas, setNormas] = useState<NormaDetalladaResumen[]>([]);
+  const [normas, setNormas] = useState<NormaSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,19 +25,14 @@ export function ConversationNormasDisplay({ normaIds }: ConversationNormasDispla
         setLoading(true);
         setError(null);
 
-        const normaPromises = normaIds.map(async (id) => {
-          try {
-            return await getNormaDetalladaResumen(id);
-          } catch (error) {
-            console.error(`Error fetching norma ${id}:`, error);
-            return null;
-          }
-        });
-
-        const results = await Promise.all(normaPromises);
-        const validNormas = results.filter((norma): norma is NormaDetalladaResumen => norma !== null);
+        // Use batch API to fetch multiple normas at once
+        const response = await normasAPI.getNormasBatch(normaIds);
+        setNormas(response.normas);
         
-        setNormas(validNormas);
+        // Log any IDs that were not found
+        if (response.not_found_ids.length > 0) {
+          console.warn('Some normas were not found:', response.not_found_ids);
+        }
       } catch (error) {
         console.error('Error fetching normas:', error);
         setError('Error al cargar las normas');

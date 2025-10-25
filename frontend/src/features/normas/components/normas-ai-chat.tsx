@@ -21,7 +21,7 @@ import { MessageCircle, X, User, Loader2, ArrowUp, ChevronDown, Mic, MicOff } fr
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
-import SvgEstampa from '@/components/icons/Estampa';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { Kbd } from '@/components/ui/kbd';
 import { getCommandById, getShortcutParts } from '@/features/command-center';
 
@@ -492,7 +492,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                 <div className="h-full flex items-center justify-center p-4">
                 <div className="text-center text-muted-foreground">
                     <div className="mx-auto pb-6 flex items-center justify-center ">
-                      <SvgEstampa className="size-26" />
+                      <SvgEstampa className="size-26 " fill='currentColor'/>
                     </div>
                     <p className="text-md font-serif text-muted-foreground ">
                     Pregunta sobre esta norma

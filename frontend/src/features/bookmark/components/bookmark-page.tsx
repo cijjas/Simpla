@@ -10,7 +10,7 @@ import { NormaCard } from '@/features/normas/components/list/norma-card';
 import { useBookmarks } from '../hooks/use-bookmarks';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import SvgSearch from '@/components/icons/Search';
+import SvgSearch from '@/../public/svgs/search.svg';
 import Link from 'next/link';
 import { Kbd } from '@/components/ui/kbd';
 
@@ -249,9 +249,12 @@ export function BookmarkPage() {
 
             {/* Main Content */}
             <div className='relative z-10 w-full max-w-xl mx-auto'>
-              <div className='flex flex-col items-center text-center space-y-6 bg-background/95 backdrop-blur-sm rounded-2xl p-8 border shadow-lg'>
+              <div className='flex flex-col items-center text-center space-y-6 bg-background rounded-2xl p-8 border shadow-sm'>
                 {/* Icon */}
-                <SvgSearch className='size-56 text-muted-foreground/60' />
+                <SvgSearch  
+                  className='size-60'
+                  fill='currentColor'
+                />
                 {/* Text Content */}
                 <div className='space-y-3 max-w-md'>
                   <h2 className='text-2xl sm:text-3xl font-serif font-bold tracking-tight'>

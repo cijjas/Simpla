@@ -12,12 +12,12 @@ import {
   Loader,
   BookOpen,
 } from 'lucide-react';
-import SvgEstampa from '@/components/icons/Estampa';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { forwardRef } from 'react';
 
 // Create a wrapper to make Estampa compatible with LucideIcon interface
 const EstampaIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
-  (props, ref) => <SvgEstampa {...props} ref={ref} />,
+  (props, ref) => <SvgEstampa {...props} ref={ref} className="text-sidebar" fill="currentColor" />,
 );
 EstampaIcon.displayName = 'EstampaIcon';
 

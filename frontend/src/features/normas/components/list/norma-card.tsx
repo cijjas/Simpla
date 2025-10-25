@@ -40,7 +40,7 @@ export function NormaCard({ norma, isBookmarked: initialBookmarked }: NormaCardP
 
   return (
     <Link href={`/normas/${norma.infoleg_id}`} className="block h-full">
-      <Card className="group relative h-full border bg-card transition hover:bg-accent  py-0">
+      <Card className="group relative h-full flex flex-col border bg-card transition hover:bg-accent py-0">
         {/* Bookmark indicator (only show if bookmarked) */}
         {isBookmarked && (
           <div className="absolute top-4.5 right-3 z-10">
@@ -51,7 +51,7 @@ export function NormaCard({ norma, isBookmarked: initialBookmarked }: NormaCardP
           </div>
         )}
 
-        <CardContent className="flex flex-col h-full p-4">
+        <CardContent className="flex flex-col h-full grow p-4">
           {/* ---------- TOP SECTION : title & subtitle (fixed height) ---------- */}
           <div className="flex flex-col gap-2 flex-shrink-0">
             {/* Title - fixed 2 lines */}

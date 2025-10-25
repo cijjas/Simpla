@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { ThemeToggle } from '../ui/theme-toggle';
-import SvgEstampa from '../icons/Estampa';
+import SvgEstampa from '@/../public/svgs/estampa.svg';
 import React from 'react';
 import { Separator } from '../ui/separator';
 import { FeedbackButton } from '@/features/feedback/components/feedback-button';
@@ -20,17 +20,19 @@ export default function AppHeader() {
       data-sidebar-state={state}
     >
       <SidebarTrigger className='-ml-1' />
-
       <Separator orientation='vertical' decorative className='mr-2 !h-4 ' />
 
       {/* Logo */}
       <div className='flex items-center gap-4 overflow-hidden'>
         <Link
           href='/inicio'
-          className='flex items-center gap-3 hover:opacity-80 transition'
+          className='flex items-center gap-3 hover:opacity-80 transition text-foreground'
         >
-          <SvgEstampa className='h-[1.8rem] w-auto' />
-          <span className='font-serif text-xl font-bold whitespace-nowrap'>
+          <SvgEstampa 
+          className='h-[1.8rem] w-auto '
+          fill='currentColor'
+            />
+          <span className='font-serif text-xl font-bold whitespace-nowrap text-foreground'>
             SIMPLA
           </span>
         </Link>

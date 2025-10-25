@@ -9,9 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { HeroSection } from './hero-section';
 import { FeaturesSection } from './features-section';
-import { AboutUsSection } from './about-us-section';
+import { ValuePropositionSection } from './value-proposition';
 import { BentoGridSection, defaultServicesCards } from './bento-grid-section';
-import { Footer } from './footer';
 import { ProgressiveText } from '@/components/ui/progressive-text';
 import Image from 'next/image';
 
@@ -128,7 +127,7 @@ export default function LandingPage() {
   };
 
   return (
-    <main className='relative overflow-hidden'>
+    <>
       {/* Hero Section */}
       <section id='hero'>
         <HeroSection />
@@ -163,7 +162,7 @@ export default function LandingPage() {
 
       {/* About Us Section */}
       <section id='about-us'>
-        <AboutUsSection />
+        <ValuePropositionSection />
       </section>
 
       {/* Contact Section */}
@@ -179,7 +178,7 @@ export default function LandingPage() {
               ¿Listo para transformar tu estudio jurídico?
             </ProgressiveText>
             <ProgressiveText
-              className='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'
+              className='text-xl text-gray-600 max-w-2xl mx-auto'
               delay={0.2}
               stagger={0.03}
             >
@@ -200,10 +199,10 @@ export default function LandingPage() {
               >
                 <CheckCircle2 className='h-16 w-16 text-green-600' />
                 <div className='space-y-2'>
-                  <h3 className='text-2xl font-semibold text-gray-900 dark:text-white'>
+                  <h3 className='text-2xl font-semibold text-gray-900'>
                     ¡Mensaje enviado correctamente!
                   </h3>
-                  <p className='text-lg text-gray-600 dark:text-gray-300'>
+                  <p className='text-lg text-gray-600'>
                     Te responderemos pronto.
                   </p>
                 </div>
@@ -278,10 +277,10 @@ export default function LandingPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.3 }}
-                      className='flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg'
+                      className='flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg'
                     >
-                      <AlertCircle className='h-5 w-5 text-destructive dark:text-red-400 flex-shrink-0' />
-                      <p className='text-red-700 dark:text-red-300 text-sm font-medium'>
+                      <AlertCircle className='h-5 w-5 text-destructive flex-shrink-0' />
+                      <p className='text-red-700 text-sm font-medium'>
                         {errorMessage ||
                           'Hubo un error al enviar el mensaje. Por favor, intentá nuevamente.'}
                       </p>
@@ -294,9 +293,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <Footer />
-    </main>
+    </>
   );
 }

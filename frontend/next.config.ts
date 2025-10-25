@@ -1,8 +1,13 @@
 import type { NextConfig } from 'next';
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Turbopack configuration for SVG imports (stable API)
+  
+  // Configure Turbopack for SVG handling
   turbopack: {
     rules: {
       '*.svg': {
@@ -11,38 +16,18 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  // Keep webpack config for production builds (when not using --turbo)
-  webpack(config) {
-    // Grab the existing rule that handles SVG imports
-    const fileLoaderRule = config.module.rules.find((rule: any) =>
-      rule.test?.test?.('.svg'),
-    );
-
-    config.module.rules.push(
-      // Reapply the existing rule, but only for svg imports ending in ?url
-      {
-        ...fileLoaderRule,
-        test: /\.svg$/i,
-        resourceQuery: /url/, // *.svg?url
-      },
-      // Convert all other *.svg imports to React components
-      {
-        test: /\.svg$/i,
-        issuer: fileLoaderRule?.issuer,
-        resourceQuery: {
-          not: [...(fileLoaderRule?.resourceQuery?.not || []), /url/],
-        }, // exclude if *.svg?url
-        use: ['@svgr/webpack'],
-      },
-    );
-
-    // Modify the file loader rule to ignore *.svg, since we have it handled now.
-    if (fileLoaderRule) {
-      fileLoaderRule.exclude = /\.svg$/i;
+  
+  webpack(config, { isServer }) {
+    // Fix for "self is not defined" error in server-side builds
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        canvas: false,
+      };
     }
 
     return config;
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

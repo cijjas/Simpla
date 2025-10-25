@@ -5,34 +5,31 @@ import { Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDatePretty } from '@/lib/utils';
-import { NormaDetalladaResumen } from '@/features/infoleg/utils/types';
+import { type NormaSummary } from '@/features/normas';
 
 interface ConversationNormaCardProps {
-  norma: NormaDetalladaResumen;
+  norma: NormaSummary;
 }
 
 export function ConversationNormaCard({ norma }: ConversationNormaCardProps) {
   return (
     <Link
-      href={`/normas/${norma.id}`}
-      className='group block h-full rounded-lg border bg-card transition hover:bg-accent hover:shadow-md no-underline'
+      href={`/normas/${norma.infoleg_id}`}
+      className='group block h-full rounded-lg border bg-card transition hover:bg-accent no-underline'
     >
       <Card className='flex h-full flex-col border-none bg-transparent p-0 shadow-none'>
         <CardContent className='flex grow flex-col gap-2 p-3'>
           {/* Title */}
           <h4 className='text-sm font-bold font-serif leading-snug line-clamp-2'>
-            {norma.tituloSumarioFormateado ||
-              norma.tituloResumidoFormateado ||
-              'Sin título'}
+            {norma.titulo_resumido || norma.titulo_sumario || 'Sin título'}
           </h4>
 
           {/* Summary (shortened for chat context) */}
-          {norma.textoResumidoFormateado && (
+          {norma.texto_resumido && (
             <div className='relative h-16 overflow-hidden'>
               <p className='text-xs text-muted-foreground line-clamp-3'>
-                {norma.textoResumidoFormateado}
+                {norma.texto_resumido}
               </p>
-              <div className='pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-card via-card/80 to-transparent group-hover:opacity-0 transition-opacity' />
             </div>
           )}
 
@@ -41,17 +38,17 @@ export function ConversationNormaCard({ norma }: ConversationNormaCardProps) {
             {/* Type and jurisdiction */}
             <div className='flex items-center justify-between'>
               <div className='font-serif font-bold text-sm text-foreground'>
-                {norma.nombreNorma}
+                {norma.tipo_norma && norma.referencia?.numero 
+                  ? `${norma.tipo_norma} ${norma.referencia.numero}/${norma.sancion?.split('-')[0] || ''}`
+                  : norma.tipo_norma || 'NORMA'
+                }
               </div>
-              <Badge className='text-xs rounded-full' variant='outline'>
-                {norma.jurisdiccion}
-              </Badge>
+              
             </div>
 
             {/* Publication date */}
             {norma.publicacion && (
               <div className='flex items-center gap-1'>
-                <Calendar className='h-3 w-3' />
                 <span className='text-xs'>{formatDatePretty(norma.publicacion)}</span>
               </div>
             )}
