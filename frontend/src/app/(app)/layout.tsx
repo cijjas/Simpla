@@ -11,6 +11,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { BookmarksProvider } from '@/features/bookmark';
+import { ThemeProvider } from 'next-themes';
 
 export default function AppLayout({
   children,
@@ -35,18 +36,20 @@ export default function AppLayout({
   }
 
   return (
-    <BookmarksProvider>
-      <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
-        <div className="flex flex-1 flex-col">
-          <AppHeader />
-          <SidebarInset>
-            <div className="flex flex-1 flex-col gap-4">
-              {children}
-            </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </BookmarksProvider>
+    <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+      <BookmarksProvider>
+        <SidebarProvider defaultOpen={true}>
+          <AppSidebar />
+          <div className="flex flex-1 flex-col">
+            <AppHeader />
+            <SidebarInset>
+              <div className="flex flex-1 flex-col gap-4">
+                {children}
+              </div>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </BookmarksProvider>
+    </ThemeProvider>
   );
 }

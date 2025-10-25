@@ -6,8 +6,6 @@ import {
   Search,
   Folder,
   Bookmark,
-  Compass,
-  MessageSquare,
   Bell,
   Loader,
   BookOpen,

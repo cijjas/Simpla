@@ -324,6 +324,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Always clear auth state, even if backend call fails
       clearAuth();
       
+      // Clear theme preference to ensure light mode on public pages
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('theme');
+        // Force light mode immediately
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+      
       // Manually clear the refresh token cookie as a fallback
       if (typeof document !== 'undefined') {
         document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
