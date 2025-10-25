@@ -371,7 +371,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         
         // Only attempt refresh if we're not already logging out and we need to
-        if (!isLoggingOutRef.current && (needsTokenRefresh || !accessToken)) {
+        // AND if there's actually a refresh token cookie present
+        if (!isLoggingOutRef.current && (needsTokenRefresh || !accessToken) && hasValidRefreshToken()) {
           console.log('Attempting to restore session...');
           
           // Add timeout to prevent hanging
@@ -397,7 +398,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('No stored auth state, user needs to login');
           setAuthState(prev => ({ ...prev, isLoading: false }));
         } else {
-          console.log('Skipping auth initialization - logout in progress');
+          console.log('Skipping auth initialization - logout in progress or no refresh token cookie');
           setAuthState(prev => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
