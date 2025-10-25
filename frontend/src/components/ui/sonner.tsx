@@ -11,7 +11,15 @@ import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  // Try to get theme from next-themes context, fallback to 'light' for public pages
+  let theme: string = "light";
+  try {
+    const themeContext = useTheme();
+    theme = themeContext?.theme || "light";
+  } catch {
+    // If useTheme throws (not in ThemeProvider context), use light theme
+    theme = "light";
+  }
 
   return (
     <Sonner

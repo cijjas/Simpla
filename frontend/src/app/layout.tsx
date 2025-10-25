@@ -4,7 +4,6 @@ import { Geist, Geist_Mono, Lora } from 'next/font/google';
 import './globals.css';
 
 import { AuthProvider } from '@/features/auth/context/auth-context';
-import { ThemeProvider } from 'next-themes';
 import { Analytics } from '@vercel/analytics/react';
 import { CommandProvider } from '@/features/command-center/context/command-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -55,16 +54,31 @@ export default function RootLayout({
 }) {
   return (
     <html lang='es' suppressHydrationWarning>
+      <head>
+        {/* Force light mode on initial load for public pages */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // Only force light mode if no theme is explicitly stored (public pages)
+                const storedTheme = localStorage.getItem('theme');
+                if (!storedTheme) {
+                  document.documentElement.classList.add('light');
+                  document.documentElement.classList.remove('dark');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} min-h-screen flex flex-col antialiased`}
       >
         <AuthProvider>
-          <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-            <CommandProvider>
-              {children}
-            </CommandProvider>
-            <Toaster />
-          </ThemeProvider>
+          <CommandProvider>
+            {children}
+          </CommandProvider>
+          <Toaster />
         </AuthProvider>
         <Analytics />
       </body>
