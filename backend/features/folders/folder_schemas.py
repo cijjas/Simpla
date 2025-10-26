@@ -1,6 +1,6 @@
 """Pydantic schemas for folder operations."""
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from uuid import UUID
@@ -60,22 +60,13 @@ class FolderNormaResponse(BaseModel):
     notes: Optional[str] = Field(None, max_length=500, description="Optional notes about the norma (max 500 characters)")
 
 
-class NormaInFolder(BaseModel):
-    """Schema for norma when returned in folder context."""
-    id: int
-    infoleg_id: int
-    titulo_resumido: str
-    jurisdiccion: Optional[str] = None
-    tipo_norma: Optional[str] = None
-    sancion: Optional[str] = None
-    publicacion: Optional[str] = None
-    estado: Optional[str] = None
+# Note: Using NormaSummaryResponse from normas schemas directly instead of duplicating
 
 
 class FolderNormaWithNorma(BaseModel):
     """Schema for folder-norma with full norma details."""
     id: str
-    norma: NormaInFolder
+    norma: dict  # Use dict type to avoid circular import issues
     added_at: datetime
     order_index: int
     notes: Optional[str] = Field(None, max_length=500, description="Optional notes about the norma (max 500 characters)")

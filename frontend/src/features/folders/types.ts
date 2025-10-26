@@ -2,6 +2,8 @@
  * Types for folder management system
  */
 
+import { NormaSummary } from '@/features/normas/api/normas-api';
+
 export interface FolderTreeItem {
   id: string;
   name: string;
@@ -49,20 +51,9 @@ export interface FolderMove {
   order_index?: number;
 }
 
-export interface NormaInFolder {
-  id: number;
-  infoleg_id: number;
-  titulo_resumido: string;
-  jurisdiccion?: string;
-  tipo_norma?: string;
-  sancion?: string;
-  publicacion?: string;
-  estado?: string;
-}
-
 export interface FolderNormaWithNorma {
   id: string;
-  norma: NormaInFolder;
+  norma: NormaSummary; // Use the same type as in normas feature
   added_at: string;
   order_index: number;
   notes?: string;

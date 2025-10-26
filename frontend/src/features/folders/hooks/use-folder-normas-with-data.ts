@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { normasAPI, type NormaSummary } from '@/features/normas/api/normas-api';
+import { type NormaSummary } from '@/features/normas/api/normas-api';
 import { useFolderNormas } from './use-folders';
 import { FolderNormaUpdate, FolderWithNormasResponse } from '../types';
 
 interface UseFolderNormasWithDataResult {
   normas: NormaSummary[];
-  folderWithNormas: FolderWithNormasResponse | null; // Add this to return the folder-norma relationships
+  folderWithNormas: FolderWithNormasResponse | null;
   loading: boolean;
   error: string | null;
   addNormaToFolder: (normaId: number, notes?: string) => Promise<void>;
   removeNormaFromFolder: (normaId: number) => Promise<void>;
-  updateFolderNorma: (normaId: number, updateData: FolderNormaUpdate) => Promise<void>; // Add this too
+  updateFolderNorma: (normaId: number, updateData: FolderNormaUpdate) => Promise<void>;
 }
 
 export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDataResult {
@@ -19,45 +19,21 @@ export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDa
   const [normasLoading, setNormasLoading] = useState(false);
   const [normasError, setNormasError] = useState<string | null>(null);
 
-  // Fetch actual norma data when folder normas change
+  // Extract normas from folderWithNormas - no need for separate API calls
   useEffect(() => {
-    const fetchNormasData = async () => {
-      if (!folderWithNormas?.normas || folderWithNormas.normas.length === 0) {
-        setNormas([]);
-        return;
-      }
+    if (!folderWithNormas?.normas || folderWithNormas.normas.length === 0) {
+      setNormas([]);
+      setNormasError(null);
+      return;
+    }
 
-      try {
-        setNormasLoading(true);
-        setNormasError(null);
-
-        console.log('Fetching normas data for folder:', folderWithNormas.normas.map(n => n.norma.id));
-        
-        const normaPromises = folderWithNormas.normas.map(async (folderNorma) => {
-          try {
-            const normaData = await normasAPI.getNormaSummary(folderNorma.norma.id);
-            return normaData;
-          } catch (error) {
-            console.error(`Error fetching norma ${folderNorma.norma.id}:`, error);
-            return null; // Skip failed normas
-          }
-        });
-
-        const normaResults = await Promise.all(normaPromises);
-        // Filter out null results (failed fetches)
-        const validNormas = normaResults.filter((norma): norma is NormaSummary => norma !== null);
-        
-        console.log('Fetched normas:', validNormas);
-        setNormas(validNormas);
-      } catch (err) {
-        console.error('Error fetching normas data:', err);
-        setNormasError('Error al cargar las normas');
-      } finally {
-        setNormasLoading(false);
-      }
-    };
-
-    fetchNormasData();
+    // The backend now returns full norma data, so we can extract it directly
+    const extractedNormas = folderWithNormas.normas
+      .map(folderNorma => folderNorma.norma)
+      .filter((norma): norma is NormaSummary => norma !== null);
+    
+    setNormas(extractedNormas);
+    setNormasError(null);
   }, [folderWithNormas]);
 
   const addNormaToFolder = useCallback(async (normaId: number, notes?: string) => {
@@ -75,7 +51,7 @@ export function useFolderNormasWithData(folderId: string): UseFolderNormasWithDa
   return {
     normas,
     folderWithNormas,
-    loading: folderLoading || normasLoading,
+    loading: folderLoading,
     error: folderError || normasError,
     addNormaToFolder,
     removeNormaFromFolder,

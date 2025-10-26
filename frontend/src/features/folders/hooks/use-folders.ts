@@ -288,25 +288,31 @@ export function useFolderNormas(folderId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchingRef = useRef(false);
+  const currentFolderIdRef = useRef<string | null>(null);
 
   const fetchFolderNormas = useCallback(async () => {
-    if (!folderId || folderId.trim() === '') {
+    const currentFolderId = folderId;
+    
+    if (!currentFolderId || currentFolderId.trim() === '') {
       setFolderWithNormas(null);
       setError(null);
       setLoading(false);
+      currentFolderIdRef.current = null;
       return;
     }
 
-    if (fetchingRef.current) {
-      return; // Prevent duplicate calls
+    // Prevent duplicate calls for the same folder
+    if (fetchingRef.current || currentFolderIdRef.current === currentFolderId) {
+      return;
     }
 
     try {
       fetchingRef.current = true;
+      currentFolderIdRef.current = currentFolderId;
       setLoading(true);
       setError(null);
 
-      const data = await api.get<FolderWithNormasResponse>(`/api/folders/${folderId}/normas/`);
+      const data = await api.get<FolderWithNormasResponse>(`/api/folders/${currentFolderId}/normas/`);
       setFolderWithNormas(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -315,30 +321,30 @@ export function useFolderNormas(folderId: string) {
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [folderId, api]);
+  }, [api]); // Remove folderId from dependencies to prevent unnecessary re-creation
 
   const addNormaToFolder = useCallback(async (normaData: FolderNormaCreate) => {
     const result = await api.post(`/api/folders/${folderId}/normas/`, normaData);
     await fetchFolderNormas(); // Refresh the folder normas
     return result;
-  }, [folderId, api, fetchFolderNormas]);
+  }, [folderId, api]); // Remove fetchFolderNormas from dependencies
 
   const updateFolderNorma = useCallback(async (normaId: number, updateData: FolderNormaUpdate) => {
     const result = await api.put(`/api/folders/${folderId}/normas/${normaId}/`, updateData);
     await fetchFolderNormas(); // Refresh the folder normas
     return result;
-  }, [folderId, api, fetchFolderNormas]);
+  }, [folderId, api]); // Remove fetchFolderNormas from dependencies
 
   const removeNormaFromFolder = useCallback(async (normaId: number) => {
     await api.delete(`/api/folders/${folderId}/normas/${normaId}/`);
     await fetchFolderNormas(); // Refresh the folder normas
-  }, [folderId, api, fetchFolderNormas]);
+  }, [folderId, api]); // Remove fetchFolderNormas from dependencies
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && folderId) {
       fetchFolderNormas();
     }
-  }, [isAuthenticated, folderId, fetchFolderNormas]);
+  }, [isAuthenticated, folderId]); // Remove fetchFolderNormas from dependencies
 
   return {
     folderWithNormas,

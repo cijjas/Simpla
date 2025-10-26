@@ -10,8 +10,8 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { BookmarksProvider } from '@/features/bookmark';
 import { ThemeProvider } from 'next-themes';
+import { BookmarksProvider } from '@/features/bookmark';
 
 export default function AppLayout({
   children,

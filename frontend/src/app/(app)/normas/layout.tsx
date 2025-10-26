@@ -1,14 +1,16 @@
-import { ReactNode } from 'react';
-import { NormasProvider } from '@/features/normas/contexts/normas-context';
+import { BookmarksProvider } from '@/features/bookmark';
+import { NormasProvider } from '@/features/normas';
 
-interface NormasLayoutProps {
-  children: ReactNode;
-}
-
-export default function NormasLayout({ children }: NormasLayoutProps) {
+export default function NormasLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <NormasProvider>
-      {children}
-    </NormasProvider>
+    <BookmarksProvider>
+      <NormasProvider>
+        {children}
+      </NormasProvider>
+    </BookmarksProvider>
   );
 }

@@ -15,6 +15,7 @@ from features.auth.auth_utils import verify_token
 from core.utils.logging_config import get_logger
 import uuid
 from uuid import UUID
+from datetime import datetime
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -468,11 +469,8 @@ async def get_folder_normas(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Get all normas in a specific folder."""
+    """Get all normas in a specific folder with full norma details."""
     logger.info(f"Fetching normas in folder {folder_id} for user {user_id}")
-    
-    # TODO: Remove this when normas table is available
-    logger.info("NOTE: Normas functionality is temporarily disabled - returning empty list until normas table is available")
     
     folder = db.query(Folder).filter(
         and_(
@@ -488,32 +486,66 @@ async def get_folder_normas(
         )
     
     # Get folder-norma relationships
-    # TODO: Add norma details when normas table is implemented
     folder_normas = db.query(FolderNorma).filter(
         FolderNorma.folder_id == folder_id
     ).order_by(FolderNorma.order_index).all()
     
-    # TODO: When normas table is available, replace this with actual norma data
+    # Import the normas reconstructor to get actual norma data
+    from shared.utils.norma_reconstruction import get_norma_reconstructor
+    reconstructor = get_norma_reconstructor()
+    
+    # Get norma IDs
+    norma_ids = [fn.norma_id for fn in folder_normas]
+    
+    # Fetch all normas in batch
+    normas_data = []
+    if norma_ids:
+        try:
+            normas_data = reconstructor.get_normas_summaries_batch(norma_ids)
+        except Exception as e:
+            logger.error(f"Error fetching normas batch: {str(e)}")
+            # Fallback to empty list if batch fetch fails
+            normas_data = []
+    
+    # Create a map of norma data by infoleg_id for quick lookup
+    normas_by_id = {norma['infoleg_id']: norma for norma in normas_data}
+    
+    # Build response with actual norma data
     normas_with_details = []
     for fn in folder_normas:
-        # Create simplified norma response for now
-        # TODO: Add full norma details when normas table is implemented
-        normas_with_details.append(FolderNormaWithNorma(
-            id=str(fn.id),
-            norma={
+        norma_data = normas_by_id.get(fn.norma_id)
+        if norma_data:
+            # Use actual norma data - pass as dict
+            normas_with_details.append(FolderNormaWithNorma(
+                id=str(fn.id),
+                norma=norma_data,  # Pass as dict directly
+                added_at=fn.added_at,
+                order_index=fn.order_index,
+                notes=fn.notes
+            ))
+        else:
+            # Fallback for missing normas
+            logger.warning(f"Norma {fn.norma_id} not found in batch fetch")
+            # Create a minimal dict for missing normas
+            fallback_norma = {
                 "id": fn.norma_id,
-                "infoleg_id": fn.norma_id,  # Using norma_id as fallback
-                "titulo_resumido": f"Norma {fn.norma_id}",  # Placeholder
-                "jurisdiccion": "Nacional",  # Placeholder
-                "tipo_norma": "LEY",  # Placeholder
+                "infoleg_id": fn.norma_id,
+                "titulo_resumido": f"Norma {fn.norma_id} (No disponible)",
+                "jurisdiccion": "Nacional",
+                "tipo_norma": "LEY",
                 "sancion": None,
                 "publicacion": None,
-                "estado": "VIGENTE"
-            },
-            added_at=fn.added_at,
-            order_index=fn.order_index,
-            notes=fn.notes
-        ))
+                "estado": "VIGENTE",
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+            normas_with_details.append(FolderNormaWithNorma(
+                id=str(fn.id),
+                norma=fallback_norma,
+                added_at=fn.added_at,
+                order_index=fn.order_index,
+                notes=fn.notes
+            ))
     
     return FolderWithNormasResponse(
         folder=FolderResponse(

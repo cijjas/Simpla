@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,10 +36,10 @@ import {
   Tag,
   Users,
   Info,
-  Plus,
 } from 'lucide-react';
 import { useFolderNormasWithData } from '../hooks/use-folder-normas-with-data';
 import { useFoldersContext } from '../context/folders-context';
+import { useBatchBookmarks } from '@/features/bookmark';
 import { FolderTreeItem, FolderNormaWithNorma } from '../types';
 import { buildFolderPath, findFolderById } from '../utils/folder-utils';
 import { toast } from 'sonner';
@@ -71,7 +72,10 @@ const FolderInfoPopover = ({
   folderPath: FolderTreeItem[]; 
   currentFolder: FolderTreeItem;
   onFolderSelect?: (folder: FolderTreeItem | null) => void;
-}) => (
+}) => {
+  const router = useRouter();
+  
+  return (
   <Popover>
     <PopoverTrigger asChild>
       <Button
@@ -106,7 +110,10 @@ const FolderInfoPopover = ({
                         ) : (
                           <BreadcrumbLink
                             className='text-xs text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1'
-                            onClick={() => onFolderSelect?.(pathFolder)}
+                            onClick={() => {
+                              router.push(`/carpetas/${pathFolder.id}`);
+                              onFolderSelect?.(pathFolder);
+                            }}
                           >
                             <IconComponent className='h-3 w-3' />
                             {pathFolder.name}
@@ -133,20 +140,21 @@ const FolderInfoPopover = ({
       </div>
     </PopoverContent>
   </Popover>
-);
+  );
+};
 
 const FolderHeader = ({ 
   currentFolder,
   folderPath,
   badge,
   onFolderSelect,
-  addButtonDisabled = false
+  _addButtonDisabled = false
 }: { 
   currentFolder: FolderTreeItem;
   folderPath: FolderTreeItem[];
   badge: React.ReactNode;
   onFolderSelect?: (folder: FolderTreeItem | null) => void;
-  addButtonDisabled?: boolean;
+  _addButtonDisabled?: boolean;
 }) => (
   <div className='flex-shrink-0 border-b bg-background p-4'>
     <div className='flex items-center justify-between'>
@@ -192,8 +200,8 @@ const EmptyFolderState = () => (
 );
 
 export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
+  const router = useRouter();
   const { 
-    normas: normasWithDetails, 
     folderWithNormas,
     loading: normasDetailsLoading,
     error: folderError,
@@ -217,16 +225,18 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
   const currentFolder = folder ? findFolderById(folders, folder.id) : null;
   const folderPath = currentFolder ? buildFolderPath(folders, currentFolder.id) : [];
 
-  // Map normas with details - normasWithDetails is already NormaSummary[]
-  const normasById = new Map(normasWithDetails.map(norma => [norma.infoleg_id, norma]));
+  // Map normas with details - now the norma data comes directly from the API
   const combinedNormas = (folderWithNormas?.normas || [])
     .map((folderNorma: FolderNormaWithNorma) => ({
       folderNormaId: folderNorma.id,
       addedAt: folderNorma.added_at,
       notes: folderNorma.notes,
-      norma: normasById.get(folderNorma.norma.id),
+      norma: folderNorma.norma, // Use the norma data directly from the API response
     }))
-    .filter((item) => item.norma); // Only include normas that were successfully fetched
+    .filter((item) => item.norma); // Only include normas that have data
+
+  // Batch check bookmarks for all normas in this folder
+  const { isBookmarked } = useBatchBookmarks(combinedNormas.map(item => item.norma));
 
   const handleUpdateNotes = async (
     folderNormaId: string,
@@ -355,7 +365,10 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
                     <Card
                       key={subfolder.id}
                       className='shadow-none py-0 g-0 cursor-pointer bg-muted/30 hover:bg-muted/70 transition-colors aspect-[4/3]'
-                      onClick={() => onFolderSelect?.(subfolder)}
+                      onClick={() => {
+                        router.push(`/carpetas/${subfolder.id}`);
+                        onFolderSelect?.(subfolder);
+                      }}
                     >
                       <CardContent className='p-3 flex flex-col g-0'>
                         <div className='flex items-center gap-2 mb-2'>
@@ -409,7 +422,10 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {combinedNormas.map((item) => (
                   <div key={item.folderNormaId}>
-                    <NormaCard norma={item.norma!} />
+                    <NormaCard 
+                      norma={item.norma!} 
+                      isBookmarked={isBookmarked(item.norma.infoleg_id)}
+                    />
                   </div>
                 ))}
               </div>
@@ -428,7 +444,7 @@ export function FolderContent({ folder, onFolderSelect }: FolderContentProps) {
           folderPath={folderPath}
           badge={getContentBadge()}
           onFolderSelect={onFolderSelect}
-          addButtonDisabled={loading || !!error}
+          _addButtonDisabled={loading || !!error}
         />
 
         <div className='flex-1 overflow-y-auto bg-muted/30'>
