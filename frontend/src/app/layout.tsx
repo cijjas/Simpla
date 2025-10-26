@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: 'Simpla',
   description:
     'Simpla te permite buscar, entender y compartir normas jurídicas argentinas de forma rápida y clara.',
-  metadataBase: new URL('https://www.simplar.com.ar'),
+  metadataBase: new URL('https://www.simplalegal.com'),
   openGraph: {
     title: 'Simpla — Una manera simple de navegar las leyes.',
     description:
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: 'Simpla',
     images: [
       {
-        url: 'https://www.simplar.com.ar/images/preview.png',
+        url: 'https://www.simplalegal.com/images/preview.png',
         width: 1200,
         height: 630,
         alt: 'Vista previa de Simpla',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     title: 'Simpla — Una manera simple de navegar las leyes.',
     description:
       'Simpla te permite buscar, entender y compartir normas jurídicas argentinas de forma rápida y clara.',
-    images: ['https://www.simplar.com.ar/images/preview.png'],
+    images: ['https://www.simplalegal.com/images/preview.png'],
   },
 };
 
@@ -75,9 +75,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${loraSerif.variable} min-h-screen flex flex-col antialiased`}
       >
         <AuthProvider>
-          <CommandProvider>
-            {children}
-          </CommandProvider>
+          <CommandProvider>{children}</CommandProvider>
           <Toaster />
         </AuthProvider>
         <Analytics />

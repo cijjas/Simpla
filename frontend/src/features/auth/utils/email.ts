@@ -20,7 +20,7 @@ export async function sendVerificationEmail({
   const url = `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/verify?token=${token}&email=${email}`;
 
   await resend.emails.send({
-    from: 'Simpla <no-reply@simplar.com.ar>',
+    from: 'Simpla <no-reply@simplalegal.com>',
     to: email,
     subject: 'Confirmá tu cuenta en Simpla',
     html: `
@@ -37,7 +37,7 @@ export async function sendVerificationEmail({
 
       <div style="text-align: center; margin-bottom: 24px;">
         <img
-          src="https://www.simplar.com.ar/images/estampa.png"
+          src="https://www.simplalegal.com/images/estampa.png"
           alt="Simpla"
           width="96"
           style="display: block; margin: 0 auto 12px;"
@@ -75,7 +75,7 @@ export async function sendResetPasswordEmail({
   const url = `${process.env.NEXT_PUBLIC_SITE_URL}/restablecer-contrasena?token=${token}&email=${email}`;
 
   await resend.emails.send({
-    from: 'Simpla <no-reply@simplar.com.ar>',
+    from: 'Simpla <no-reply@simplalegal.com>',
     to: email,
     subject: 'Restablecé tu contraseña de Simpla',
     html: `
@@ -92,7 +92,7 @@ export async function sendResetPasswordEmail({
 
         <div style="text-align: center; margin-bottom: 24px;">
           <img
-            src="https://www.simplar.com.ar/images/estampa.png"
+            src="https://www.simplalegal.com/images/estampa.png"
             alt="Simpla"
             width="96"
             style="display: block; margin: 0 auto 12px;"
