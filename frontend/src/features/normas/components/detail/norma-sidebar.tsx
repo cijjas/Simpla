@@ -176,7 +176,7 @@ export function NormaSidebar({
         className='text-muted-foreground hover:text-foreground transition-colors'
       >
         <ArrowLeft className='size-4 mr-2' />
-        Volver a Normativas
+        Volver
       </Button>
         
       </div>

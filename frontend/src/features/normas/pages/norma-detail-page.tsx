@@ -211,7 +211,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
         modifica={modifica ?? undefined}
         modificadaPor={modificadaPor ?? undefined}
         onDivisionClick={scrollToDivision}
-        onBack={() => router.push('/normas')}
+        onBack={() => router.back()}
         showOutline={hasDivisions && !showOriginal}
         relacionesData={relacionesData}
         relacionesLoading={relacionesLoading}

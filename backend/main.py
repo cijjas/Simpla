@@ -26,6 +26,7 @@ from features.subscription.subscription_routes import router as subscription_rou
 from features.normas.normas_routes import router as normas_router
 from features.norma_chat.routes import router as norma_chat_router
 from features.digest.digest_routes import router as digest_router
+from features.daily_digest.daily_digest_routes import router as daily_digest_router
 from features.notifications.notifications_routes import router as notifications_router
 
 # Import core configuration and logging
@@ -71,6 +72,7 @@ app.include_router(subscription_router, prefix="/api")
 app.include_router(normas_router, prefix="/api")
 app.include_router(norma_chat_router, prefix="/api")
 app.include_router(digest_router, prefix="/api")
+app.include_router(daily_digest_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 
 
