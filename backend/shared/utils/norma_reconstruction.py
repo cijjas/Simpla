@@ -589,27 +589,27 @@ class NormaReconstructor:
             raise
     
     def get_filter_options(self) -> Dict[str, List[str]]:
-        """Get available filter options for normas."""
+        """Get available filter options for normas, ordered by popularity."""
         try:
             with self.get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     options = {}
                     
-                    # Get unique tipo_norma
+                    # Get tipo_norma ordered by popularity (count DESC)
                     cur.execute("""
-                        SELECT tipo_norma FROM tipos_norma;
+                        SELECT tipo_norma FROM tipos_norma ORDER BY count DESC, tipo_norma ASC;
                     """)
                     options['tipos_norma'] = [row['tipo_norma'] for row in cur.fetchall()]
                     
-                    # Get unique dependencias from normas_referencias
+                    # Get dependencias ordered by popularity (count DESC)
                     cur.execute("""
-                        SELECT dependencia FROM dependencias;
+                        SELECT dependencia FROM dependencias ORDER BY count DESC, dependencia ASC;
                     """)
                     options['dependencias'] = [row['dependencia'] for row in cur.fetchall()]
                     
-                    # Get unique titulo_sumario
+                    # Get titulo_sumario ordered by popularity (count DESC)
                     cur.execute("""
-                        SELECT titulo_sumario FROM titulos_sumario;
+                        SELECT titulo_sumario FROM titulos_sumario ORDER BY count DESC, titulo_sumario ASC;
                     """)
                     options['titulos_sumario'] = [row['titulo_sumario'] for row in cur.fetchall()]
                     
