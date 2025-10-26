@@ -26,8 +26,6 @@ class Settings:
     
     # Email
     RESEND_API_KEY: Optional[str] = os.getenv('RESEND_API_KEY')
-    FRONTEND_SITE_URL: str = os.getenv('FRONTEND_SITE_URL', 'https://simplar.com.ar')
-    BACKEND_URL: str = os.getenv('BACKEND_URL', 'http://localhost:8000')
     
     # Feedback
     FEEDBACK_EMAILS: Optional[str] = os.getenv('FEEDBACK_EMAILS')
