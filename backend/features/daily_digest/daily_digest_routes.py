@@ -217,6 +217,8 @@ async def get_newspaper_digest(
     - Hero section (most important norma)
     - Secondary section (next important normas)  
     - Thematic sections (normas grouped by editorial theme)
+    
+    Also includes norma metadata to avoid additional API calls.
     """
     actual_date = target_date or date.today()
     logger.info(f"Fetching newspaper digest for {actual_date}")
@@ -233,6 +235,40 @@ async def get_newspaper_digest(
                 detail=f"No newspaper digest found for {actual_date}"
             )
         
+        # Collect all unique norma IDs from all sections
+        all_norma_ids = set()
+        for section in sections:
+            if section.norma_ids:
+                all_norma_ids.update(section.norma_ids)
+        
+        # Get norma metadata for all referenced normas
+        norma_metadata = {}
+        if all_norma_ids:
+            from shared.utils.norma_reconstruction import NormaReconstructor
+            reconstructor = NormaReconstructor()
+            
+            try:
+                # Join with normas_referencias table to get the proper numero
+                with reconstructor.get_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT ns.infoleg_id, ns.tipo_norma, nr.numero
+                            FROM normas_structured ns
+                            LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                            WHERE ns.infoleg_id = ANY(%s)
+                        """, (list(all_norma_ids),))
+                        
+                        for row in cur.fetchall():
+                            infoleg_id, tipo_norma, numero = row
+                            norma_metadata[infoleg_id] = {
+                                "tipo_norma": tipo_norma or "Norma",
+                                "numero": numero
+                            }
+                            
+            except Exception as e:
+                logger.warning(f"Error fetching norma metadata: {str(e)}")
+                # Continue without metadata if there's an error
+        
         # Format response
         digest_sections = []
         for section in sections:
@@ -246,7 +282,8 @@ async def get_newspaper_digest(
         return {
             "date": str(actual_date),
             "sections": digest_sections,
-            "total_sections": len(digest_sections)
+            "total_sections": len(digest_sections),
+            "norma_metadata": norma_metadata
         }
         
     except HTTPException:

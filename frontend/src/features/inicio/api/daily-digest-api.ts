@@ -4,13 +4,32 @@
 
 import { useApi } from '@/features/auth/hooks/use-api';
 
+export interface NormaMetadata {
+  tipo_norma: string;
+  numero: string | null;
+}
+
+export interface DigestSection {
+  section_type: string;
+  content: string;
+  norma_ids: number[];
+  order: number;
+}
+
+export interface NewspaperDigestResponse {
+  date: string;
+  sections: DigestSection[];
+  total_sections: number;
+  norma_metadata: Record<number, NormaMetadata>;
+}
+
 export class DailyDigestAPI {
   constructor(private api: ReturnType<typeof useApi>) {}
 
   /**
    * Get newspaper-style daily digest for a specific date
    */
-  async getNewspaperDigest(targetDate?: string): Promise<any> {
+  async getNewspaperDigest(targetDate?: string): Promise<NewspaperDigestResponse> {
     const url = targetDate 
       ? `/api/daily-digest/newspaper/?target_date=${targetDate}`
       : '/api/daily-digest/newspaper/';

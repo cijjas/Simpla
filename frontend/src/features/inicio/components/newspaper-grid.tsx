@@ -9,21 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, RefreshCw, Newspaper, Clock } from 'lucide-react';
-import { DailyDigestAPI } from '../api/daily-digest-api';
+import { DailyDigestAPI, type NewspaperDigestResponse, type DigestSection } from '../api/daily-digest-api';
 import { NormaLinkList } from './norma-links';
-
-interface DigestSection {
-  section_type: string;
-  content: string;  // API returns 'content', not 'section_content'
-  norma_ids: number[];
-  order: number;    // API returns 'order', not 'section_order'
-}
-
-interface DigestData {
-  date: string;     // API returns 'date', not 'digest_date'
-  sections: DigestSection[];
-  total_sections: number;
-}
 
 interface HeroContent {
   titular: string;
@@ -38,7 +25,7 @@ interface SecondaryContent {
 export function NewspaperGrid() {
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [contentLoaded, setContentLoaded] = useState(false);
-  const [digestData, setDigestData] = useState<DigestData | null>(null);
+  const [digestData, setDigestData] = useState<NewspaperDigestResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -226,7 +213,10 @@ export function NewspaperGrid() {
                     {heroSection && (
                       <div className="text-xs text-muted-foreground mt-4">
                         <span className="font-bold">Normas relacionadas:</span>{' '}
-                        <NormaLinkList infolegIds={heroSection.norma_ids} />
+                        <NormaLinkList 
+                          infolegIds={heroSection.norma_ids || []} 
+                          normaMetadata={digestData?.norma_metadata || {}}
+                        />
                       </div>
                     )}
                   </div>
@@ -243,7 +233,10 @@ export function NewspaperGrid() {
                     <p className="mb-3">{themeSection.content}</p>
                     <div className="text-xs text-muted-foreground">
                       <span className="font-bold">Normas incluidas:</span>{' '}
-                      <NormaLinkList infolegIds={themeSection.norma_ids} />
+                      <NormaLinkList 
+                        infolegIds={themeSection.norma_ids} 
+                        normaMetadata={digestData?.norma_metadata || {}}
+                      />
                     </div>
                   </div>
                 </div>
@@ -268,7 +261,10 @@ export function NewspaperGrid() {
                     {secondarySection && (
                       <div className="text-xs text-muted-foreground">
                         <span className="font-bold">Normas destacadas:</span>{' '}
-                        <NormaLinkList infolegIds={secondarySection.norma_ids} />
+                        <NormaLinkList 
+                          infolegIds={secondarySection.norma_ids || []} 
+                          normaMetadata={digestData?.norma_metadata || {}}
+                        />
                       </div>
                     )}
                   </div>
