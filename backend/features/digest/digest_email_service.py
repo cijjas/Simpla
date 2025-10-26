@@ -276,7 +276,7 @@ def send_weekly_digest_email(
             
             <div class="footer">
                 <p>Este correo fue enviado desde Simpla</p>
-                <p><a href="{settings.FRONTEND_SITE_URL}">simplar.com.ar</a> • <a href="{settings.FRONTEND_SITE_URL}/perfil">Actualizar preferencias</a></p>
+                <p><a href="{settings.FRONTEND_SITE_URL}">simplalegal.com</a> • <a href="{settings.FRONTEND_SITE_URL}/perfil">Actualizar preferencias</a></p>
                 <p style="font-size: 12px; margin-top: 15px;">Si no deseás recibir más estos correos, podés desactivarlos desde tu perfil.</p>
             </div>
         </div>
@@ -286,7 +286,7 @@ def send_weekly_digest_email(
     
     try:
         resend.Emails.send({
-            "from": f"Simpla <{settings.EMAIL_FROM or 'no-reply@simplar.com.ar'}>",
+            "from": f"Simpla <{settings.EMAIL_FROM or 'no-reply@simplalegal.com'}>",
             "to": [email],
             "subject": f"Resumen Semanal de Normas ({week_start_str} - {week_end_str})",
             "html": html_content,

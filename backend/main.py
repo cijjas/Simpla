@@ -1,5 +1,6 @@
 """Main FastAPI application for Simpla backend."""
 
+import os
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,9 +53,22 @@ if settings.LOG_HTTP_REQUESTS:
     app.add_middleware(LoggingMiddleware)
 
 # Add CORS middleware
+# Get allowed origins from settings, defaulting to localhost for development
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+
+# Add common localhost variations for development
+if any("localhost" in origin for origin in allowed_origins):
+    dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    for dev_origin in dev_origins:
+        if dev_origin not in allowed_origins:
+            allowed_origins.append(dev_origin)
+
+app_logger.info(f"CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

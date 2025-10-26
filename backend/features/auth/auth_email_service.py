@@ -20,7 +20,7 @@ def send_verification_email(email: str, token: str) -> None:
     for attempt in range(3):
         try:
             resend.Emails.send({
-                "from": f"Simpla <{settings.EMAIL_FROM or 'no-reply@simplar.com.ar'}>",
+                "from": f"Simpla <{settings.EMAIL_FROM or 'no-reply@simplalegal.com'}>",
                 "to": [email],
                 "subject": "Confirmá tu cuenta en Simpla",
                 "html": f"""
@@ -158,7 +158,7 @@ def send_verification_email(email: str, token: str) -> None:
                         </div>
                         
                         <div class="footer">
-                            <p>Este correo fue enviado desde Simpla • <a href="{settings.FRONTEND_SITE_URL}" style="color: #333333;">simplar.com.ar</a></p>
+                            <p>Este correo fue enviado desde Simpla • <a href="{settings.FRONTEND_SITE_URL}" style="color: #333333;">simplalegal.com</a></p>
                         </div>
                     </div>
                 </body>
@@ -185,7 +185,7 @@ def send_reset_password_email(email: str, token: str) -> None:
     for attempt in range(3):
         try:
             resend.Emails.send({
-                "from": f"Simpla <{settings.EMAIL_FROM or 'no-reply@simplar.com.ar'}>",
+                "from": f"Simpla <{settings.EMAIL_FROM or 'no-reply@simplalegal.com'}>",
                 "to": [email],
                 "subject": "Restablecé tu contraseña de Simpla",
                 "html": f"""
@@ -342,7 +342,7 @@ def send_reset_password_email(email: str, token: str) -> None:
                         </div>
                         
                         <div class="footer">
-                            <p>Este correo fue enviado desde Simpla • <a href="{settings.FRONTEND_SITE_URL}" style="color: #333333;">simplar.com.ar</a></p>
+                            <p>Este correo fue enviado desde Simpla • <a href="{settings.FRONTEND_SITE_URL}" style="color: #333333;">simplalegal.com</a></p>
                         </div>
                     </div>
                 </body>

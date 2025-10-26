@@ -26,7 +26,7 @@ def send_feedback_email(message: str, origin: str = 'webapp') -> None:
     for attempt in range(3):
         try:
             resend.Emails.send({
-                "from": f"Feedback <{settings.EMAIL_FROM or 'no-reply@simplar.com.ar'}>",
+                "from": f"Feedback <{settings.EMAIL_FROM or 'no-reply@simplalegal.com'}>",
                 "to": feedback_emails,
                 "subject": f"Nuevo feedback ({origin})",
                 "text": message,
