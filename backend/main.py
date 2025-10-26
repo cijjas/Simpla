@@ -1,5 +1,6 @@
 """Main FastAPI application for Simpla backend."""
 
+import os
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +27,7 @@ from features.subscription.subscription_routes import router as subscription_rou
 from features.normas.normas_routes import router as normas_router
 from features.norma_chat.routes import router as norma_chat_router
 from features.digest.digest_routes import router as digest_router
+from features.daily_digest.daily_digest_routes import router as daily_digest_router
 from features.notifications.notifications_routes import router as notifications_router
 
 # Import core configuration and logging
@@ -51,9 +53,22 @@ if settings.LOG_HTTP_REQUESTS:
     app.add_middleware(LoggingMiddleware)
 
 # Add CORS middleware
+# Get allowed origins from settings, defaulting to localhost for development
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+
+# Add common localhost variations for development
+if any("localhost" in origin for origin in allowed_origins):
+    dev_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    for dev_origin in dev_origins:
+        if dev_origin not in allowed_origins:
+            allowed_origins.append(dev_origin)
+
+app_logger.info(f"CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,6 +86,7 @@ app.include_router(subscription_router, prefix="/api")
 app.include_router(normas_router, prefix="/api")
 app.include_router(norma_chat_router, prefix="/api")
 app.include_router(digest_router, prefix="/api")
+app.include_router(daily_digest_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
 
 

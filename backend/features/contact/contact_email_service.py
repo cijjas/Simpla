@@ -60,7 +60,7 @@ def send_contact_email(name: str, email: str, phone: str = None, message: str = 
     for attempt in range(3):
         try:
             resend.Emails.send({
-                "from": f"Contacto Simpla <{settings.EMAIL_FROM or 'no-reply@simplar.com.ar'}>",
+                "from": f"Contacto Simpla <{settings.EMAIL_FROM or 'no-reply@simplalegal.com'}>",
                 "to": contact_emails,
                 "subject": f"Nuevo mensaje de contacto de {name}",
                 "html": html_content,
