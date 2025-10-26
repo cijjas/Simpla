@@ -20,7 +20,7 @@ export function decodeJWT(token: string): JWTPayload | null {
     if (parts.length !== 3) {
       return null;
     }
-    
+
     const payload = parts[1];
     const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
     return JSON.parse(decoded);
@@ -36,17 +36,20 @@ export function decodeJWT(token: string): JWTPayload | null {
  * @param bufferSeconds - Buffer time in seconds before actual expiration (default: 60 seconds)
  * @returns true if token is expired or invalid, false if still valid
  */
-export function isTokenExpired(token: string, bufferSeconds: number = 60): boolean {
+export function isTokenExpired(
+  token: string,
+  bufferSeconds: number = 60,
+): boolean {
   const payload = decodeJWT(token);
   if (!payload || !payload.exp) {
     return true; // Consider invalid tokens as expired
   }
-  
+
   const now = Math.floor(Date.now() / 1000);
   const expirationTime = payload.exp;
-  
+
   // Token is expired if current time is within bufferSeconds of expiration
-  return now >= (expirationTime - bufferSeconds);
+  return now >= expirationTime - bufferSeconds;
 }
 
 /**
@@ -59,7 +62,7 @@ export function getTokenExpiration(token: string): number | null {
   if (!payload || !payload.exp) {
     return null;
   }
-  
+
   return payload.exp * 1000; // Convert to milliseconds
 }
 
@@ -73,25 +76,28 @@ export function getTimeUntilExpiration(token: string): number | null {
   if (!expiration) {
     return null;
   }
-  
+
   const now = Date.now();
   const timeUntilExpiration = expiration - now;
-  
+
   return timeUntilExpiration > 0 ? timeUntilExpiration : null;
 }
 
 /**
  * Checks if a token needs refresh (expires within the next buffer time)
  * @param token - The JWT token to check
- * @param bufferMinutes - Buffer time in minutes before expiration (default: 5 minutes)
+ * @param bufferMinutes - Buffer time in minutes before expiration (default: 1 minute for testing)
  * @returns true if token needs refresh, false if still valid
  */
-export function needsRefresh(token: string, bufferMinutes: number = 5): boolean {
+export function needsRefresh(
+  token: string,
+  bufferMinutes: number = 5,
+): boolean {
   const timeUntilExpiration = getTimeUntilExpiration(token);
   if (!timeUntilExpiration) {
     return true; // Invalid or expired token needs refresh
   }
-  
+
   const bufferMs = bufferMinutes * 60 * 1000;
   return timeUntilExpiration <= bufferMs;
 }

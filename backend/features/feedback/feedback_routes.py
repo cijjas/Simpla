@@ -4,9 +4,11 @@ from features.feedback.feedback_email_service import send_feedback_email
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
+
 class FeedbackBody(BaseModel):
     message: str
     origin: str = 'webapp'
+
 
 @router.post("")
 def feedback(body: FeedbackBody):

@@ -1,9 +1,18 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import { isTokenExpired, needsRefresh } from '../utils/jwt-utils';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export interface User {
   id: string;
@@ -23,8 +32,13 @@ export interface AuthState {
 }
 
 export interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: (idToken: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (
+    idToken: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
   clearAuth: () => void;
@@ -53,19 +67,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: false,
     isLoggingOut: false,
   });
-  
+
   // Flag to prevent refresh attempts during logout
   const isLoggingOutRef = useRef(false);
-  
+
   // Flag to prevent multiple simultaneous refresh attempts
   const isRefreshingRef = useRef(false);
-  
-  // Utility function to check if we have a valid refresh token cookie
-  const hasValidRefreshToken = useCallback((): boolean => {
-    if (typeof document === 'undefined') return false; // SSR safety
-    const refreshTokenMatch = document.cookie.match(/refresh_token=([^;]+)/);
-    return !!(refreshTokenMatch && refreshTokenMatch[1] && refreshTokenMatch[1].trim() !== '');
-  }, []);
+
+  // Note: We cannot reliably check for httpOnly cookies from JavaScript
+  // The refresh token is httpOnly for security, so we must attempt refresh
+  // and let the backend tell us if it's missing or invalid
 
   // Utility functions for localStorage persistence
   const saveAuthState = useCallback((accessToken: string, user: User) => {
@@ -77,32 +88,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  const restoreAuthState = useCallback((): { accessToken: string | null; user: User | null; needsRefresh: boolean } => {
+  const restoreAuthState = useCallback((): {
+    accessToken: string | null;
+    user: User | null;
+    needsRefresh: boolean;
+  } => {
     try {
       const accessToken = localStorage.getItem('access_token');
       const userData = localStorage.getItem('user_data');
       const user = userData ? JSON.parse(userData) : null;
-      
+
       // Basic validation - if we have both token and user
       if (accessToken && user && user.id && user.email) {
         // Check if token is expired or needs refresh
         const isExpired = isTokenExpired(accessToken);
         const needsTokenRefresh = needsRefresh(accessToken);
-        
+
         if (isExpired) {
           console.log('Stored token is expired, will need refresh');
           return { accessToken: null, user: null, needsRefresh: true };
         }
-        
+
         if (needsTokenRefresh) {
           console.log('Stored token needs refresh soon, will attempt refresh');
           return { accessToken, user, needsRefresh: true };
         }
-        
+
         console.log('Stored token is still valid, no refresh needed');
         return { accessToken, user, needsRefresh: false };
       }
-      
+
       return { accessToken: null, user: null, needsRefresh: false };
     } catch (error) {
       console.warn('Failed to restore auth state from localStorage:', error);
@@ -146,18 +161,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('Skipping refresh token attempt - logout in progress');
         return false;
       }
-      
+
       // Don't attempt refresh if we're already refreshing
       if (isRefreshingRef.current) {
         console.log('Skipping refresh token attempt - already refreshing');
         return false;
       }
-      
+
       // Set refreshing flag
       isRefreshingRef.current = true;
-      
+
       console.log('Attempting to refresh token...');
-      
+
       // Check if backend URL is available
       if (!BACKEND_URL) {
         console.error('Backend URL not configured');
@@ -165,7 +180,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isRefreshingRef.current = false;
         return false;
       }
-      
+
       // Note: We don't check for refresh token cookie here because the backend
       // will handle token validation and rotation. The cookie check can cause
       // race conditions with token rotation.
@@ -178,7 +193,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
       });
 
-      console.log('Refresh token response:', response.status, response.statusText);
+      console.log(
+        'Refresh token response:',
+        response.status,
+        response.statusText,
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -224,96 +243,105 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [clearAuth, saveAuthState]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      });
+        const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include',
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const newAuthState = {
-          user: data.user,
-          accessToken: data.access_token,
-          isLoading: false,
-          isAuthenticated: true,
-          isLoggingOut: false,
-        };
-        setAuthState(newAuthState);
-        // Save to localStorage for persistence
-        saveAuthState(data.access_token, data.user);
-        return { success: true };
-      } else {
-        const errorData = await response.json();
+        if (response.ok) {
+          const data = await response.json();
+          const newAuthState = {
+            user: data.user,
+            accessToken: data.access_token,
+            isLoading: false,
+            isAuthenticated: true,
+            isLoggingOut: false,
+          };
+          setAuthState(newAuthState);
+          // Save to localStorage for persistence
+          saveAuthState(data.access_token, data.user);
+          return { success: true };
+        } else {
+          const errorData = await response.json();
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+          return { success: false, error: errorData.detail || 'Login failed' };
+        }
+      } catch (error) {
+        console.error('Login error:', error);
         setAuthState(prev => ({ ...prev, isLoading: false }));
-        return { success: false, error: errorData.detail || 'Login failed' };
+        return { success: false, error: 'Network error' };
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-      return { success: false, error: 'Network error' };
-    }
-  }, [saveAuthState]);
+    },
+    [saveAuthState],
+  );
 
-  const loginWithGoogle = useCallback(async (idToken: string) => {
-    try {
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+  const loginWithGoogle = useCallback(
+    async (idToken: string) => {
+      try {
+        setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id_token: idToken }),
-        credentials: 'include',
-      });
+        const response = await fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id_token: idToken }),
+          credentials: 'include',
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const newAuthState = {
-          user: data.user,
-          accessToken: data.access_token,
-          isLoading: false,
-          isAuthenticated: true,
-          isLoggingOut: false,
-        };
-        setAuthState(newAuthState);
-        // Save to localStorage for persistence
-        saveAuthState(data.access_token, data.user);
-        return { success: true };
-      } else {
-        const errorData = await response.json();
+        if (response.ok) {
+          const data = await response.json();
+          const newAuthState = {
+            user: data.user,
+            accessToken: data.access_token,
+            isLoading: false,
+            isAuthenticated: true,
+            isLoggingOut: false,
+          };
+          setAuthState(newAuthState);
+          // Save to localStorage for persistence
+          saveAuthState(data.access_token, data.user);
+          return { success: true };
+        } else {
+          const errorData = await response.json();
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+          return {
+            success: false,
+            error: errorData.detail || 'Google login failed',
+          };
+        }
+      } catch (error) {
+        console.error('Google login error:', error);
         setAuthState(prev => ({ ...prev, isLoading: false }));
-        return { success: false, error: errorData.detail || 'Google login failed' };
+        return { success: false, error: 'Network error' };
       }
-    } catch (error) {
-      console.error('Google login error:', error);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-      return { success: false, error: 'Network error' };
-    }
-  }, [saveAuthState]);
+    },
+    [saveAuthState],
+  );
 
   const logout = useCallback(async () => {
     try {
       // Set logout flag to prevent refresh attempts
       isLoggingOutRef.current = true;
-      
+
       // Set loading state for UI feedback
       setAuthState(prev => ({ ...prev, isLoggingOut: true }));
-      
+
       // Call backend logout to revoke refresh token
       if (authState.accessToken && BACKEND_URL) {
         await fetch(`${BACKEND_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${authState.accessToken}`,
+            Authorization: `Bearer ${authState.accessToken}`,
           },
           credentials: 'include',
         });
@@ -323,7 +351,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       // Always clear auth state, even if backend call fails
       clearAuth();
-      
+
       // Clear theme preference to ensure light mode on public pages
       if (typeof window !== 'undefined') {
         localStorage.removeItem('theme');
@@ -331,12 +359,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
       }
-      
+
       // Manually clear the refresh token cookie as a fallback
       if (typeof document !== 'undefined') {
-        document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie =
+          'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       }
-      
+
       // Reset logout flag after a short delay
       setTimeout(() => {
         isLoggingOutRef.current = false;
@@ -349,10 +378,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth with backend URL:', BACKEND_URL);
-        
+
         // First, try to restore from localStorage and check if refresh is needed
-        const { accessToken, user, needsRefresh: needsTokenRefresh } = restoreAuthState();
-        
+        const {
+          accessToken,
+          user,
+          needsRefresh: needsTokenRefresh,
+        } = restoreAuthState();
+
         if (accessToken && user && !needsTokenRefresh) {
           // Token is valid and doesn't need refresh - restore immediately
           console.log('Found valid stored auth state, restoring immediately');
@@ -365,7 +398,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           });
           return; // Exit early - no backend call needed
         }
-        
+
         if (accessToken && user && needsTokenRefresh) {
           // Token exists but needs refresh - show loading state
           console.log('Found stored auth state but token needs refresh');
@@ -377,19 +410,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
             isLoggingOut: false,
           });
         }
-        
+
         // Only attempt refresh if we're not already logging out and we need to
-        // AND if there's actually a refresh token cookie present
-        if (!isLoggingOutRef.current && (needsTokenRefresh || !accessToken) && hasValidRefreshToken()) {
+        // We always attempt refresh if no valid access token is present
+        // The backend will tell us if the refresh token is missing or invalid
+        if (!isLoggingOutRef.current && (needsTokenRefresh || !accessToken)) {
           console.log('Attempting to restore session...');
-          
+
           // Add timeout to prevent hanging
           const timeoutPromise = new Promise<boolean>((_, reject) => {
-            setTimeout(() => reject(new Error('Auth initialization timeout')), 10000); // 10 second timeout
+            setTimeout(
+              () => reject(new Error('Auth initialization timeout')),
+              10000,
+            ); // 10 second timeout
           });
-          
+
           try {
-            const success = await Promise.race([refreshToken(), timeoutPromise]);
+            const success = await Promise.race([
+              refreshToken(),
+              timeoutPromise,
+            ]);
             if (!success) {
               // No valid refresh token - user needs to login
               console.log('Auth initialization complete - user needs to login');
@@ -406,7 +446,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('No stored auth state, user needs to login');
           setAuthState(prev => ({ ...prev, isLoading: false }));
         } else {
-          console.log('Skipping auth initialization - logout in progress or no refresh token cookie');
+          console.log(
+            'Skipping auth initialization - logout in progress or no refresh token cookie',
+          );
           setAuthState(prev => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
@@ -416,46 +458,60 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
-  }, [refreshToken, hasValidRefreshToken, restoreAuthState]);
+  }, [refreshToken, restoreAuthState]);
 
   // Auto-refresh token when it's about to expire
   useEffect(() => {
     if (!authState.accessToken || !authState.isAuthenticated) return;
 
-    const refreshInterval = setInterval(async () => {
-      // Only refresh if we're still authenticated and not logging out
-      if (authState.isAuthenticated && !isLoggingOutRef.current && authState.accessToken) {
-        // Check if token actually needs refresh before making the call
-        if (needsRefresh(authState.accessToken)) {
-          console.log('Token needs refresh, attempting refresh...');
-          const success = await refreshToken();
-          if (!success) {
-            clearInterval(refreshInterval);
+    const refreshInterval = setInterval(
+      async () => {
+        // Only refresh if we're still authenticated and not logging out
+        if (
+          authState.isAuthenticated &&
+          !isLoggingOutRef.current &&
+          authState.accessToken
+        ) {
+          // Check if token actually needs refresh before making the call
+          if (needsRefresh(authState.accessToken)) {
+            console.log('Token needs refresh, attempting refresh...');
+            const success = await refreshToken();
+            if (!success) {
+              clearInterval(refreshInterval);
+            }
+          } else {
+            console.log('Token is still valid, skipping refresh');
           }
         } else {
-          console.log('Token is still valid, skipping refresh');
+          clearInterval(refreshInterval);
         }
-      } else {
-        clearInterval(refreshInterval);
-      }
-    }, 10 * 60 * 1000); // Check every 10 minutes instead of 5 to reduce frequency
+      },
+      10 * 60 * 1000,
+    ); // Check every 10 minutes instead of 5 to reduce frequency
 
     return () => clearInterval(refreshInterval);
   }, [authState.accessToken, authState.isAuthenticated, refreshToken]);
 
-  const value: AuthContextType = useMemo(() => ({
-    ...authState,
-    login,
-    loginWithGoogle,
-    logout,
-    refreshToken,
-    clearAuth,
-    updateUser,
-  }), [authState, login, loginWithGoogle, logout, refreshToken, clearAuth, updateUser]);
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value: AuthContextType = useMemo(
+    () => ({
+      ...authState,
+      login,
+      loginWithGoogle,
+      logout,
+      refreshToken,
+      clearAuth,
+      updateUser,
+    }),
+    [
+      authState,
+      login,
+      loginWithGoogle,
+      logout,
+      refreshToken,
+      clearAuth,
+      updateUser,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

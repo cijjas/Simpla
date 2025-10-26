@@ -219,11 +219,13 @@ async def login(
     db.commit()
     
     # Set refresh token as httpOnly cookie
+    # Use environment variable to determine secure flag (True in production)
+    is_production = settings.FRONTEND_SITE_URL.startswith('https://')
     response.set_cookie(
         key="refresh_token",
         value=refresh_token_str,
         httponly=True,
-        secure=False,  # Set to False for local development, True in production with HTTPS
+        secure=is_production,
         samesite="lax",
         path="/",  # Ensure cookie is accessible from all paths
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -233,7 +235,7 @@ async def login(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user={
-            "id": user.id,
+            "id": str(user.id),
             "email": user.email,
             "name": user.name,
             "avatar_url": user.avatar_url,
@@ -315,11 +317,13 @@ async def google_login(
     db.commit()
     
     # Set refresh token as httpOnly cookie
+    # Use environment variable to determine secure flag (True in production)
+    is_production = settings.FRONTEND_SITE_URL.startswith('https://')
     response.set_cookie(
         key="refresh_token",
         value=refresh_token_str,
         httponly=True,
-        secure=False,  # Set to False for local development, True in production with HTTPS
+        secure=is_production,
         samesite="lax",
         path="/",  # Ensure cookie is accessible from all paths
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -329,7 +333,7 @@ async def google_login(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user={
-            "id": user.id,
+            "id": str(user.id),
             "email": user.email,
             "name": user.name,
             "avatar_url": user.avatar_url,
@@ -348,7 +352,13 @@ async def refresh_token(
     """Refresh access token using refresh token from cookie."""
     # Get refresh token from cookie
     refresh_token_str = request.cookies.get("refresh_token")
+    
+    # Debug logging
+    logger.info(f"Refresh endpoint called. Cookies present: {list(request.cookies.keys())}")
+    logger.info(f"Refresh token found: {bool(refresh_token_str)}")
+    
     if not refresh_token_str:
+        logger.warning("Refresh token cookie not found in request")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token not found"
@@ -421,11 +431,13 @@ async def refresh_token(
         db.commit()
         
         # Set new refresh token as httpOnly cookie
+        # Use environment variable to determine secure flag (True in production)
+        is_production = settings.FRONTEND_SITE_URL.startswith('https://')
         response.set_cookie(
             key="refresh_token",
             value=new_refresh_token_str,
             httponly=True,
-            secure=False,  # Set to False for local development, True in production with HTTPS
+            secure=is_production,
             samesite="lax",
             path="/",
             max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
@@ -435,7 +447,7 @@ async def refresh_token(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user={
-            "id": user.id,
+            "id": str(user.id),
             "email": user.email,
             "name": user.name,
             "avatar_url": user.avatar_url,
@@ -480,8 +492,15 @@ async def logout(
             db.commit()
             logger.info("Refresh token revoked (user not authenticated)")
     
-    # Clear refresh token cookie
-    response.delete_cookie(key="refresh_token", path="/")
+    # Clear refresh token cookie with all attributes to ensure proper deletion
+    # Use environment variable to determine secure flag (True in production)
+    is_production = settings.FRONTEND_SITE_URL.startswith('https://')
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        samesite="lax",
+        secure=is_production
+    )
     
     return {"message": "Successfully logged out"}
 
