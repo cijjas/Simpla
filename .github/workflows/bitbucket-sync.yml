@@ -24,7 +24,7 @@ jobs:
           git remote add bitbucket https://${{ secrets.BITBUCKET_USERNAME }}:${{ secrets.BITBUCKET_APP_PASSWORD }}@bitbucket.org/${{ secrets.BITBUCKET_REPO }}.git
 
           # Fetch all branches from Bitbucket first
-          git fetch bitbucket --all
+          git fetch bitbucket
 
           # For each branch, merge Bitbucket changes and push
           for branch in $(git branch -r | grep -v HEAD | sed 's/origin\///'); do
