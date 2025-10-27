@@ -2,7 +2,7 @@
  * API client for conversations backend
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
 
 // Helper function to get auth headers
 function getAuthHeaders(): Record<string, string> {
