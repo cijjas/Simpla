@@ -190,42 +190,42 @@ class NormasAPI {
    */
   async listNormas(filters: NormaFilters = {}): Promise<NormaSearchResponse> {
     const queryString = this.buildQueryString(filters);
-    return this.request<NormaSearchResponse>(`/api/normas/?${queryString}`);
+    return this.request<NormaSearchResponse>(`/normas/?${queryString}`);
   }
 
   /**
    * Get a complete norma with full hierarchical structure by infoleg_id
    */
   async getNorma(infolegId: number): Promise<NormaDetail> {
-    return this.request<NormaDetail>(`/api/normas/${infolegId}/`);
+    return this.request<NormaDetail>(`/normas/${infolegId}/`);
   }
 
   /**
    * Get a norma summary (lightweight) by infoleg_id
    */
   async getNormaSummary(infolegId: number): Promise<NormaSummary> {
-    return this.request<NormaSummary>(`/api/normas/${infolegId}/summary/`);
+    return this.request<NormaSummary>(`/normas/${infolegId}/summary/`);
   }
 
   /**
    * Get available filter options
    */
   async getFilterOptions(): Promise<NormaFilterOptions> {
-    return this.request<NormaFilterOptions>('/api/normas/filter-options/');
+    return this.request<NormaFilterOptions>('/normas/filter-options/');
   }
 
   /**
    * Get normas statistics
    */
   async getStats(): Promise<NormaStats> {
-    return this.request<NormaStats>('/api/normas/stats/');
+    return this.request<NormaStats>('/normas/stats/');
   }
 
   /**
    * Get multiple norma summaries in a single batch request
    */
   async getNormasBatch(infolegIds: number[]): Promise<NormaBatchResponse> {
-    return this.request<NormaBatchResponse>('/api/normas/batch/', {
+    return this.request<NormaBatchResponse>('/normas/batch/', {
       method: 'POST',
       body: JSON.stringify({ infoleg_ids: infolegIds }),
     });
@@ -238,7 +238,7 @@ class NormasAPI {
     infolegId: number,
   ): Promise<NormaRelacionesResponse> {
     return this.request<NormaRelacionesResponse>(
-      `/api/normas/${infolegId}/relaciones/`,
+      `/normas/${infolegId}/relaciones/`,
     );
   }
 }
