@@ -5,7 +5,7 @@
  * Efficiently batch-checks bookmark status for all normas
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useBookmarksContext } from '../context/bookmark-context';
 
 interface UseBatchBookmarksResult {
@@ -31,6 +31,12 @@ function extractInfolegId(norma: NormaWithId): number | null {
 
 export function useBatchBookmarks(normas: NormaWithId[]): UseBatchBookmarksResult {
   const { checkBookmarks, toggleBookmark, isBookmarked, loading, error } = useBookmarksContext();
+  const checkBookmarksRef = useRef(checkBookmarks);
+  
+  // Update ref when checkBookmarks changes
+  useEffect(() => {
+    checkBookmarksRef.current = checkBookmarks;
+  }, [checkBookmarks]);
 
   // Extract norma IDs (memoize to prevent unnecessary rechecks)
   const normaIds = useMemo(() => {
@@ -42,9 +48,9 @@ export function useBatchBookmarks(normas: NormaWithId[]): UseBatchBookmarksResul
   // Batch check all normas when IDs change
   useEffect(() => {
     if (normaIds.length > 0) {
-      checkBookmarks(normaIds);
+      checkBookmarksRef.current(normaIds);
     }
-  }, [normaIds, checkBookmarks]);
+  }, [normaIds]);
 
   return {
     isBookmarked,

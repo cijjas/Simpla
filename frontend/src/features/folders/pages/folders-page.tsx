@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { FolderContent, FolderTree } from '@/features/folders';
 import { FolderTreeItem } from '@/features/folders/types';
@@ -8,36 +8,30 @@ import { useFoldersContext } from '@/features/folders/context/folders-context';
 import { getFirstAvailableFolder, findFolderById } from '@/features/folders/utils/folder-utils';
 
 export function FoldersPage() {
-  const [selectedFolder, setSelectedFolder] = useState<FolderTreeItem | null>(null);
   const { folders } = useFoldersContext();
   const params = useParams();
   const router = useRouter();
   const folderId = params?.id as string;
-  const currentFolderIdRef = useRef<string | null>(null);
   const isInitializedRef = useRef(false);
 
-  // Handle folder selection with URL update
+  // Derive selected folder from URL - no state needed
+  const selectedFolder = useMemo(() => {
+    if (!folderId || folders.length === 0) return null;
+    return findFolderById(folders, folderId);
+  }, [folderId, folders]);
+
+  // Handle folder selection - only update URL
   const handleFolderSelect = useCallback((folder: FolderTreeItem | null) => {
-    setSelectedFolder(folder);
     if (folder) {
       router.push(`/carpetas/${folder.id}`);
     }
   }, [router]);
 
-  // Single effect to handle URL-based folder selection and redirects
+  // Effect to handle initial redirect when no folder is selected
   useEffect(() => {
     if (folders.length === 0) return;
 
-    const targetFolder = folderId ? findFolderById(folders, folderId) : null;
-    
-    if (targetFolder) {
-      // Valid folder in URL
-      if (currentFolderIdRef.current !== folderId) {
-        currentFolderIdRef.current = folderId;
-        // Use setTimeout to avoid synchronous setState in effect
-        setTimeout(() => setSelectedFolder(targetFolder), 0);
-      }
-    } else if (!isInitializedRef.current) {
+    if (!folderId && !isInitializedRef.current) {
       // No valid folder in URL, redirect to first available (only on initial load)
       const firstFolder = getFirstAvailableFolder(folders);
       if (firstFolder) {
