@@ -26,21 +26,21 @@ jobs:
           # Fetch all branches from Bitbucket first
           git fetch bitbucket
 
-          # For each branch, merge Bitbucket changes and push
-          for branch in $(git branch -r | grep -v HEAD | sed 's/origin\///'); do
+          # For each branch on the GitHub remote (origin), merge Bitbucket changes and push
+          for branch in $(git branch -r | grep 'origin/' | grep -v 'origin/HEAD' | sed 's@origin/@@'); do
             echo "Processing branch: $branch"
             
-            # Checkout the branch
-            git checkout -B $branch origin/$branch
+            # Checkout the branch from origin
+            git checkout -B "$branch" "origin/$branch"
             
             # Try to merge Bitbucket changes (if they exist)
-            if git show-ref --verify --quiet refs/remotes/bitbucket/$branch; then
+            if git show-ref --verify --quiet "refs/remotes/bitbucket/$branch"; then
               echo "Merging Bitbucket changes for $branch"
-              git merge bitbucket/$branch --no-edit || echo "Merge conflict in $branch, using GitHub version"
+              git merge "bitbucket/$branch" --no-edit || echo "Merge conflict in $branch, using GitHub version"
             fi
             
             # Push to Bitbucket
-            git push bitbucket $branch:$branch --force
+            git push bitbucket "$branch:$branch" --force
           done
           
           # Push all tags
