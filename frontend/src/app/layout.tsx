@@ -61,10 +61,12 @@ export default function RootLayout({
             __html: `
               (function() {
                 // Only force light mode if no theme is explicitly stored (public pages)
-                const storedTheme = localStorage.getItem('theme');
-                if (!storedTheme) {
-                  document.documentElement.classList.add('light');
-                  document.documentElement.classList.remove('dark');
+                if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+                  const storedTheme = localStorage.getItem('theme');
+                  if (!storedTheme) {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                  }
                 }
               })();
             `,
