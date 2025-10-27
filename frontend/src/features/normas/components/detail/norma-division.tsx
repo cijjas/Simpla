@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Division } from '@/features/normas/api/normas-api';
@@ -25,7 +25,7 @@ export function NormaDivisionComponent({
 }: NormaDivisionProps) {
   const hasContent =
     division.articles.length > 0 || division.child_divisions.length > 0;
-  const cleanBody = division.body ? DOMPurify.sanitize(division.body) : null;
+  const cleanBody = division.body ? sanitizeHtml(division.body) : null;
 
   const sizeClasses = {
     0: {

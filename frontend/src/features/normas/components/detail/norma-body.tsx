@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { FileQuestion } from 'lucide-react';
 import { Division } from '@/features/normas/api/normas-api';
 import { NormaDivisionComponent } from './norma-division';
@@ -53,7 +53,7 @@ export function NormaBody({
         <div
           className='prose max-w-none text-muted-foreground norma-html font-serif text-justify'
           dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(
+            __html: sanitizeHtml(
               textoNorma || textoNormaActualizado || '',
             ),
           }}

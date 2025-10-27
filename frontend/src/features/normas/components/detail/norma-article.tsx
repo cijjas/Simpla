@@ -1,4 +1,4 @@
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Article as NormaArticle } from '@/features/normas/api/normas-api';
 
@@ -16,7 +16,7 @@ export function NormaArticleComponent({
   onToggle,
 }: NormaArticleProps) {
   const hasChildren = article.child_articles.length > 0;
-  const cleanBody = DOMPurify.sanitize(article.body);
+  const cleanBody = sanitizeHtml(article.body);
   const indent = level * 24;
 
   return (

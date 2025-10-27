@@ -51,11 +51,6 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   
   // Resizable chat dimensions with viewport-aware limits
   const [chatDimensions, setChatDimensions] = useState(() => {
-    // Default dimensions for server-side rendering
-    if (typeof window === 'undefined') {
-      return { width: 350, height: 400 };
-    }
-    
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     // Calculate max dimensions considering navbar (~64px) and margins, plus table of contents space
