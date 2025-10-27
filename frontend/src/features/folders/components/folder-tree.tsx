@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { TreeView, TreeDataItem } from '@/components/tree-view-old';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,6 +46,7 @@ export function FolderTree({
   onFolderSelect,
   selectedFolderId,
 }: FolderTreeProps) {
+  const router = useRouter();
   const {
     folders,
     loading,
@@ -214,6 +216,7 @@ export function FolderTree({
           draggable: true,
           droppable: true,
           onClick: () => {
+            router.push(`/carpetas/${folder.id}`);
             onFolderSelect?.(folder);
           },
           actions: (
@@ -416,6 +419,7 @@ export function FolderTree({
                 onSelectChange={item => {
                   if (item) {
                     const folder = findFolderById(folders, item.id);
+                    router.push(`/carpetas/${item.id}`);
                     onFolderSelect?.(folder);
                   } else {
                     onFolderSelect?.(null);

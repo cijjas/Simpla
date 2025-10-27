@@ -19,7 +19,6 @@ export type {
   FolderCreate,
   FolderUpdate,
   FolderMove,
-  NormaInFolder,
   FolderNormaWithNorma,
   FolderWithNormasResponse,
   FolderNormaCreate,

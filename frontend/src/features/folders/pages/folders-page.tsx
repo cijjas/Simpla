@@ -1,24 +1,46 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { FolderContent, FolderTree } from '@/features/folders';
 import { FolderTreeItem } from '@/features/folders/types';
 import { useFoldersContext } from '@/features/folders/context/folders-context';
-import { getFirstAvailableFolder } from '@/features/folders/utils/folder-utils';
+import { getFirstAvailableFolder, findFolderById } from '@/features/folders/utils/folder-utils';
 
 export function FoldersPage() {
-  const [selectedFolder, setSelectedFolder] = useState<FolderTreeItem | null>(null);
   const { folders } = useFoldersContext();
+  const params = useParams();
+  const router = useRouter();
+  const folderId = params?.id as string;
+  const isInitializedRef = useRef(false);
 
-  // Auto-select the first folder when folders are loaded
+  // Derive selected folder from URL - no state needed
+  const selectedFolder = useMemo(() => {
+    if (!folderId || folders.length === 0) return null;
+    return findFolderById(folders, folderId);
+  }, [folderId, folders]);
+
+  // Handle folder selection - only update URL
+  const handleFolderSelect = useCallback((folder: FolderTreeItem | null) => {
+    if (folder) {
+      router.push(`/carpetas/${folder.id}`);
+    }
+  }, [router]);
+
+  // Effect to handle initial redirect when no folder is selected
   useEffect(() => {
-    if (folders.length > 0 && !selectedFolder) {
+    if (folders.length === 0) return;
+
+    if (!folderId && !isInitializedRef.current) {
+      // No valid folder in URL, redirect to first available (only on initial load)
       const firstFolder = getFirstAvailableFolder(folders);
       if (firstFolder) {
-        setSelectedFolder(firstFolder);
+        router.replace(`/carpetas/${firstFolder.id}`);
       }
     }
-  }, [folders, selectedFolder]);
+    
+    isInitializedRef.current = true;
+  }, [folders, folderId, router]);
 
   return (
     <div className='flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden'>
@@ -41,7 +63,7 @@ export function FoldersPage() {
           {/* Mobile: Collapsible at top */}
           <div className='lg:hidden border-b flex-1 overflow-hidden'>
             <FolderTree
-              onFolderSelect={setSelectedFolder}
+              onFolderSelect={handleFolderSelect}
               selectedFolderId={selectedFolder?.id}
             />
           </div>
@@ -49,7 +71,7 @@ export function FoldersPage() {
           {/* Desktop: Sticky sidebar */}
           <div className='hidden lg:flex flex-col flex-1 overflow-hidden'>
             <FolderTree
-              onFolderSelect={setSelectedFolder}
+              onFolderSelect={handleFolderSelect}
               selectedFolderId={selectedFolder?.id}
             />
           </div>
@@ -59,7 +81,7 @@ export function FoldersPage() {
         <div className='flex-1 overflow-hidden min-w-0'>
           <FolderContent 
             folder={selectedFolder} 
-            onFolderSelect={setSelectedFolder}
+            onFolderSelect={handleFolderSelect}
           />
         </div>
       </div>

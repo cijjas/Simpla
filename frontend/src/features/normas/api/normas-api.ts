@@ -147,10 +147,14 @@ export interface NormaRelacionesResponse {
   links: NormaRelacionLink[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
 
 class NormasAPI {
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options?: RequestInit,
+  ): Promise<T> {
     const url = `${API_BASE}${endpoint}`;
     const response = await fetch(url, {
       headers: {
@@ -161,7 +165,9 @@ class NormasAPI {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      const error = await response
+        .json()
+        .catch(() => ({ detail: 'Unknown error' }));
       throw new Error(error.detail || `HTTP ${response.status}`);
     }
 
@@ -170,7 +176,7 @@ class NormasAPI {
 
   private buildQueryString(filters: NormaFilters): string {
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         params.append(key, value.toString());
@@ -185,42 +191,42 @@ class NormasAPI {
    */
   async listNormas(filters: NormaFilters = {}): Promise<NormaSearchResponse> {
     const queryString = this.buildQueryString(filters);
-    return this.request<NormaSearchResponse>(`/normas/?${queryString}`);
+    return this.request<NormaSearchResponse>(`/api/normas/?${queryString}`);
   }
 
   /**
    * Get a complete norma with full hierarchical structure by infoleg_id
    */
   async getNorma(infolegId: number): Promise<NormaDetail> {
-    return this.request<NormaDetail>(`/normas/${infolegId}/`);
+    return this.request<NormaDetail>(`/api/normas/${infolegId}/`);
   }
 
   /**
    * Get a norma summary (lightweight) by infoleg_id
    */
   async getNormaSummary(infolegId: number): Promise<NormaSummary> {
-    return this.request<NormaSummary>(`/normas/${infolegId}/summary/`);
+    return this.request<NormaSummary>(`/api/normas/${infolegId}/summary/`);
   }
 
   /**
    * Get available filter options
    */
   async getFilterOptions(): Promise<NormaFilterOptions> {
-    return this.request<NormaFilterOptions>('/normas/filter-options/');
+    return this.request<NormaFilterOptions>('/api/normas/filter-options/');
   }
 
   /**
    * Get normas statistics
    */
   async getStats(): Promise<NormaStats> {
-    return this.request<NormaStats>('/normas/stats/');
+    return this.request<NormaStats>('/api/normas/stats/');
   }
 
   /**
    * Get multiple norma summaries in a single batch request
    */
   async getNormasBatch(infolegIds: number[]): Promise<NormaBatchResponse> {
-    return this.request<NormaBatchResponse>('/normas/batch/', {
+    return this.request<NormaBatchResponse>('/api/normas/batch/', {
       method: 'POST',
       body: JSON.stringify({ infoleg_ids: infolegIds }),
     });
@@ -229,8 +235,12 @@ class NormasAPI {
   /**
    * Get norma relationships (modifica/modificada_por) as graph data
    */
-  async getNormaRelaciones(infolegId: number): Promise<NormaRelacionesResponse> {
-    return this.request<NormaRelacionesResponse>(`/normas/${infolegId}/relaciones/`);
+  async getNormaRelaciones(
+    infolegId: number,
+  ): Promise<NormaRelacionesResponse> {
+    return this.request<NormaRelacionesResponse>(
+      `/api/normas/${infolegId}/relaciones/`,
+    );
   }
 }
 
