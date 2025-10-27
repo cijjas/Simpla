@@ -21,7 +21,9 @@ export default function VerifyPage() {
     if (token && email && !success && !error) {
       setIsVerifying(true);
       // Redirect to API route which will handle the verification
-      window.location.href = `/api/auth/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+      if (typeof window !== 'undefined') {
+        window.location.href = `/api/auth/verify?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+      }
     }
   }, [token, email, success, error]);
 
@@ -70,7 +72,9 @@ export default function VerifyPage() {
           onClick={() => {
             // Redirect to login with pre-filled email and success message
             const loginUrl = `/iniciar-sesion?email=${encodeURIComponent(email)}&verified=true`;
-            window.location.href = loginUrl;
+            if (typeof window !== 'undefined') {
+              window.location.href = loginUrl;
+            }
           }}
         >
           <Link href={`/iniciar-sesion?email=${encodeURIComponent(email)}&verified=true`}>
