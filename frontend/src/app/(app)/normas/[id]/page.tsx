@@ -1,11 +1,13 @@
 import { Metadata } from 'next';
 import { NormaDetailPage } from '@/features/normas/pages/norma-detail-page';
 import { FoldersProvider } from '@/features/folders/context/folders-context';
-import { normasAPI } from '@/features/normas/api/normas-api';
+import { NormaSummary } from '@/features/normas/api/normas-api';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/api`;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -20,30 +22,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   try {
-    // Fetch norma data for metadata
-    const norma = await normasAPI.getNormaSummary(infolegId);
+    // Fetch norma data from public OG endpoint (no auth required for metadata generation)
+    // Cache metadata indefinitely since normas rarely change
+    const normaResponse = await fetch(`${API_BASE}/normas/${infolegId}/og/`, {
+      next: { revalidate: false }, // Cache indefinitely
+    });
     
-    // Generate clean title format: "Ley 1234 | Regulaciones Sanitarias"
-    const normaType = norma.tipo_norma || 'Norma';
-    const normaNumber = norma.referencia?.numero;
-    const normaIdentifier = normaNumber 
-      ? `${normaType} ${normaNumber}` 
-      : `${normaType} ${infolegId}`;
+    if (!normaResponse.ok) {
+      throw new Error('Norma no encontrada');
+    }
     
-    // Get the clean norma title (without extra text)
-    const normaMainTitle = norma.titulo_sumario || norma.titulo_resumido || 'Consulta normativa';
+    const norma: NormaSummary = await normaResponse.json();
     
-  // Create the final title (norma type/number + main title)
-  const title = `${normaIdentifier} | ${normaMainTitle}`;
-  const slogan = 'Legislación argentina, al alcance.'; 
-  const description = slogan;
+    // Use the same logic as the OG image generator for consistency
+    const numero = norma.referencia?.numero ?? '';
+    const anio = norma.sancion
+      ? new Date(norma.sancion).getFullYear()
+      : '';
+    const ogTitle = `${norma.tipo_norma ?? 'Norma'} ${numero}${anio ? `/${anio}` : ''}`;
+    const ogDescription = norma.titulo_sumario ?? norma.titulo_resumido ?? 'Legislación argentina, al alcance.';
+    
+    // Page title can be more descriptive (what shows in browser tab)
+    const pageTitle = ogDescription 
+      ? `${ogTitle} | ${ogDescription}` 
+      : `${ogTitle} | Simpla`;
+    
     const url = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/normas/${infolegId}`;
 
     return {
-      title,
-      description,
+      title: pageTitle,
+      description: ogDescription,
       keywords: [
-        normaType,
+        norma.tipo_norma || 'norma',
         'norma',
         'legislación',
         'derecho',
@@ -54,28 +64,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ],
       authors: [{ name: 'Simpla' }],
       openGraph: {
-        title,
-        description,
+        title: ogTitle, // Matches what's shown on the OG image
+        description: ogDescription, // Matches what's shown on the OG image
         url,
         siteName: 'Simpla',
         type: 'article',
         locale: 'es_AR',
         images: [
           {
-            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
+            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/api/og/norma?id=${infolegId}`,
             width: 1200,
             height: 630,
-            alt: normaIdentifier,
+            alt: ogTitle,
           },
         ],
       },
       twitter: {
         card: 'summary_large_image',
-        title,
-        description,
-        site: '@SimplAr', // Replace with actual Twitter handle if available
+        title: ogTitle, // Matches what's shown on the OG image
+        description: ogDescription, // Matches what's shown on the OG image
+        site: '@SimplAr',
         images: [
-          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
+          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/api/og/norma?id=${infolegId}`,
         ],
       },
       alternates: {
@@ -114,7 +124,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         locale: 'es_AR',
         images: [
           {
-            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
+            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/api/og/norma?id=${infolegId}`,
             width: 1200,
             height: 630,
             alt: `Norma ${infolegId}`,
@@ -127,7 +137,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description: fallbackDescription,
         site: '@SimplAr',
         images: [
-          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
+          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/api/og/norma?id=${infolegId}`,
         ],
       },
       alternates: {

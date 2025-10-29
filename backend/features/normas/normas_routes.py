@@ -26,6 +26,9 @@ from .normas_schemas import (
 logger = get_logger(__name__)
 router = APIRouter(dependencies=[Depends(get_current_user_id)])
 
+# Public router for endpoints that don't require authentication (e.g., OG images)
+public_router = APIRouter()
+
 # Initialize the reconstructor
 reconstructor = get_norma_reconstructor()
 
@@ -666,4 +669,33 @@ async def normas_daily_batch_complete(batch_date: Optional[date] = None):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing daily batch complete: {str(e)}"
+        )
+
+
+@public_router.get("/normas/{infoleg_id}/og/", response_model=NormaSummaryResponse)
+async def get_norma_for_og(infoleg_id: int):
+    """
+    Public endpoint to get norma summary for Open Graph image generation.
+    This endpoint does not require authentication.
+    """
+    logger.info(f"Fetching norma summary for OG image generation: {infoleg_id}")
+    
+    try:
+        norma_summary = reconstructor.get_norma_summary_by_infoleg_id(infoleg_id)
+        
+        if not norma_summary:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Norma with infoleg_id {infoleg_id} not found"
+            )
+        
+        return NormaSummaryResponse(**norma_summary)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching norma summary for OG {infoleg_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching norma summary: {str(e)}"
         )

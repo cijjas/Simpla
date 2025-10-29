@@ -24,7 +24,7 @@ from features.bookmarks.bookmarks_routes import router as bookmarks_router
 from features.conversations.router import router as conversations_router
 from features.conversations.feedback.feedback_routes import router as message_feedback_router
 from features.subscription.subscription_routes import router as subscription_router
-from features.normas.normas_routes import router as normas_router
+from features.normas.normas_routes import router as normas_router, public_router as normas_public_router
 from features.norma_chat.routes import router as norma_chat_router
 from features.digest.digest_routes import router as digest_router
 from features.daily_digest.daily_digest_routes import router as daily_digest_router
@@ -84,6 +84,7 @@ app.include_router(message_feedback_router, prefix="/api")
 app.include_router(bookmarks_router, prefix="/api")
 app.include_router(subscription_router, prefix="/api")
 app.include_router(normas_router, prefix="/api")
+app.include_router(normas_public_router, prefix="/api")  # Public endpoints (e.g., OG images)
 app.include_router(norma_chat_router, prefix="/api")
 app.include_router(digest_router, prefix="/api")
 app.include_router(daily_digest_router, prefix="/api")
