@@ -33,9 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Get the clean norma title (without extra text)
     const normaMainTitle = norma.titulo_sumario || norma.titulo_resumido || 'Consulta normativa';
     
-    // Create the final title and description
-    const title = `${normaIdentifier} | ${normaMainTitle}`;
-    const description = `${normaIdentifier} - ${normaMainTitle}`;
+  // Create the final title (norma type/number + main title)
+  const title = `${normaIdentifier} | ${normaMainTitle}`;
+  const slogan = 'Legislación argentina, al alcance.'; 
+  const description = slogan;
     const url = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/normas/${infolegId}`;
 
     return {
@@ -61,7 +62,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         locale: 'es_AR',
         images: [
           {
-            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/preview.png`,
+            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
             width: 1200,
             height: 630,
             alt: normaIdentifier,
@@ -74,7 +75,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description,
         site: '@SimplAr', // Replace with actual Twitter handle if available
         images: [
-          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simpla.ar'}/images/preview.png`,
+          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
         ],
       },
       alternates: {
@@ -95,9 +96,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   } catch (error) {
     console.error('Error fetching norma for metadata:', error);
     
-    // Fallback metadata if API call fails
-    const fallbackTitle = `Norma ${infolegId} | Consulta normativa`;
-    const fallbackDescription = `Norma ${infolegId} - Consulta normativa`;
+  // Fallback metadata if API call fails
+  const fallbackTitle = `Norma ${infolegId} | Consulta normativa`;
+  const fallbackDescription = 'Busca. Entiende. Actúa.';
     
     return {
       title: fallbackTitle,
@@ -113,7 +114,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         locale: 'es_AR',
         images: [
           {
-            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/preview.png`,
+            url: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
             width: 1200,
             height: 630,
             alt: `Norma ${infolegId}`,
@@ -126,7 +127,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description: fallbackDescription,
         site: '@SimplAr',
         images: [
-          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/preview.png`,
+          `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://simplalegal.com'}/images/logo_completo_dark.png`,
         ],
       },
       alternates: {
