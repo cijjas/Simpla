@@ -10,6 +10,7 @@ import {
   Loader,
   BookOpen,
 } from 'lucide-react';
+import { TbTopologyRing2 } from 'react-icons/tb';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { forwardRef } from 'react';
 
@@ -63,6 +64,11 @@ const data = {
       title: 'Carpetas',
       url: '/carpetas',
       icon: Folder,
+    },
+    {
+      title: 'Relaciones',
+      url: '/relaciones',
+      icon: TbTopologyRing2,
     },
   ],
   motor: [

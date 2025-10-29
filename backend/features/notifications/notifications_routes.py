@@ -8,7 +8,7 @@ from uuid import UUID
 from datetime import datetime
 
 from core.database.base import get_db
-from core.utils.jwt_utils import verify_token
+from features.auth.auth_utils import get_current_user_id
 from .notifications_models import Notification
 from .notifications_schemas import (
     NotificationsListResponse,
@@ -21,18 +21,7 @@ from .notifications_schemas import (
 router = APIRouter()
 
 
-def get_current_user_id(request: Request) -> str:
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    token = auth_header.split(" ")[1]
-    payload = verify_token(token, "access")
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user_id: str = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    return user_id
+# get_current_user_id now centralized in auth_utils
 
 
 @router.get("/notifications/", response_model=NotificationsListResponse)

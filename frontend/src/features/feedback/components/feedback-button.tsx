@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useApi } from '@/features/auth/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,6 +38,7 @@ type FeedbackValues = z.infer<typeof schema>;
 export function FeedbackButton() {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
+  const api = useApi();
 
   const form = useForm<FeedbackValues>({
     resolver: zodResolver(schema),
@@ -51,22 +53,15 @@ export function FeedbackButton() {
 
   const onSubmit = async (values: FeedbackValues) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/api/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: values.message.trim(),
-          origin: 'webapp',
-        }),
+      await api.post('/api/feedback', {
+        message: values.message.trim(),
+        origin: 'webapp',
       });
 
-      if (res.ok) {
+      {
         toast.success('Mensaje enviado, ¡gracias por ayudarnos a mejorar!');
         setSent(true);
         reset();
-      } else {
-        toast.error('Hubo un problema enviando tu mensaje');
       }
     } catch {
       toast.error('Error de red, por favor inténtalo de nuevo');

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { NormaSummary, normasAPI } from '../api/normas-api';
+import { NormaSummary } from '../api/normas-api';
+import { useNormasApi } from '../api/use-normas-api';
 
 interface UseRelatedNormasProps {
   modificaIds: number[];
@@ -14,6 +15,7 @@ export function useRelatedNormas({
   modificadaIds,
   open,
 }: UseRelatedNormasProps) {
+  const normasApi = useNormasApi();
   const [modifica, setModifica] = useState<NormaSummary[] | null>(null);
   const [modificadaPor, setModificadaPor] = useState<NormaSummary[] | null>(
     null,
@@ -34,7 +36,7 @@ export function useRelatedNormas({
 
     const promises = ids.map(async id => {
       try {
-        return await normasAPI.getNormaSummary(id);
+        return await normasApi.getNormaSummary(id);
       } catch (error) {
         console.error(`Failed to fetch norma ${id}:`, error);
         return null;

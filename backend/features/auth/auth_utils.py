@@ -81,6 +81,26 @@ def get_current_user(
     return user
 
 
+def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """Lightweight dependency that validates the JWT and returns the user_id (sub) without DB access."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    payload = verify_token(credentials.credentials, "access")
+    if payload is None:
+        raise credentials_exception
+
+    user_id: Optional[str] = payload.get("sub")
+    if not user_id:
+        raise credentials_exception
+
+    return user_id
+
 def get_current_user_optional(
     request: Request,
     db: Session = Depends(get_db)

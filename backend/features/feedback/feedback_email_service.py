@@ -5,7 +5,7 @@ import resend
 from core.config.config import settings
 
 
-def send_feedback_email(message: str, origin: str = 'webapp') -> None:
+def send_feedback_email(message: str, origin: str = 'webapp', user_email: str | None = None, user_id: str | None = None) -> None:
     """
     Send feedback email to configured feedback recipients.
     
@@ -23,13 +23,24 @@ def send_feedback_email(message: str, origin: str = 'webapp') -> None:
     resend.api_key = settings.RESEND_API_KEY
     
     # Retry logic for reliability
+    # Compose body with optional user context
+    context_lines = []
+    if user_email or user_id:
+        context_lines.append("--- Sender ---")
+        if user_email:
+            context_lines.append(f"Email: {user_email}")
+        if user_id:
+            context_lines.append(f"User ID: {user_id}")
+        context_lines.append("")
+    composed_text = ("\n".join(context_lines) + message) if context_lines else message
+
     for attempt in range(3):
         try:
             resend.Emails.send({
                 "from": f"Feedback <{settings.EMAIL_FROM or 'no-reply@simplalegal.com'}>",
                 "to": feedback_emails,
                 "subject": f"Nuevo feedback ({origin})",
-                "text": message,
+                "text": composed_text,
             })
             return
         except Exception as e:

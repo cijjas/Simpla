@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .message_pipeline import MessagePipeline
 from core.database.base import get_db
-from features.auth.auth_utils import verify_token
+from features.auth.auth_utils import get_current_user_id
 from .service import ConversationService
 from .schemas import (
     ConversationCreate,
@@ -26,23 +26,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 
-# Authentication dependency
-def get_current_user_id(request: Request) -> str:
-    """Get current user ID from JWT token without database query."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    token = auth_header.split(" ")[1]
-    payload = verify_token(token, "access")
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user_id: str = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    return user_id
+# Authentication dependency now centralized in auth_utils
 
 
 @router.get("/", response_model=ConversationListResponse)

@@ -72,6 +72,7 @@ export class ConversationsAPI {
     const url = `${API_BASE}/conversations/${searchParams.toString() ? `?${searchParams}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
+      credentials: 'include',
     });
     return this.handleResponse<ConversationListResponse>(response);
   }
@@ -79,6 +80,7 @@ export class ConversationsAPI {
   static async getConversation(id: string): Promise<ConversationDetail> {
     const response = await fetch(`${API_BASE}/conversations/${id}`, {
       headers: getAuthHeaders(),
+      credentials: 'include',
     });
     return this.handleResponse<ConversationDetail>(response);
   }
@@ -88,6 +90,7 @@ export class ConversationsAPI {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
+      credentials: 'include',
     });
     return this.handleResponse<ConversationDetail>(response);
   }
@@ -100,6 +103,7 @@ export class ConversationsAPI {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
+      credentials: 'include',
     });
     return this.handleResponse<ConversationDetail>(response);
   }
@@ -108,6 +112,7 @@ export class ConversationsAPI {
     const response = await fetch(`${API_BASE}/conversations/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
+      credentials: 'include',
     });
     if (!response.ok) {
       const errorText = await response.text();
@@ -126,6 +131,7 @@ export class ConversationsAPI {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -186,6 +192,7 @@ export class ConversationsAPI {
         message_id: messageId,
         feedback_type: feedbackType,
       }),
+      credentials: 'include',
     });
     return this.handleResponse<MessageFeedback>(response);
   }
@@ -193,6 +200,7 @@ export class ConversationsAPI {
   static async getFeedback(messageId: string): Promise<MessageFeedback | null> {
     const response = await fetch(`${API_BASE}/conversations/feedback/${messageId}`, {
       headers: getAuthHeaders(),
+      credentials: 'include',
     });
     
     if (response.status === 404) {
@@ -207,6 +215,7 @@ export class ConversationsAPI {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ message_ids: messageIds }),
+      credentials: 'include',
     });
     return this.handleResponse<Record<string, FeedbackType>>(response);
   }
@@ -215,6 +224,7 @@ export class ConversationsAPI {
     const response = await fetch(`${API_BASE}/conversations/feedback/${messageId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
+      credentials: 'include',
     });
     if (!response.ok && response.status !== 404) {
       const errorText = await response.text();

@@ -4,7 +4,7 @@ Norma Chat API endpoints.
 This module provides endpoints for AI chat functionality specific to individual normas.
 """
 
-from core.utils.jwt_utils import verify_token
+from features.auth.auth_utils import get_current_user_id
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional, List
@@ -12,10 +12,6 @@ from pydantic import BaseModel, Field
 import json
 
 from core.database.base import get_db
-from core.config.config import settings
-from features.conversations.answer_generation.utils import build_enhanced_prompt
-from features.conversations.ai_services.gemini_service import GeminiAIService
-from features.conversations.ai_services.base import Message
 from features.conversations.service import ConversationService
 from features.subscription.rate_limit_service import RateLimitService
 from core.utils.logging_config import get_logger
@@ -24,23 +20,7 @@ from shared.utils.norma_reconstruction import reconstruct_norma_by_infoleg_id, b
 router = APIRouter()
 logger = get_logger(__name__)
 
-# Authentication dependency
-def get_current_user_id(request: Request) -> str:
-    """Get current user ID from JWT token without database query."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    token = auth_header.split(" ")[1]
-    payload = verify_token(token, "access")
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user_id: str = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    return user_id
+# Authentication dependency now centralized in auth_utils
 
 
 class NormaChatRequest(BaseModel):

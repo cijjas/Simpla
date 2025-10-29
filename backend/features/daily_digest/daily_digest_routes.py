@@ -6,8 +6,7 @@ from typing import List, Optional
 from datetime import date
 from core.database.base import get_db
 from core.utils.logging_config import get_logger
-from core.utils.jwt_utils import verify_token
-from features.auth.auth_utils import get_current_user
+from features.auth.auth_utils import get_current_user, get_current_user_id
 from .daily_digest_models import DailyDigestNewspaper
 from .daily_digest_schemas import (
     DigestPreferencesRequest,
@@ -23,23 +22,7 @@ from .daily_digest_service import DailyDigestService
 logger = get_logger(__name__)
 router = APIRouter()
 
-# Authentication dependency
-def get_current_user_id(request: Request) -> str:
-    """Get current user ID from JWT token without database query."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    token = auth_header.split(" ")[1]
-    payload = verify_token(token, "access")
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user_id: str = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    return user_id
+# Authentication dependency now centralized in auth_utils
 
 @router.get("/daily-digest/dependencies/", response_model=AvailableOrganismsResponse)
 async def get_available_dependencies():

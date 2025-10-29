@@ -2,13 +2,14 @@
 
 from typing import Optional
 from datetime import date
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from core.utils.logging_config import get_logger
 import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from shared.utils.norma_reconstruction import get_norma_reconstructor
+from features.auth.auth_utils import get_current_user_id
 from .normas_schemas import (
     NormaSummaryResponse,
     NormaDetailResponse,
@@ -23,7 +24,7 @@ from .normas_schemas import (
 )
 
 logger = get_logger(__name__)
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user_id)])
 
 # Initialize the reconstructor
 reconstructor = get_norma_reconstructor()
@@ -397,6 +398,97 @@ async def get_norma_relaciones(infoleg_id: int):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching norma relationships: {str(e)}"
+        )
+
+
+@router.get("/normas/relaciones/all/", response_model=NormaRelacionesResponse)
+async def get_all_normas_relaciones(
+    limit: int = Query(500, ge=1, le=1000, description="Maximum number of relationships to return")
+):
+    """
+    Get all norma relationships for graph visualization.
+    Returns nodes and links suitable for D3 force-directed graph visualization.
+    Limited to prevent performance issues with large datasets.
+    """
+    logger.info(f"Fetching all norma relationships (limit: {limit})")
+    
+    try:
+        with reconstructor.get_connection() as conn:
+            with conn.cursor() as cur:
+                # Get a sample of relationships
+                cur.execute("""
+                    SELECT nr.norma_origen_infoleg_id, nr.norma_destino_infoleg_id, nr.tipo_relacion
+                    FROM normas_relaciones nr
+                    ORDER BY nr.id
+                    LIMIT %s    
+                """, (limit,))
+                
+                relations = cur.fetchall()
+                
+                if not relations:
+                    # Return an empty graph with a minimal placeholder current_norma to satisfy schema
+                    placeholder_node = NormaRelacionNode(
+                        infoleg_id=0,
+                        titulo="",
+                    )
+                    return NormaRelacionesResponse(
+                        current_norma=placeholder_node,
+                        nodes=[],
+                        links=[]
+                    )
+                
+                # Collect all unique norma IDs
+                norma_ids = set()
+                for rel in relations:
+                    norma_ids.add(rel[0])  # origen
+                    norma_ids.add(rel[1])  # destino
+                
+                # Fetch details for all normas
+                placeholders = ','.join(['%s'] * len(norma_ids))
+                cur.execute(f"""
+                    SELECT ns.infoleg_id, ns.titulo_resumido, ns.titulo_sumario, ns.tipo_norma,
+                           nr.numero, ns.sancion
+                    FROM normas_structured ns
+                    LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                    WHERE ns.infoleg_id IN ({placeholders})
+                """, list(norma_ids))
+                
+                normas_data = cur.fetchall()
+                
+                # Create nodes
+                nodes = []
+                for norma_row in normas_data:
+                    nodes.append(NormaRelacionNode(
+                        infoleg_id=norma_row[0],
+                        titulo=norma_row[1] or norma_row[2],
+                        titulo_resumido=norma_row[1],
+                        tipo_norma=norma_row[3],
+                        numero=norma_row[4],
+                        sancion=norma_row[5]
+                    ))
+                
+                # Create links
+                links = []
+                for rel in relations:
+                    links.append(NormaRelacionLink(
+                        source_infoleg_id=rel[0],
+                        target_infoleg_id=rel[1],
+                        tipo_relacion=rel[2]
+                    ))
+                
+                # Per schema, current_norma cannot be null; choose first node if available
+                current = nodes[0] if nodes else NormaRelacionNode(infoleg_id=0, titulo="")
+                return NormaRelacionesResponse(
+                    current_norma=current,
+                    nodes=nodes,
+                    links=links
+                )
+                
+    except Exception as e:
+        logger.error(f"Error fetching all norma relationships: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching all norma relationships: {str(e)}"
         )
 
 
