@@ -1,8 +1,9 @@
 'use client';
 
+import { memo } from 'react';
 import { MarkdownContent } from './markdown-content';
 
-export function TermsPage() {
+export const TermsPage = memo(function TermsPage() {
   return (
     <section className='py-20 bg-background'>
       <div className='mx-auto max-w-4xl px-6'>
@@ -12,4 +13,4 @@ export function TermsPage() {
       </div>
     </section>
   );
-}
+});

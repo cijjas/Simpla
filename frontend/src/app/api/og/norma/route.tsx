@@ -1,4 +1,3 @@
-import { NormaSummary } from '@/features/normas/api/normas-api';
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
@@ -33,14 +32,14 @@ export async function GET(req: Request) {
   const id = Number(searchParams.get('id'));
   if (!id) return new Response('Missing ID', { status: 400 });
 
-  // Fetch norma from public OG endpoint (no auth required)
-  const normaResponse = await fetch(`${API_BASE}/normas/${id}/og/`);
+  // Fetch minimal norma data from ultra-lightweight OG endpoint (no auth required)
+  const normaResponse = await fetch(`${API_BASE}/normas/${id}/og-minimal/`);
   if (!normaResponse.ok) {
     return new Response('Norma no encontrada', { status: 404 });
   }
-  const norma: NormaSummary = await normaResponse.json();
+  const norma = await normaResponse.json();
 
-  const numero = norma.referencia?.numero ?? '';
+  const numero = norma.numero ?? '';
   const anio = norma.sancion
     ? new Date(norma.sancion).getFullYear()
     : '';

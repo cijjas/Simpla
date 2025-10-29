@@ -187,6 +187,18 @@ class ErrorResponse(BaseModel):
     status_code: int
 
 
+class NormaOGResponse(BaseModel):
+    """Minimal schema for OG image generation - only essential fields."""
+    tipo_norma: Optional[str] = None
+    publicacion: Optional[date] = None
+    titulo_sumario: Optional[str] = None
+    titulo_resumido: Optional[str] = None
+    nro_boletin: Optional[str] = None
+    pag_boletin: Optional[str] = None
+    numero: Optional[int] = None
+    sancion: Optional[date] = None
+
+
 # Update forward references
 ArticleResponse.model_rebuild()
 DivisionResponse.model_rebuild()

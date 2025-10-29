@@ -1,10 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { ProgressiveText } from '@/components/ui/progressive-text';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 
-export function ValuePropositionSection() {
+export const ValuePropositionSection = memo(function ValuePropositionSection() {
   return (
     <section className='py-40 bg-background light'>
       <div className='mx-auto max-w-6xl px-6'>
@@ -55,4 +56,4 @@ export function ValuePropositionSection() {
       </div>
     </section>
   );
-}
+});

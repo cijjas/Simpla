@@ -1,10 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import { TrendingUp, Shield, Minus } from 'lucide-react';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { ProgressiveText } from '@/components/ui/progressive-text';
 
-export function FeaturesSection() {
+export const FeaturesSection = memo(function FeaturesSection() {
   const kpis = [
     {
       value: '700K+',
@@ -102,4 +103,4 @@ export function FeaturesSection() {
       </div>
     </section>
   );
-}
+});

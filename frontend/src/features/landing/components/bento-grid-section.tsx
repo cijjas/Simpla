@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { memo, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
+import { AnimatedText } from './animated-text';
 
 interface BentoCard {
   id: string;
@@ -20,7 +20,7 @@ interface BentoGridSectionProps {
   cards: BentoCard[];
 }
 
-export function BentoGridSection({
+export const BentoGridSection = memo(function BentoGridSection({
   title = 'Our Services',
   subtitle = 'Comprehensive solutions for your business needs',
   cards = [],
@@ -36,56 +36,6 @@ export function BentoGridSection({
     return () => clearTimeout(timer);
   }, []);
 
-  // Custom animated text component
-  const AnimatedText = ({ children, className, delay = 0, stagger = 0.05 }: { 
-    children: string; 
-    className?: string; 
-    delay?: number; 
-    stagger?: number; 
-  }) => {
-    const words = children.split(' ');
-    
-    return (
-      <motion.div
-        className={className}
-        initial="hidden"
-        animate={isVisible ? "visible" : "hidden"}
-        variants={{
-          hidden: { opacity: 0 },
-          visible: {
-            opacity: 1,
-            transition: {
-              staggerChildren: stagger,
-              delayChildren: delay,
-            },
-          },
-        }}
-      >
-        {words.map((word, index) => (
-          <motion.span
-            key={index}
-            variants={{
-              hidden: {
-                opacity: 0,
-                filter: 'blur(10px)',
-                x: -20,
-              },
-              visible: {
-                opacity: 1,
-                filter: 'blur(0px)',
-                x: 0,
-                transition: { duration: 0.8, ease: "easeOut" },
-              },
-            }}
-            className="inline-block mr-2"
-          >
-            {word}
-          </motion.span>
-        ))}
-      </motion.div>
-    );
-  };
-
   return (
     <section className='py-20 light'>
       <div className='mx-auto max-w-6xl px-6'>
@@ -95,6 +45,7 @@ export function BentoGridSection({
             className='text-4xl font-bold font-serif mb-4'
             delay={0.1}
             stagger={0.05}
+            isVisible={isVisible}
           >
             {title}
           </AnimatedText>
@@ -102,6 +53,7 @@ export function BentoGridSection({
             className='text-xl font-sans max-w-2xl mx-auto'
             delay={0.3}
             stagger={0.03}
+            isVisible={isVisible}
           >
             {subtitle}
           </AnimatedText>
@@ -127,6 +79,8 @@ export function BentoGridSection({
                           alt={card.imageAlt || card.title}
                           fill
                           className='object-contain'
+                          sizes="48px"
+                          loading="lazy"
                         />
                       </div>
                     ) : (
@@ -153,7 +107,7 @@ export function BentoGridSection({
       </div>
     </section>
   );
-}
+});
 
 // Default cards data for the services grid
 export const defaultServicesCards: BentoCard[] = [

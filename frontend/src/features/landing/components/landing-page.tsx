@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { BentoGridSection, defaultServicesCards } from './bento-grid-section';
 import { ProgressiveText } from '@/components/ui/progressive-text';
 import Image from 'next/image';
 
-export default function LandingPage() {
+const LandingPageContent = memo(function LandingPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<
     'idle' | 'success' | 'error'
@@ -147,6 +147,9 @@ export default function LandingPage() {
             width={1700}
             height={567}
             className='h-104 w-auto'
+            sizes="(max-width: 768px) 100vw, 1200px"
+            priority={false}
+            loading="lazy"
           />
         </div>
       </section>
@@ -295,4 +298,6 @@ export default function LandingPage() {
       </section>
     </>
   );
-}
+});
+
+export default LandingPageContent;

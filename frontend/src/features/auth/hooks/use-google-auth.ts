@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { googleAuthService } from '../utils/google-auth';
 import { googlePopupAuth } from '../utils/google-popup-auth';
 import { useAuth } from './use-auth';
 
@@ -85,31 +84,13 @@ export function useGoogleAuth() {
     }
   }, [refreshToken, loginWithGoogle]);
 
-  const signInWithPopup = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const idToken = await googleAuthService.signInWithPopup();
-      if (idToken) {
-        const result = await loginWithGoogle(idToken);
-        return result;
-      } else {
-        return { success: false, error: 'Google sign-in was cancelled' };
-      }
-    } catch (error) {
-      console.error('Google popup sign-in error:', error);
-      return { success: false, error: 'Google sign-in failed' };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loginWithGoogle]);
-
   const signOut = useCallback(() => {
-    googleAuthService.signOut();
+    // Sign out is handled by backend
+    // This is a placeholder for future client-side cleanup if needed
   }, []);
 
   return {
     signIn,
-    signInWithPopup,
     signOut,
     isLoading,
   };

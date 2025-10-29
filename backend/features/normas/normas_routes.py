@@ -20,7 +20,8 @@ from .normas_schemas import (
     NormaBatchResponse,
     NormaRelacionesResponse,
     NormaRelacionNode,
-    NormaRelacionLink
+    NormaRelacionLink,
+    NormaOGResponse
 )
 
 logger = get_logger(__name__)
@@ -677,6 +678,7 @@ async def get_norma_for_og(infoleg_id: int):
     """
     Public endpoint to get norma summary for Open Graph image generation.
     This endpoint does not require authentication.
+    Note: Returns full summary, but OG image generation only uses minimal fields.
     """
     logger.info(f"Fetching norma summary for OG image generation: {infoleg_id}")
     
@@ -698,4 +700,44 @@ async def get_norma_for_og(infoleg_id: int):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching norma summary: {str(e)}"
+        )
+
+
+@public_router.get("/normas/{infoleg_id}/og-minimal/", response_model=NormaOGResponse)
+async def get_norma_og_minimal(infoleg_id: int):
+    """
+    Ultra-lightweight endpoint for OG image generation - returns only essential fields.
+    This endpoint is optimized for speed and minimal data transfer.
+    """
+    logger.info(f"Fetching minimal norma data for OG: {infoleg_id}")
+    
+    try:
+        with reconstructor.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get only the essential fields for OG image
+                cur.execute("""
+                    SELECT 
+                        ns.tipo_norma, ns.publicacion, ns.titulo_sumario, ns.titulo_resumido,
+                        ns.nro_boletin, ns.pag_boletin, ns.sancion, nr.numero
+                    FROM normas_structured ns
+                    LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                    WHERE ns.infoleg_id = %s
+                """, (infoleg_id,))
+                
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Norma with infoleg_id {infoleg_id} not found"
+                    )
+                
+                return NormaOGResponse(**dict(row))
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching minimal OG data for {infoleg_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching OG data: {str(e)}"
         )
