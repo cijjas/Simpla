@@ -17,8 +17,7 @@ interface ConversationsState {
   // isStreaming removed - derived from streamingMessage !== ''
   streamingMessage: string;
   isLoadingConversations: boolean;
-  // editingConversationId removed - moved to local state in conversations-page
-  // tempTitle removed - moved to local state in conversations-page
+  // editingConversationId and tempTitle - handled in ConversationsSidebar component
 }
 
 // Derived state - computed from base state
@@ -134,7 +133,7 @@ interface ConversationsContextType {
   loadMoreConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   selectEmptyConversation: () => void;
-  sendMessage: (content: string, currentConversationId: string | null, onNewConversation?: (sessionId: string) => void) => Promise<void>;
+  sendMessage: (content: string, currentConversationId: string | null) => Promise<void>;
   archiveConversation: (conversation: Conversation) => Promise<void>;
   deleteConversation: (conversation: Conversation) => Promise<void>;
   updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
@@ -152,6 +151,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const [state, dispatch] = useReducer(conversationsReducer, initialState);
   const api = useApi();
   const hasLoadedConversations = useRef(false);
+  const isLoadingConversationRef = useRef(false);
   const isLoadingRef = useRef(false);
   const isLoadingMoreRef = useRef(false);
   const offsetRef = useRef(0);
@@ -209,21 +209,18 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
   // Load a specific conversation
   const loadConversation = useCallback(async (id: string) => {
+    // Skip if already loading this conversation
+    if (isLoadingConversationRef.current) {
+      return;
+    }
+
+    // Optimization: If this conversation is already loaded, skip reload
+    if (state.currentSessionId === id && state.messages.length > 0) {
+      return;
+    }
+
     try {
-      console.log('[loadConversation] Called with id:', id, {
-        'current state.currentSessionId': state.currentSessionId,
-        'messages.length': state.messages.length,
-        'will skip reload': state.currentSessionId === id && state.messages.length > 0
-      });
-
-      // Optimization: If this conversation is already loaded in memory, don't clear and reload
-      // This prevents losing messages when navigating to a conversation we just created
-      if (state.currentSessionId === id && state.messages.length > 0) {
-        console.log('[loadConversation] Skipping reload - conversation already in memory');
-        // Already have this conversation loaded, skip reload
-        return;
-      }
-
+      isLoadingConversationRef.current = true;
       // Clear messages first to show empty state while loading
       dispatch({ type: 'SET_MESSAGES', payload: [] });
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -232,7 +229,6 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
       // Process messages to extract relevant_docs from metadata
       const processedMessages = conversation.messages.map(message => {
-        // Extract relevant_docs from metadata if available
         const relevant_docs = message.metadata?.relevant_docs as number[] | undefined;
         return {
           ...message,
@@ -243,11 +239,11 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_MESSAGES', payload: processedMessages });
       dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
       dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: id });
-      // currentConversation removed - messages is the single source
     } catch (error) {
       toast.error('Error loading conversation');
       console.error(error);
     } finally {
+      isLoadingConversationRef.current = false;
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [state.currentSessionId, state.messages.length]);
@@ -262,8 +258,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
         // Send message
   const sendMessage = useCallback(async (
     content: string,
-    currentConversationId: string | null,
-    onNewConversation?: (sessionId: string) => void
+    currentConversationId: string | null
   ) => {
     // Prevent sending if already streaming (derived from streamingMessage)
     if (!content.trim() || state.streamingMessage !== '') return;
@@ -358,11 +353,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
 
             // currentSessionId already updated in onChunk callback (no need to dispatch again)
-
-            // Call navigation callback to update URL
-            if (onNewConversation) {
-              onNewConversation(newSessionId);
-            }
+            // Navigation is handled by page component watching currentSessionId
           }
         },
         (error) => {
