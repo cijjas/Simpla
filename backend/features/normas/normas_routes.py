@@ -2,13 +2,14 @@
 
 from typing import Optional
 from datetime import date
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from core.utils.logging_config import get_logger
 import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from shared.utils.norma_reconstruction import get_norma_reconstructor
+from features.auth.auth_utils import get_current_user_id
 from .normas_schemas import (
     NormaSummaryResponse,
     NormaDetailResponse,
@@ -19,11 +20,15 @@ from .normas_schemas import (
     NormaBatchResponse,
     NormaRelacionesResponse,
     NormaRelacionNode,
-    NormaRelacionLink
+    NormaRelacionLink,
+    NormaOGResponse
 )
 
 logger = get_logger(__name__)
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user_id)])
+
+# Public router for endpoints that don't require authentication (e.g., OG images)
+public_router = APIRouter()
 
 # Initialize the reconstructor
 reconstructor = get_norma_reconstructor()
@@ -400,6 +405,97 @@ async def get_norma_relaciones(infoleg_id: int):
         )
 
 
+@router.get("/normas/relaciones/all/", response_model=NormaRelacionesResponse)
+async def get_all_normas_relaciones(
+    limit: int = Query(500, ge=1, le=1000, description="Maximum number of relationships to return")
+):
+    """
+    Get all norma relationships for graph visualization.
+    Returns nodes and links suitable for D3 force-directed graph visualization.
+    Limited to prevent performance issues with large datasets.
+    """
+    logger.info(f"Fetching all norma relationships (limit: {limit})")
+    
+    try:
+        with reconstructor.get_connection() as conn:
+            with conn.cursor() as cur:
+                # Get a sample of relationships
+                cur.execute("""
+                    SELECT nr.norma_origen_infoleg_id, nr.norma_destino_infoleg_id, nr.tipo_relacion
+                    FROM normas_relaciones nr
+                    ORDER BY nr.id
+                    LIMIT %s    
+                """, (limit,))
+                
+                relations = cur.fetchall()
+                
+                if not relations:
+                    # Return an empty graph with a minimal placeholder current_norma to satisfy schema
+                    placeholder_node = NormaRelacionNode(
+                        infoleg_id=0,
+                        titulo="",
+                    )
+                    return NormaRelacionesResponse(
+                        current_norma=placeholder_node,
+                        nodes=[],
+                        links=[]
+                    )
+                
+                # Collect all unique norma IDs
+                norma_ids = set()
+                for rel in relations:
+                    norma_ids.add(rel[0])  # origen
+                    norma_ids.add(rel[1])  # destino
+                
+                # Fetch details for all normas
+                placeholders = ','.join(['%s'] * len(norma_ids))
+                cur.execute(f"""
+                    SELECT ns.infoleg_id, ns.titulo_resumido, ns.titulo_sumario, ns.tipo_norma,
+                           nr.numero, ns.sancion
+                    FROM normas_structured ns
+                    LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                    WHERE ns.infoleg_id IN ({placeholders})
+                """, list(norma_ids))
+                
+                normas_data = cur.fetchall()
+                
+                # Create nodes
+                nodes = []
+                for norma_row in normas_data:
+                    nodes.append(NormaRelacionNode(
+                        infoleg_id=norma_row[0],
+                        titulo=norma_row[1] or norma_row[2],
+                        titulo_resumido=norma_row[1],
+                        tipo_norma=norma_row[3],
+                        numero=norma_row[4],
+                        sancion=norma_row[5]
+                    ))
+                
+                # Create links
+                links = []
+                for rel in relations:
+                    links.append(NormaRelacionLink(
+                        source_infoleg_id=rel[0],
+                        target_infoleg_id=rel[1],
+                        tipo_relacion=rel[2]
+                    ))
+                
+                # Per schema, current_norma cannot be null; choose first node if available
+                current = nodes[0] if nodes else NormaRelacionNode(infoleg_id=0, titulo="")
+                return NormaRelacionesResponse(
+                    current_norma=current,
+                    nodes=nodes,
+                    links=links
+                )
+                
+    except Exception as e:
+        logger.error(f"Error fetching all norma relationships: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching all norma relationships: {str(e)}"
+        )
+
+
 @router.post("/normas/daily-batch-complete")
 async def normas_daily_batch_complete(batch_date: Optional[date] = None):
     """
@@ -574,4 +670,74 @@ async def normas_daily_batch_complete(batch_date: Optional[date] = None):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing daily batch complete: {str(e)}"
+        )
+
+
+@public_router.get("/normas/{infoleg_id}/og/", response_model=NormaSummaryResponse)
+async def get_norma_for_og(infoleg_id: int):
+    """
+    Public endpoint to get norma summary for Open Graph image generation.
+    This endpoint does not require authentication.
+    Note: Returns full summary, but OG image generation only uses minimal fields.
+    """
+    logger.info(f"Fetching norma summary for OG image generation: {infoleg_id}")
+    
+    try:
+        norma_summary = reconstructor.get_norma_summary_by_infoleg_id(infoleg_id)
+        
+        if not norma_summary:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Norma with infoleg_id {infoleg_id} not found"
+            )
+        
+        return NormaSummaryResponse(**norma_summary)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching norma summary for OG {infoleg_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching norma summary: {str(e)}"
+        )
+
+
+@public_router.get("/normas/{infoleg_id}/og-minimal/", response_model=NormaOGResponse)
+async def get_norma_og_minimal(infoleg_id: int):
+    """
+    Ultra-lightweight endpoint for OG image generation - returns only essential fields.
+    This endpoint is optimized for speed and minimal data transfer.
+    """
+    logger.info(f"Fetching minimal norma data for OG: {infoleg_id}")
+    
+    try:
+        with reconstructor.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get only the essential fields for OG image
+                cur.execute("""
+                    SELECT 
+                        ns.tipo_norma, ns.publicacion, ns.titulo_sumario, ns.titulo_resumido,
+                        ns.nro_boletin, ns.pag_boletin, ns.sancion, nr.numero
+                    FROM normas_structured ns
+                    LEFT JOIN normas_referencias nr ON ns.id = nr.norma_id
+                    WHERE ns.infoleg_id = %s
+                """, (infoleg_id,))
+                
+                row = cur.fetchone()
+                if not row:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Norma with infoleg_id {infoleg_id} not found"
+                    )
+                
+                return NormaOGResponse(**dict(row))
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching minimal OG data for {infoleg_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching OG data: {str(e)}"
         )

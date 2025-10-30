@@ -10,12 +10,21 @@ import {
   Loader,
   BookOpen,
 } from 'lucide-react';
+import { TbTopologyRing2 } from 'react-icons/tb';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { forwardRef } from 'react';
 
 // Create a wrapper to make Estampa compatible with LucideIcon interface
 const EstampaIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
-  (props, ref) => <SvgEstampa {...props} ref={ref} className="text-sidebar" fill="currentColor" />,
+  (props, ref) => (
+    <SvgEstampa
+      {...props}
+      ref={ref}
+      // Inherit text color so it matches normal text in light/dark modes
+      className={props.className}
+      fill="currentColor"
+    />
+  ),
 );
 EstampaIcon.displayName = 'EstampaIcon';
 
@@ -63,6 +72,11 @@ const data = {
       title: 'Carpetas',
       url: '/carpetas',
       icon: Folder,
+    },
+    {
+      title: 'Relaciones',
+      url: '/relaciones',
+      icon: TbTopologyRing2,
     },
   ],
   motor: [

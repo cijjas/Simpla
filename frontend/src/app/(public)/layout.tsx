@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { LandHeader } from '@/features/landing';
 import { Footer } from '@/features/landing/components/footer';
-import { FeedbackFloater } from '@/features/feedback/components/feedback-floater';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { LightThemeProvider } from '@/features/landing/components/light-theme-provider';
 import { ProgressiveText } from '@/components/ui/progressive-text';
@@ -94,8 +93,7 @@ export default function PublicLayout({
         {/* Footer */}
         <Footer />
         
-        {/* Feedback Floater */}
-        <FeedbackFloater />
+        {/* Feedback floater removed on landing */}
       </main>
     </LightThemeProvider>
   );

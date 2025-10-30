@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useApi } from '@/features/auth/hooks/use-api';
-import { normasAPI, type NormaSummary } from '@/features/normas/api/normas-api';
+import { type NormaSummary } from '@/features/normas/api/normas-api';
+import { useNormasApi } from '@/features/normas/api/use-normas-api';
 
 interface BookmarkResponse {
   id: string;
@@ -34,6 +35,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
   const { pageSize = 12 } = options;
   const { isAuthenticated } = useAuth();
   const api = useApi();
+  const normasApi = useNormasApi();
   const [bookmarks, setBookmarks] = useState<NormaSummary[]>([]);
   const [bookmarkIds, setBookmarkIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
           console.log('Fetching norma data batch for IDs:', normaIds);
 
           try {
-            const batchResponse = await normasAPI.getNormasBatch(normaIds);
+            const batchResponse = await normasApi.getNormasBatch(normaIds);
             console.log('Fetched normas batch:', batchResponse);
 
             if (batchResponse.not_found_ids.length > 0) {

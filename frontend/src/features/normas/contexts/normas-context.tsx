@@ -15,8 +15,8 @@ import {
   NormaFilters,
   NormaFilterOptions,
   NormaStats,
-  normasAPI,
 } from '../api/normas-api';
+import { useNormasApi } from '../api/use-normas-api';
 
 // State interfaces
 interface NormasState {
@@ -218,6 +218,7 @@ interface NormasProviderProps {
 
 export function NormasProvider({ children }: NormasProviderProps) {
   const [state, dispatch] = useReducer(normasReducer, initialState);
+  const normasApi = useNormasApi();
 
   // Track ongoing requests to prevent duplicates
   const ongoingRequests = useRef<{
@@ -258,7 +259,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
     dispatch({ type: 'SET_SEARCH_LOADING', payload: true });
 
     try {
-      const results = await normasAPI.listNormas(searchFilters);
+      const results = await normasApi.listNormas(searchFilters);
 
       // Only update if this request wasn't aborted
       if (!controller.signal.aborted) {
@@ -308,7 +309,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
 
     dispatch({ type: 'SET_FILTER_OPTIONS_LOADING', payload: true });
 
-    const promise = normasAPI.getFilterOptions();
+    const promise = normasApi.getFilterOptions();
     ongoingRequests.current.filterOptions = promise;
 
     try {
@@ -332,7 +333,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
 
     dispatch({ type: 'SET_STATS_LOADING', payload: true });
 
-    const promise = normasAPI.getStats();
+    const promise = normasApi.getStats();
     ongoingRequests.current.stats = promise;
 
     try {
@@ -360,7 +361,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
       }
 
       try {
-        const norma = await normasAPI.getNorma(infolegId);
+        const norma = await normasApi.getNorma(infolegId);
         dispatch({ type: 'CACHE_NORMA', payload: { id: infolegId, norma } });
         return norma;
       } catch (error) {
@@ -382,7 +383,7 @@ export function NormasProvider({ children }: NormasProviderProps) {
       }
 
       try {
-        const summary = await normasAPI.getNormaSummary(infolegId);
+        const summary = await normasApi.getNormaSummary(infolegId);
         dispatch({
           type: 'CACHE_NORMA_SUMMARY',
           payload: { id: infolegId, summary },

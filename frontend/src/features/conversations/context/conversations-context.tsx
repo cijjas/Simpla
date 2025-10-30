@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ConversationsAPI, type Message, type Conversation, type ChatType, type FeedbackType, type ToneType } from '../index';
+import { useApi } from '@/features/auth/hooks/use-api';
 
 // State interface
 interface ConversationsState {
@@ -16,8 +17,7 @@ interface ConversationsState {
   // isStreaming removed - derived from streamingMessage !== ''
   streamingMessage: string;
   isLoadingConversations: boolean;
-  // editingConversationId removed - moved to local state in conversations-page
-  // tempTitle removed - moved to local state in conversations-page
+  // editingConversationId and tempTitle - handled in ConversationsSidebar component
 }
 
 // Derived state - computed from base state
@@ -103,6 +103,11 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
       };
     
     case 'ADD_CONVERSATION':
+      // Only add if not already in the list (prevents duplicates)
+      const exists = state.conversations.some(conv => conv.id === action.payload.id);
+      if (exists) {
+        return state;
+      }
       return {
         ...state,
         conversations: [action.payload, ...state.conversations],
@@ -130,9 +135,11 @@ interface ConversationsContextType {
 
   // Actions
   loadConversations: () => Promise<void>;
+  loadMoreConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   selectEmptyConversation: () => void;
-  sendMessage: (content: string, currentConversationId: string | null, onNewConversation?: (sessionId: string) => void) => Promise<void>;
+  sendMessage: (content: string, currentConversationId: string | null, files?: File[]) => Promise<void>;
+  stopStreaming: () => void;
   archiveConversation: (conversation: Conversation) => Promise<void>;
   deleteConversation: (conversation: Conversation) => Promise<void>;
   updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
@@ -148,11 +155,17 @@ const ConversationsContext = createContext<ConversationsContextType | undefined>
 // Provider component
 export function ConversationsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(conversationsReducer, initialState);
+  const api = useApi();
   const hasLoadedConversations = useRef(false);
+  const isLoadingConversationRef = useRef(false);
   const isLoadingRef = useRef(false);
+  const isLoadingMoreRef = useRef(false);
+  const offsetRef = useRef(0);
+  const hasMoreRef = useRef(true);
   const streamingContentRef = useRef('');
   const normaIdsRef = useRef<number[] | undefined>(undefined);
   const currentToneRef = useRef<ToneType>(state.tone);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Sync ref with state changes
   useEffect(() => {
@@ -168,8 +181,11 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     try {
       isLoadingRef.current = true;
       dispatch({ type: 'SET_LOADING_CONVERSATIONS', payload: true });
-      const data = await ConversationsAPI.getConversations();
+      const PAGE_SIZE = 20;
+      const data = await ConversationsAPI.getConversations({ limit: PAGE_SIZE, offset: 0 });
       dispatch({ type: 'SET_CONVERSATIONS', payload: data.items });
+      offsetRef.current = data.items.length;
+      hasMoreRef.current = data.has_more;
     } catch (error) {
       toast.error('Error loading conversations');
       console.error(error);
@@ -179,23 +195,48 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  // Load more conversations (pagination)
+  const loadMoreConversations = useCallback(async () => {
+    if (isLoadingMoreRef.current || !hasMoreRef.current) return;
+    try {
+      isLoadingMoreRef.current = true;
+      const PAGE_SIZE = 20;
+      const data = await ConversationsAPI.getConversations({ limit: PAGE_SIZE, offset: offsetRef.current });
+      if (data.items.length > 0) {
+        // Filter out duplicates by ID before merging
+        const existingIds = new Set(state.conversations.map(conv => conv.id));
+        const newItems = data.items.filter(item => !existingIds.has(item.id));
+        
+        if (newItems.length > 0) {
+          dispatch({ type: 'SET_CONVERSATIONS', payload: [...state.conversations, ...newItems] });
+          offsetRef.current = offsetRef.current + data.items.length;
+        } else {
+          // All items were duplicates, but we still advance offset to prevent infinite loading
+          offsetRef.current = offsetRef.current + data.items.length;
+        }
+      }
+      hasMoreRef.current = data.has_more;
+    } catch (error) {
+      console.error('Error loading more conversations', error);
+    } finally {
+      isLoadingMoreRef.current = false;
+    }
+  }, [state.conversations]);
+
   // Load a specific conversation
   const loadConversation = useCallback(async (id: string) => {
+    // Skip if already loading this conversation
+    if (isLoadingConversationRef.current) {
+      return;
+    }
+
+    // Optimization: If this conversation is already loaded, skip reload
+    if (state.currentSessionId === id && state.messages.length > 0) {
+      return;
+    }
+
     try {
-      console.log('[loadConversation] Called with id:', id, {
-        'current state.currentSessionId': state.currentSessionId,
-        'messages.length': state.messages.length,
-        'will skip reload': state.currentSessionId === id && state.messages.length > 0
-      });
-
-      // Optimization: If this conversation is already loaded in memory, don't clear and reload
-      // This prevents losing messages when navigating to a conversation we just created
-      if (state.currentSessionId === id && state.messages.length > 0) {
-        console.log('[loadConversation] Skipping reload - conversation already in memory');
-        // Already have this conversation loaded, skip reload
-        return;
-      }
-
+      isLoadingConversationRef.current = true;
       // Clear messages first to show empty state while loading
       dispatch({ type: 'SET_MESSAGES', payload: [] });
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -204,7 +245,6 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
       // Process messages to extract relevant_docs from metadata
       const processedMessages = conversation.messages.map(message => {
-        // Extract relevant_docs from metadata if available
         const relevant_docs = message.metadata?.relevant_docs as number[] | undefined;
         return {
           ...message,
@@ -215,11 +255,11 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_MESSAGES', payload: processedMessages });
       dispatch({ type: 'SET_CHAT_TYPE', payload: conversation.chat_type });
       dispatch({ type: 'SET_CURRENT_SESSION_ID', payload: id });
-      // currentConversation removed - messages is the single source
     } catch (error) {
       toast.error('Error loading conversation');
       console.error(error);
     } finally {
+      isLoadingConversationRef.current = false;
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [state.currentSessionId, state.messages.length]);
@@ -235,10 +275,14 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const sendMessage = useCallback(async (
     content: string,
     currentConversationId: string | null,
-    onNewConversation?: (sessionId: string) => void
+    files?: File[]
   ) => {
     // Prevent sending if already streaming (derived from streamingMessage)
-    if (!content.trim() || state.streamingMessage !== '') return;
+    if ((!content.trim() && (!files || files.length === 0)) || state.streamingMessage !== '') return;
+
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
@@ -270,6 +314,34 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       'messages count': state.messages.length
     });
 
+    // Convert files to base64
+    let fileAttachments: { name: string; mime_type: string; data: string }[] | undefined;
+    if (files && files.length > 0) {
+      fileAttachments = await Promise.all(
+        files.map(async (file) => {
+          return new Promise<{ name: string; mime_type: string; data: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = reader.result as string;
+              // Remove data:image/...;base64, prefix
+              const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+              resolve({
+                name: file.name,
+                mime_type: file.type,
+                data: base64Data,
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      // Debug: log attachment summary (not contents)
+      try {
+        console.log('[sendMessage] Attachments summary:', fileAttachments.map(f => ({ name: f.name, mime_type: f.mime_type, dataLen: f.data.length })));
+      } catch {}
+    }
+
     try {
       await ConversationsAPI.sendMessage(
         {
@@ -277,6 +349,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           session_id: sessionId,
           chat_type: state.chatType,
           tone: currentToneRef.current,
+          files: fileAttachments,
         },
         (chunk) => {
           // Update currentSessionId IMMEDIATELY when we receive session_id from backend
@@ -310,6 +383,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
           normaIdsRef.current = undefined; // Clear relevant_docs for next message
+          abortControllerRef.current = null;
 
           // If this was a new conversation, create it, add to list, and notify via callback
           if (!sessionId && newSessionId) {
@@ -330,29 +404,59 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
             dispatch({ type: 'ADD_CONVERSATION', payload: newConversation });
 
             // currentSessionId already updated in onChunk callback (no need to dispatch again)
-
-            // Call navigation callback to update URL
-            if (onNewConversation) {
-              onNewConversation(newSessionId);
-            }
+            // Navigation is handled by page component watching currentSessionId
           }
         },
         (error) => {
-          toast.error('Error sending message');
+          // Don't show error toast if it was aborted (user stopped it)
+          if (error.name !== 'AbortError') {
+            toast.error('Error sending message');
+          }
           console.error(error);
           // End streaming by clearing streamingMessage (makes isStreaming = false)
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
-        }
+          abortControllerRef.current = null;
+        },
+        abortController
       );
     } catch (error) {
-      toast.error('Error sending message');
+      // Don't show error toast if it was aborted (user stopped it)
+      if (error instanceof Error && error.name !== 'AbortError') {
+        toast.error('Error sending message');
+      }
       console.error(error);
       // End streaming by clearing streamingMessage (makes isStreaming = false)
       dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
       streamingContentRef.current = '';
+      abortControllerRef.current = null;
     }
   }, [state.chatType, state.streamingMessage, state.currentSessionId]);
+
+  // Stop streaming
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      
+      // If we have accumulated streaming content, save it as a message
+      if (streamingContentRef.current.trim()) {
+        dispatch({ type: 'ADD_MESSAGE', payload: {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: streamingContentRef.current.trim(),
+          tokens_used: 0,
+          created_at: new Date().toISOString(),
+          relevant_docs: normaIdsRef.current,
+        }});
+      }
+      
+      // End streaming by clearing streamingMessage (makes isStreaming = false)
+      dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
+      streamingContentRef.current = '';
+      normaIdsRef.current = undefined;
+    }
+  }, []);
 
   // Archive conversation
   const archiveConversation = useCallback(async (conversation: Conversation) => {
@@ -403,27 +507,26 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
   // Submit feedback (optimistic update)
   const submitFeedback = useCallback(async (messageId: string, feedbackType: FeedbackType) => {
-    // Update UI immediately (optimistic)
+    // Optimistic UI update
     dispatch({ type: 'SET_MESSAGE_FEEDBACK', payload: { messageId, feedback: feedbackType } });
-    
-    // Send request in background, don't wait for response
-    ConversationsAPI.createOrUpdateFeedback(messageId, feedbackType).catch(error => {
+    // Use authenticated API client
+    api.post('/api/conversations/feedback/', {
+      message_id: messageId,
+      feedback_type: feedbackType,
+    }).catch(error => {
       console.error('Error submitting feedback:', error);
-      // Silently fail - user already sees the feedback as successful
     });
-  }, []);
+  }, [api]);
 
   // Remove feedback (optimistic update)
   const removeFeedback = useCallback(async (messageId: string) => {
-    // Update UI immediately (optimistic)
+    // Optimistic UI update
     dispatch({ type: 'SET_MESSAGE_FEEDBACK', payload: { messageId, feedback: undefined } });
-    
-    // Send request in background, don't wait for response
-    ConversationsAPI.deleteFeedback(messageId).catch(error => {
+    // Use authenticated API client
+    api.delete(`/api/conversations/feedback/${messageId}`).catch(error => {
       console.error('Error removing feedback:', error);
-      // Silently fail - user already sees the feedback as removed
     });
-  }, []);
+  }, [api]);
 
   // Load conversations on mount
   React.useEffect(() => {
@@ -442,9 +545,11 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const value: ConversationsContextType = {
     state: derivedState,
     loadConversations,
+    loadMoreConversations,
     loadConversation,
     selectEmptyConversation,
     sendMessage,
+    stopStreaming,
     archiveConversation,
     deleteConversation,
     updateConversationTitle,

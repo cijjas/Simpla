@@ -17,6 +17,7 @@ export interface Message {
   content: string;
   tokens_used: number;
   metadata?: Record<string, unknown>;
+  attached_file_names?: string[];  // Names of files attached to this message
   created_at: string;
   feedback?: FeedbackType;  // User's feedback on this message
   relevant_docs?: number[];  // Relevant document/norma IDs used as context for this message
@@ -54,11 +55,18 @@ export interface CreateConversationRequest {
   system_prompt?: string;
 }
 
+export interface FileAttachment {
+  name: string;
+  mime_type: string;
+  data: string; // base64 encoded
+}
+
 export interface SendMessageRequest {
   content: string;
   session_id?: string;
   chat_type: 'normativa_nacional' | 'constituciones' | 'norma_chat';
   tone?: ToneType;
+  files?: FileAttachment[];
 }
 
 export interface SendMessageResponse {

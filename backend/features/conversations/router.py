@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .message_pipeline import MessagePipeline
 from core.database.base import get_db
-from features.auth.auth_utils import verify_token
+from features.auth.auth_utils import get_current_user_id
 from .service import ConversationService
 from .schemas import (
     ConversationCreate,
@@ -26,23 +26,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
 
-# Authentication dependency
-def get_current_user_id(request: Request) -> str:
-    """Get current user ID from JWT token without database query."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    token = auth_header.split(" ")[1]
-    payload = verify_token(token, "access")
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user_id: str = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    return user_id
+# Authentication dependency now centralized in auth_utils
 
 
 @router.get("/", response_model=ConversationListResponse)
@@ -52,7 +36,8 @@ async def get_conversations(
     offset: int = Query(default=0, ge=0, description="Number of conversations to skip"),
     chat_type: Optional[str] = Query(default=None, description="Filter by chat type"),
     is_archived: bool = Query(default=False, description="Filter by archived status"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
 ):
     """
     Get paginated list of conversations.
@@ -60,7 +45,6 @@ async def get_conversations(
     Returns a list of conversations for the current user with pagination support.
     """
     try:
-        user_id = get_current_user_id(request)
         
         # Validate chat_type
         if chat_type and chat_type not in ["normativa_nacional", "constituciones"]:
@@ -107,6 +91,7 @@ async def create_conversation(
     request: Request,
     data: ConversationCreate,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Create a new conversation.
@@ -114,7 +99,6 @@ async def create_conversation(
     Creates a new conversation with the specified chat type and optional title.
     """
     try:
-        user_id = get_current_user_id(request)
         
         service = ConversationService(db)
         conversation = service.create_conversation(user_id, data)
@@ -131,6 +115,7 @@ async def get_conversation(
     request: Request,
     conversation_id: str,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Get a conversation by ID with all messages.
@@ -138,7 +123,6 @@ async def get_conversation(
     Returns the full conversation details including all messages in chronological order.
     """
     try:
-        user_id = get_current_user_id(request)
         
         service = ConversationService(db)
         conversation = service.get_conversation_by_id(conversation_id, user_id)
@@ -160,6 +144,7 @@ async def send_message(
     request: Request,
     data: SendMessageRequest,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Send a message and stream AI response using Server-Sent Events.
@@ -168,11 +153,19 @@ async def send_message(
     If no session_id is provided, creates a new conversation.
     """
     try:
-        user_id = get_current_user_id(request)
         
         # Initialize and run the message processing pipeline
         pipeline = MessagePipeline(db)
         
+        # Debug: log attachments count and types (if any)
+        try:
+            files_info = []
+            if data.files:
+                files_info = [getattr(f, 'mime_type', 'unknown') for f in data.files]
+            logger.info(f"Incoming /message has files: count={len(data.files) if data.files else 0}, types={files_info}")
+        except Exception:
+            logger.info("Incoming /message files logging failed")
+
         return StreamingResponse(
             pipeline.process_message(user_id, data),
             media_type="text/event-stream",
@@ -194,6 +187,7 @@ async def delete_conversation(
     request: Request,
     conversation_id: str,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Soft delete a conversation.
@@ -201,7 +195,6 @@ async def delete_conversation(
     Marks the conversation and all its messages as deleted without actually removing them from the database.
     """
     try:
-        user_id = get_current_user_id(request)
         
         service = ConversationService(db)
         success = service.delete_conversation(conversation_id, user_id)
@@ -224,6 +217,7 @@ async def update_conversation(
     conversation_id: str,
     data: ConversationUpdate,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Update a conversation.
@@ -231,7 +225,6 @@ async def update_conversation(
     Updates conversation metadata like title and archived status.
     """
     try:
-        user_id = get_current_user_id(request)
 
         service = ConversationService(db)
         conversation = service.update_conversation(conversation_id, user_id, data)

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { normasAPI, NormaRelacionesResponse } from '../api/normas-api';
+import { NormaRelacionesResponse } from '../api/normas-api';
+import { useNormasApi } from '../api/use-normas-api';
 
 export interface UseNormaRelacionesState {
   data: NormaRelacionesResponse | null;
@@ -13,6 +14,7 @@ export interface UseNormaRelacionesState {
 const cache = new Map<number, Promise<NormaRelacionesResponse>>();
 
 export function useNormaRelaciones(infolegId: number): UseNormaRelacionesState {
+  const normasApi = useNormasApi();
   const [data, setData] = useState<NormaRelacionesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export function useNormaRelaciones(infolegId: number): UseNormaRelacionesState {
         
         if (!requestPromise) {
           console.log('Creating new request for infolegId:', infolegId);
-          requestPromise = normasAPI.getNormaRelaciones(infolegId);
+          requestPromise = normasApi.getNormaRelaciones(infolegId);
           cache.set(infolegId, requestPromise);
         } else {
           console.log('Reusing existing request for infolegId:', infolegId);

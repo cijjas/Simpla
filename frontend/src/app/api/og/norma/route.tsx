@@ -1,8 +1,19 @@
-import { normasAPI } from '@/features/normas/api/normas-api';
-import { NormaDetail } from '@/features/normas/api/normas-api';
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
+
+const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/api`;
+
+// Cache fonts and images for performance
+const getAssets = async (baseUrl: string) => {
+  const [geistFontData, loraFontData, logoBuffer] = await Promise.all([
+    fetch(`${baseUrl}/fonts/Geist-Regular.ttf`).then(res => res.arrayBuffer()),
+    fetch(`${baseUrl}/fonts/Lora-Bold.ttf`).then(res => res.arrayBuffer()),
+    fetch(`${baseUrl}/images/estampa.png`).then(res => res.arrayBuffer()),
+  ]);
+  
+  return { geistFontData, loraFontData, logoBuffer };
+};
 
 export async function GET(req: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -11,11 +22,7 @@ export async function GET(req: Request) {
   }
 
   // Load fonts and image from public folder over HTTP
-  const [geistFontData, loraFontData, logoBuffer] = await Promise.all([
-    fetch(`${baseUrl}/fonts/Geist-Regular.ttf`).then(res => res.arrayBuffer()),
-    fetch(`${baseUrl}/fonts/Lora-Bold.ttf`).then(res => res.arrayBuffer()),
-    fetch(`${baseUrl}/images/estampa.png`).then(res => res.arrayBuffer()),
-  ]);
+  const { geistFontData, loraFontData, logoBuffer } = await getAssets(baseUrl);
 
   const logoBase64 = `data:image/png;base64,${Buffer.from(logoBuffer).toString(
     'base64',
@@ -25,10 +32,14 @@ export async function GET(req: Request) {
   const id = Number(searchParams.get('id'));
   if (!id) return new Response('Missing ID', { status: 400 });
 
-  const norma: NormaDetail = await normasAPI.getNorma(id);
-  if (!norma) return new Response('Norma no encontrada', { status: 404 });
+  // Fetch minimal norma data from ultra-lightweight OG endpoint (no auth required)
+  const normaResponse = await fetch(`${API_BASE}/normas/${id}/og-minimal/`);
+  if (!normaResponse.ok) {
+    return new Response('Norma no encontrada', { status: 404 });
+  }
+  const norma = await normaResponse.json();
 
-  const numero = norma.referencia?.numero ?? '';
+  const numero = norma.numero ?? '';
   const anio = norma.sancion
     ? new Date(norma.sancion).getFullYear()
     : '';
@@ -123,3 +134,7 @@ export async function GET(req: Request) {
     },
   );
 }
+
+// Export cache headers for this route
+// Normas rarely change after publication, so cache aggressively
+export const revalidate = false; // Cache indefinitely (or until manual revalidation)

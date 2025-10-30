@@ -12,29 +12,14 @@ from features.folders.folder_schemas import (
     FolderWithNormasResponse, FolderCreateResponse, FolderNormaResponse
 )
 from features.folders.folder_service import FolderService
-from features.auth.auth_utils import verify_token
+from features.auth.auth_utils import get_current_user_id
 from core.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter()
 
 
-def get_current_user_id(request: Request) -> str:
-    """Get current user ID from JWT token."""
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    token = auth_header.split(" ")[1]
-    payload = verify_token(token, "access")
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user_id: str = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    return user_id
+# get_current_user_id now centralized in auth_utils
 
 
 @router.get("/folders/", response_model=List[FolderTreeResponse])

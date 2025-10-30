@@ -9,13 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useApi } from '@/features/auth/hooks/use-api';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { EditNameDialog } from './edit-name-dialog';
 import { useSubscriptionContext } from '@/features/subscription/context/subscription-context';
 
 export function SettingsSection() {
-  const { user, logout, accessToken } = useAuth();
+  const { user, logout } = useAuth();
+  const api = useApi();
   const { status: subscriptionStatus } = useSubscriptionContext();
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -35,18 +37,7 @@ export function SettingsSection() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/delete-account`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Error al eliminar la cuenta');
-      }
+      await api.delete('/api/auth/delete-account');
 
       // Account deleted successfully, logout and redirect
       await logout();

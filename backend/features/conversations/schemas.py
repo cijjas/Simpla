@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional, List, Literal
 from uuid import UUID
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, model_validator
 
 
 # Chat types
@@ -20,6 +20,7 @@ class MessageBase(BaseModel):
     content: str
     tokens_used: int = 0
     metadata: Optional[dict] = None
+    attached_file_names: Optional[List[str]] = None
 
 
 class MessageCreate(MessageBase):
@@ -35,12 +36,17 @@ class MessageResponse(MessageBase):
     @classmethod
     def model_validate(cls, obj, **kwargs):
         """Custom validation to map message_metadata to metadata."""
-        if hasattr(obj, 'message_metadata'):
+        if hasattr(obj, 'message_metadata') or hasattr(obj, 'attached_file_names'):
             # Handle message_metadata - ensure it's a dict or None
-            metadata = obj.message_metadata
+            metadata = obj.message_metadata if hasattr(obj, 'message_metadata') else None
             if metadata is not None and not isinstance(metadata, dict):
                 # If it's not a dict, set to None
                 metadata = None
+            
+            # Handle attached_file_names
+            attached_file_names = getattr(obj, 'attached_file_names', None)
+            if attached_file_names is not None and not isinstance(attached_file_names, list):
+                attached_file_names = None
             
             # Create a dict-like object with metadata field
             obj_dict = {
@@ -49,6 +55,7 @@ class MessageResponse(MessageBase):
                 'content': obj.content,
                 'tokens_used': obj.tokens_used,
                 'metadata': metadata,
+                'attached_file_names': attached_file_names,
                 'created_at': obj.created_at
             }
             return super().model_validate(obj_dict, **kwargs)
@@ -108,12 +115,17 @@ class ConversationDetailResponse(ConversationBase):
             # Process each message to ensure metadata is handled correctly
             processed_messages = []
             for msg in obj.messages:
-                if hasattr(msg, 'message_metadata'):
+                if hasattr(msg, 'message_metadata') or hasattr(msg, 'attached_file_names'):
                     # Handle message_metadata - ensure it's a dict or None
-                    metadata = msg.message_metadata
+                    metadata = getattr(msg, 'message_metadata', None)
                     if metadata is not None and not isinstance(metadata, dict):
                         # If it's not a dict, set to None
                         metadata = None
+                    
+                    # Handle attached_file_names
+                    attached_file_names = getattr(msg, 'attached_file_names', None)
+                    if attached_file_names is not None and not isinstance(attached_file_names, list):
+                        attached_file_names = None
                     
                     # Create a new message object with proper metadata
                     msg_dict = {
@@ -122,6 +134,7 @@ class ConversationDetailResponse(ConversationBase):
                         'content': msg.content,
                         'tokens_used': msg.tokens_used,
                         'metadata': metadata,
+                        'attached_file_names': attached_file_names,
                         'created_at': msg.created_at
                     }
                     processed_messages.append(MessageResponse.model_validate(msg_dict))
@@ -148,13 +161,48 @@ class ConversationDetailResponse(ConversationBase):
         from_attributes = True
 
 
+# File attachment schema
+class FileAttachment(BaseModel):
+    """Schema for file attachments."""
+    name: str
+    mime_type: str
+    data: str  # base64 encoded file data
+    
+    @validator('mime_type')
+    def validate_mime_type(cls, v):
+        """Validate that only PDFs and images are allowed."""
+        allowed_types = [
+            'application/pdf',
+            'image/png',
+            'image/jpeg',
+            'image/jpg',
+            'image/gif',
+            'image/webp'
+        ]
+        if v not in allowed_types:
+            raise ValueError(f"File type {v} not allowed. Only PDFs and images are supported.")
+        return v
+
+
 # Request schemas for API endpoints
 class SendMessageRequest(BaseModel):
     """Schema for sending a message."""
-    content: str = Field(..., min_length=1, max_length=10000)
+    content: str = Field(..., min_length=0, max_length=10000)
     session_id: Optional[UUID] = None
     chat_type: ChatType
     tone: ToneType = "default"
+    files: Optional[List[FileAttachment]] = None
+    
+    @model_validator(mode='before')
+    @classmethod
+    def validate_content_or_files(cls, data):
+        """Ensure either content or files are provided."""
+        if isinstance(data, dict):
+            content = data.get('content', '')
+            files = data.get('files')
+            if not content.strip() and (not files or len(files) == 0):
+                raise ValueError("Either content or files must be provided")
+        return data
 
 
 class SendMessageResponse(BaseModel):

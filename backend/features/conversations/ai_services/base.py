@@ -1,15 +1,24 @@
 """Base AI service interface."""
 
 from abc import ABC, abstractmethod
-from typing import List, AsyncGenerator, Any
+from typing import List, AsyncGenerator, Any, Optional, Dict
+
+
+class FilePart:
+    """Represents a file part in a message."""
+    
+    def __init__(self, mime_type: str, data: bytes):
+        self.mime_type = mime_type
+        self.data = data  # bytes
 
 
 class Message:
     """Message class for AI service compatibility."""
 
-    def __init__(self, role: str, content: str):
+    def __init__(self, role: str, content: str, files: Optional[List[FilePart]] = None):
         self.role = role
         self.content = content
+        self.files = files or []
 
 
 class BaseAIService(ABC):
