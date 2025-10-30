@@ -103,6 +103,11 @@ function conversationsReducer(state: ConversationsState, action: ConversationsAc
       };
     
     case 'ADD_CONVERSATION':
+      // Only add if not already in the list (prevents duplicates)
+      const exists = state.conversations.some(conv => conv.id === action.payload.id);
+      if (exists) {
+        return state;
+      }
       return {
         ...state,
         conversations: [action.payload, ...state.conversations],
@@ -196,8 +201,17 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       const PAGE_SIZE = 20;
       const data = await ConversationsAPI.getConversations({ limit: PAGE_SIZE, offset: offsetRef.current });
       if (data.items.length > 0) {
-        dispatch({ type: 'SET_CONVERSATIONS', payload: [...state.conversations, ...data.items] });
-        offsetRef.current = offsetRef.current + data.items.length;
+        // Filter out duplicates by ID before merging
+        const existingIds = new Set(state.conversations.map(conv => conv.id));
+        const newItems = data.items.filter(item => !existingIds.has(item.id));
+        
+        if (newItems.length > 0) {
+          dispatch({ type: 'SET_CONVERSATIONS', payload: [...state.conversations, ...newItems] });
+          offsetRef.current = offsetRef.current + data.items.length;
+        } else {
+          // All items were duplicates, but we still advance offset to prevent infinite loading
+          offsetRef.current = offsetRef.current + data.items.length;
+        }
       }
       hasMoreRef.current = data.has_more;
     } catch (error) {

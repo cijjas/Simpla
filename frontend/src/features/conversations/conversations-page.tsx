@@ -29,9 +29,11 @@ export function ConversationsPage({ conversationId }: ConversationsPageProps) {
 
   // Load conversation when ID changes
   useEffect(() => {
+    if (!conversationId) return;
+    
     if (conversationId === 'new') {
       selectEmptyConversation();
-    } else if (conversationId) {
+    } else {
       loadConversation(conversationId).catch((error) => {
         console.error('Failed to load conversation:', error);
         router.push('/conversaciones/new');
@@ -74,7 +76,7 @@ export function ConversationsPage({ conversationId }: ConversationsPageProps) {
   return (
     <div className="flex h-[calc(100vh-3.5rem)] bg-background">
       <ConversationsSidebar
-        currentConversationId={conversationId === 'new' ? null : conversationId}
+        currentConversationId={conversationId}
         onDeleteClick={handleDeleteClick}
       />
       <ConversationView conversationId={conversationId === 'new' ? null : conversationId} />

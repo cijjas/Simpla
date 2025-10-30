@@ -18,7 +18,7 @@ import {
 } from '../index';
 
 interface ConversationsSidebarProps {
-  currentConversationId: string | null;
+  currentConversationId: string | null; // Can be 'new', actual ID, or null
   onDeleteClick: (conv: Conversation) => void;
 }
 
@@ -32,6 +32,7 @@ export function ConversationsSidebar({
     archiveConversation,
     updateConversationTitle,
     loadMoreConversations,
+    selectEmptyConversation,
   } = useConversations();
 
   const { conversations, isLoadingConversations } = state;
@@ -62,7 +63,10 @@ export function ConversationsSidebar({
   }, [isLoadingConversations, loadMoreConversations, loadingMore]);
 
   const handleNewConversation = () => {
-    router.push('/conversaciones/new');
+    // Always clear state when creating new conversation
+    selectEmptyConversation();
+    // Use replace to ensure route change is recognized
+    router.replace('/conversaciones/new');
   };
 
   const handleLoadConversation = (id: string) => {

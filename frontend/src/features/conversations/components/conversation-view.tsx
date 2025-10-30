@@ -16,7 +16,6 @@ import { LoadingMessage } from './loading-message';
 import { ConversationNormasDisplay, ToneSelector } from './index';
 import {
   useConversations,
-  type Conversation,
 } from '../index';
 
 interface ConversationViewProps {
@@ -69,12 +68,7 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
     }
   }, [inputMessage]);
 
-  // Stop microphone when streaming starts
-  useEffect(() => {
-    if (isStreaming && isListening) {
-      stopDictation();
-    }
-  }, [isStreaming, isListening]);
+  
 
   // Speech Recognition Types
   type RecognitionResult = { 0: { transcript: string }; isFinal: boolean };
@@ -215,6 +209,15 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
       await submitFeedback(messageId, 'dislike');
     }
   };
+
+  // Stop microphone when streaming starts
+  // Stop microphone when streaming starts, but avoid direct setState call in effect body
+  useEffect(() => {
+    if (isStreaming && isListening) {
+      // Use a microtask to avoid React's cascading render warning
+      Promise.resolve().then(() => stopDictation());
+    }
+  }, [isStreaming, isListening]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-muted/30">
@@ -365,9 +368,9 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
                 </div>
               ))}
 
-              {isStreaming && !streamingMessage && <LoadingMessage />}
+              {isStreaming && streamingMessage.trim().length === 0 && <LoadingMessage />}
 
-              {isStreaming && streamingMessage && (
+              {isStreaming && streamingMessage.trim().length > 0 && (
                 <div className="flex gap-3 justify-start">
                   <div className="flex gap-3 max-w-[80%]">
                     <div className="rounded-lg p-3">
