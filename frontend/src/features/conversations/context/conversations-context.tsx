@@ -138,7 +138,8 @@ interface ConversationsContextType {
   loadMoreConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   selectEmptyConversation: () => void;
-  sendMessage: (content: string, currentConversationId: string | null) => Promise<void>;
+  sendMessage: (content: string, currentConversationId: string | null, files?: File[]) => Promise<void>;
+  stopStreaming: () => void;
   archiveConversation: (conversation: Conversation) => Promise<void>;
   deleteConversation: (conversation: Conversation) => Promise<void>;
   updateConversationTitle: (conversationId: string, title: string) => Promise<void>;
@@ -164,6 +165,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const streamingContentRef = useRef('');
   const normaIdsRef = useRef<number[] | undefined>(undefined);
   const currentToneRef = useRef<ToneType>(state.tone);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Sync ref with state changes
   useEffect(() => {
@@ -272,10 +274,15 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
         // Send message
   const sendMessage = useCallback(async (
     content: string,
-    currentConversationId: string | null
+    currentConversationId: string | null,
+    files?: File[]
   ) => {
     // Prevent sending if already streaming (derived from streamingMessage)
-    if (!content.trim() || state.streamingMessage !== '') return;
+    if ((!content.trim() && (!files || files.length === 0)) || state.streamingMessage !== '') return;
+
+    // Create abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
@@ -307,6 +314,34 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       'messages count': state.messages.length
     });
 
+    // Convert files to base64
+    let fileAttachments: { name: string; mime_type: string; data: string }[] | undefined;
+    if (files && files.length > 0) {
+      fileAttachments = await Promise.all(
+        files.map(async (file) => {
+          return new Promise<{ name: string; mime_type: string; data: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const base64 = reader.result as string;
+              // Remove data:image/...;base64, prefix
+              const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+              resolve({
+                name: file.name,
+                mime_type: file.type,
+                data: base64Data,
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      // Debug: log attachment summary (not contents)
+      try {
+        console.log('[sendMessage] Attachments summary:', fileAttachments.map(f => ({ name: f.name, mime_type: f.mime_type, dataLen: f.data.length })));
+      } catch {}
+    }
+
     try {
       await ConversationsAPI.sendMessage(
         {
@@ -314,6 +349,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           session_id: sessionId,
           chat_type: state.chatType,
           tone: currentToneRef.current,
+          files: fileAttachments,
         },
         (chunk) => {
           // Update currentSessionId IMMEDIATELY when we receive session_id from backend
@@ -347,6 +383,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
           normaIdsRef.current = undefined; // Clear relevant_docs for next message
+          abortControllerRef.current = null;
 
           // If this was a new conversation, create it, add to list, and notify via callback
           if (!sessionId && newSessionId) {
@@ -371,21 +408,55 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
           }
         },
         (error) => {
-          toast.error('Error sending message');
+          // Don't show error toast if it was aborted (user stopped it)
+          if (error.name !== 'AbortError') {
+            toast.error('Error sending message');
+          }
           console.error(error);
           // End streaming by clearing streamingMessage (makes isStreaming = false)
           dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
           streamingContentRef.current = '';
-        }
+          abortControllerRef.current = null;
+        },
+        abortController
       );
     } catch (error) {
-      toast.error('Error sending message');
+      // Don't show error toast if it was aborted (user stopped it)
+      if (error instanceof Error && error.name !== 'AbortError') {
+        toast.error('Error sending message');
+      }
       console.error(error);
       // End streaming by clearing streamingMessage (makes isStreaming = false)
       dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
       streamingContentRef.current = '';
+      abortControllerRef.current = null;
     }
   }, [state.chatType, state.streamingMessage, state.currentSessionId]);
+
+  // Stop streaming
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      
+      // If we have accumulated streaming content, save it as a message
+      if (streamingContentRef.current.trim()) {
+        dispatch({ type: 'ADD_MESSAGE', payload: {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: streamingContentRef.current.trim(),
+          tokens_used: 0,
+          created_at: new Date().toISOString(),
+          relevant_docs: normaIdsRef.current,
+        }});
+      }
+      
+      // End streaming by clearing streamingMessage (makes isStreaming = false)
+      dispatch({ type: 'SET_STREAMING_MESSAGE', payload: '' });
+      streamingContentRef.current = '';
+      normaIdsRef.current = undefined;
+    }
+  }, []);
 
   // Archive conversation
   const archiveConversation = useCallback(async (conversation: Conversation) => {
@@ -478,6 +549,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     loadConversation,
     selectEmptyConversation,
     sendMessage,
+    stopStreaming,
     archiveConversation,
     deleteConversation,
     updateConversationTitle,

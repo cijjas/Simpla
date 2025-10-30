@@ -206,7 +206,8 @@ class ConversationService:
                 role=data.role,
                 content=data.content,
                 tokens_used=data.tokens_used,
-                message_metadata=data.metadata
+                message_metadata=data.metadata,
+                attached_file_names=data.attached_file_names
             )
             
             self.db.add(message)
@@ -306,7 +307,8 @@ class ConversationService:
         session_id: Optional[str] = None,
         chat_type: str = "normativa_nacional",
         norma_ids: Optional[List[int]] = None,
-        enhanced_prompt: Optional[str] = None
+        enhanced_prompt: Optional[str] = None,
+        files: Optional[List] = None
     ):
         """Stream AI response for a message."""
         try:
@@ -327,11 +329,17 @@ class ConversationService:
             # Yield the session_id first so the router knows what it is
             yield ("session_id", session_id)
             
+            # Extract file names if files are provided
+            attached_file_names = None
+            if files:
+                attached_file_names = [file.name for file in files]
+            
             # Create user message
             user_message_data = MessageCreate(
                 role="user",
                 content=content,
-                tokens_used=self.ai_service.count_tokens(content)
+                tokens_used=self.ai_service.count_tokens(content),
+                attached_file_names=attached_file_names
             )
             user_message = self.create_message(session_id, user_message_data)
             
@@ -345,7 +353,28 @@ class ConversationService:
             # Add the new user message to history for context
             # Use enhanced_prompt if provided, otherwise use original content
             user_content_for_ai = enhanced_prompt if enhanced_prompt else content
-            history_messages.append(AIMessage(role="user", content=user_content_for_ai))
+            
+            # Convert files from schema format to FilePart objects
+            file_parts = None
+            if files:
+                import base64
+                from features.conversations.ai_services.base import FilePart
+                # Debug: log files received (names/mime types only if available)
+                try:
+                    logger.info(f"Received {len(files)} file(s) for AI service: "
+                                f"{[getattr(f, 'mime_type', 'unknown') for f in files]}")
+                except Exception:
+                    logger.info("Received files for AI service (could not list details)")
+
+                file_parts = [
+                    FilePart(
+                        mime_type=file.mime_type,
+                        data=base64.b64decode(file.data)
+                    )
+                    for file in files
+                ]
+            
+            history_messages.append(AIMessage(role="user", content=user_content_for_ai, files=file_parts))
             
             # Generate AI response
             system_prompt = conversation.system_prompt or get_system_prompt(chat_type)

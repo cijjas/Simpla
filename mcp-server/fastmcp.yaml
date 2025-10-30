@@ -1,4 +1,0 @@
-name: "simpla-rag"
-version: "1.0.0"
-description: "Access authoritative Argentine legislation via Simpla's RAG API."
-entrypoint: "app.py"

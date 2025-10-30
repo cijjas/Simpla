@@ -124,7 +124,8 @@ export class ConversationsAPI {
     data: SendMessageRequest,
     onChunk: (chunk: SendMessageResponse) => void,
     onComplete: (sessionId: string) => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    abortController?: AbortController
   ): Promise<void> {
     try {
       const response = await fetch(`${API_BASE}/conversations/message`, {
@@ -132,6 +133,7 @@ export class ConversationsAPI {
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
         credentials: 'include',
+        signal: abortController?.signal,
       });
 
       if (!response.ok) {
@@ -147,6 +149,12 @@ export class ConversationsAPI {
       let buffer = '';
 
       while (true) {
+        // Check if aborted
+        if (abortController?.signal.aborted) {
+          reader.cancel();
+          return;
+        }
+
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -155,6 +163,12 @@ export class ConversationsAPI {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
+          // Check if aborted before processing each chunk
+          if (abortController?.signal.aborted) {
+            reader.cancel();
+            return;
+          }
+
           if (line.startsWith('data: ')) {
             try {
               const chunkData: SendMessageResponse = JSON.parse(line.slice(6));
@@ -176,6 +190,10 @@ export class ConversationsAPI {
         }
       }
     } catch (error) {
+      // Ignore abort errors - they're expected when stopping
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
       onError(error instanceof Error ? error : new Error('Unknown error'));
     }
   }

@@ -103,39 +103,44 @@ class MessagePipeline:
             # Step 3: Question analysis and reformulation (with context)
             reformulated_question = await reformulate_user_question(data.content, context_messages)
 
-            # Step 4: Handle non-legal questions
-            if reformulated_question == "NON-LEGAL":
-                async for chunk in self._generate_non_legal_response(
-                    user_id,
-                    data.content,
-                    session_id
-                ):
-                    yield chunk
-                return
+            # If there are files attached, bypass clarification/reformulation gates
+            has_files = bool(getattr(data, 'files', None)) and len(getattr(data, 'files') or []) > 0
+            if has_files:
+                logger.info("Files attached; bypassing clarification/reformulation gates and proceeding to legal processing.")
+            else:
+                # Step 4: Handle non-legal questions
+                if reformulated_question == "NON-LEGAL":
+                    async for chunk in self._generate_non_legal_response(
+                        user_id,
+                        data.content,
+                        session_id
+                    ):
+                        yield chunk
+                    return
 
-            # Step 5: Handle clarification requests (vague questions)
-            if reformulated_question.startswith("CLARIFICATION:"):
-                clarification_text = reformulated_question.replace("CLARIFICATION:", "").strip()
-                async for chunk in self._generate_clarification_response(
-                    user_id,
-                    data.content,  # original user question
-                    clarification_text,
-                    session_id
-                ):
-                    yield chunk
-                return
+                # Step 5: Handle clarification requests (vague questions)
+                if reformulated_question.startswith("CLARIFICATION:"):
+                    clarification_text = reformulated_question.replace("CLARIFICATION:", "").strip()
+                    async for chunk in self._generate_clarification_response(
+                        user_id,
+                        data.content,  # original user question
+                        clarification_text,
+                        session_id
+                    ):
+                        yield chunk
+                    return
 
-            # Step 6: Handle reformulate request (2nd clarification needed)
-            if reformulated_question == "REFORMULATE_REQUEST":
-                reformulate_message = "Por favor, reformula tu pregunta de manera más completa para poder ayudarte mejor. Intenta incluir todos los detalles relevantes en tu consulta."
-                async for chunk in self._generate_reformulate_request_response(
-                    user_id,
-                    data.content,
-                    reformulate_message,
-                    session_id
-                ):
-                    yield chunk
-                return
+                # Step 6: Handle reformulate request (2nd clarification needed)
+                if reformulated_question == "REFORMULATE_REQUEST":
+                    reformulate_message = "Por favor, reformula tu pregunta de manera más completa para poder ayudarte mejor. Intenta incluir todos los detalles relevantes en tu consulta."
+                    async for chunk in self._generate_reformulate_request_response(
+                        user_id,
+                        data.content,
+                        reformulate_message,
+                        session_id
+                    ):
+                        yield chunk
+                    return
 
             # Step 7: Legal question processing pipeline (only if clear enough)
             async for chunk in self._process_legal_question(
@@ -383,7 +388,8 @@ class MessagePipeline:
                     session_id=str(data.session_id) if data.session_id else None,
                     chat_type=data.chat_type,
                     norma_ids=norma_ids,
-                    enhanced_prompt=enhanced_prompt  # Pass enhanced prompt separately for AI generation
+                    enhanced_prompt=enhanced_prompt,  # Pass enhanced prompt separately for AI generation
+                    files=data.files  # Pass files to the AI service
                 ):
                     # Handle session_id metadata chunk
                     if isinstance(chunk, tuple) and len(chunk) == 2 and chunk[0] == "session_id":

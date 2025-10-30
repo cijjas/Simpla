@@ -3,13 +3,13 @@
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupTextarea,
-  InputGroupButton,
-} from '@/components/ui/input-group';
+  PromptInput,
+  PromptInputActions,
+  PromptInputAction,
+  PromptInputTextarea,
+} from '@/components/prompt-kit/prompt-input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowUp, Loader2, Copy, ThumbsUp, ThumbsDown, Check, Mic, MicOff } from 'lucide-react';
+import { ArrowUp, Copy, ThumbsUp, ThumbsDown, Check, Mic, Paperclip, X, Square } from 'lucide-react';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 import ReactMarkdown from 'react-markdown';
 import { LoadingMessage } from './loading-message';
@@ -17,6 +17,7 @@ import { ConversationNormasDisplay, ToneSelector } from './index';
 import {
   useConversations,
 } from '../index';
+import { Loader } from '@/components/prompt-kit/loader';
 
 interface ConversationViewProps {
   conversationId: string | null;
@@ -26,6 +27,7 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
   const {
     state,
     sendMessage,
+    stopStreaming,
     submitFeedback,
     removeFeedback,
     setTone,
@@ -36,6 +38,8 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
   // Local UI state
   const [inputMessage, setInputMessage] = useState('');
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   // Speech recognition state
   const [isListening, setIsListening] = useState(false);
@@ -67,6 +71,35 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [inputMessage]);
+
+  // Handle global keyboard input to focus textarea
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field or textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Ignore modifier keys alone (Cmd, Ctrl, Alt, Shift, etc.)
+      if (e.key === 'Meta' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift') {
+        return;
+      }
+
+      // Ignore special keys like Escape, Tab, Arrow keys
+      if (e.key.startsWith('Arrow') || e.key === 'Escape' || e.key === 'Tab' || e.key === 'Enter') {
+        return;
+      }
+
+      // Just focus the textarea - let the browser handle the key input
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   
 
@@ -161,28 +194,26 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isStreaming) return;
+    if ((!inputMessage.trim() && files.length === 0) || isStreaming) return;
 
     if (isListening) {
       stopDictation();
     }
 
     const messageContent = inputMessage;
+    const filesToSend = files;
     setInputMessage('');
+    setFiles([]);
 
     await sendMessage(
       messageContent,
-      conversationId === 'new' ? null : conversationId
+      conversationId === 'new' ? null : conversationId,
+      filesToSend
       // Navigation is handled by page component via useEffect watching state.currentSessionId
     );
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
+  
 
   const handleCopyMessage = async (content: string, messageId: string) => {
     try {
@@ -269,7 +300,7 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
                     }`}
                   >
                     <div
-                      className={`rounded-lg p-3 group ${
+                      className={`rounded-lg p-3  group ${
                         message.role === 'user' ? 'bg-accent dark:bg-muted' : ''
                       }`}
                     >
@@ -327,6 +358,21 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
                           {message.content}
                         </ReactMarkdown>
 
+                        {message.attached_file_names && message.attached_file_names.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {message.attached_file_names.map((fileName, idx) => (
+                              <div
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 border border-muted-foreground/20 rounded text-[10px] text-muted-foreground/80"
+                                title={fileName}
+                              >
+                                <Paperclip className="h-2.5 w-2.5" />
+                                <span className="max-w-[120px] truncate">{fileName}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {message.role === 'assistant' && message.relevant_docs && message.relevant_docs.length > 0 && (
                           <ConversationNormasDisplay normaIds={message.relevant_docs} />
                         )}
@@ -368,6 +414,7 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
                 </div>
               ))}
 
+              {/* {isStreaming && streamingMessage.trim().length === 0 && <LoadingMessage />} */}
               {isStreaming && streamingMessage.trim().length === 0 && <LoadingMessage />}
 
               {isStreaming && streamingMessage.trim().length > 0 && (
@@ -392,49 +439,126 @@ export function ConversationView({ conversationId }: ConversationViewProps) {
       {/* Input Area */}
       <div className="p-4 pt-0 flex-shrink-0">
         <div className="max-w-4xl mx-auto">
-          <InputGroup className="rounded-3xl bg-card border border-border focus-visible:ring-transparent">
-            <InputGroupTextarea
+          <PromptInput
+            value={inputMessage + (interimText ? interimText : '')}
+            onValueChange={(v) => setInputMessage(v)}
+            isLoading={false}
+            onSubmit={handleSendMessage}
+            className="bg-card "
+          >
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pb-2" onClick={(e) => e.stopPropagation()}>
+                {files.map((file, index) => (
+                  <div
+                    key={index}
+                    className="bg-muted/50 border border-muted-foreground/20 flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                  >
+                    <Paperclip className="h-3 w-3 text-muted-foreground/70" />
+                    <span className="max-w-[140px] truncate text-xs text-muted-foreground/80">{file.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setFiles(prev => prev.filter((_, i) => i !== index)); if (uploadInputRef?.current) uploadInputRef.current.value = ''; }}
+                      className="hover:bg-muted-foreground/20 rounded-full p-0.5 cursor-pointer transition-colors"
+                      type="button"
+                    >
+                      <X className="h-3 w-3 text-muted-foreground/70" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <PromptInputTextarea
               ref={textareaRef}
-              data-slot="input-group-control"
-              value={inputMessage + (interimText ? interimText : '')}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
               placeholder={isListening ? 'Escuchando...' : 'Cómo puedo ayudarte?'}
-              className="p-4 max-h-[220px] placeholder:text-muted-foreground/70 text-sm leading-6"
-              disabled={isStreaming}
+              className=" max-h-[220px] placeholder:text-muted-foreground/70 text-sm leading-6 dark:bg-card"
             />
 
-            <InputGroupAddon align="block-end">
-              <div className="flex items-center justify-between w-full">
-                <ToneSelector selectedTone={tone} onToneChange={setTone} disabled={isStreaming} />
-                <div className="flex items-center gap-2">
-                  <InputGroupButton
-                    className="h-8 w-8 p-0 rounded-full"
+            <PromptInputActions className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <PromptInputAction tooltip={'Adjuntar archivos'}>
+                  <label htmlFor="file-upload" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      ref={uploadInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf,.png,.jpg,.jpeg,.gif,.webp"
+                      onChange={(event) => {
+                        if (event.target.files) {
+                          const newFiles = Array.from(event.target.files);
+                          // Validate file types
+                          const validFiles = newFiles.filter(file => {
+                            const validTypes = [
+                              'application/pdf',
+                              'image/png',
+                              'image/jpeg',
+                              'image/jpg',
+                              'image/gif',
+                              'image/webp'
+                            ];
+                            return validTypes.includes(file.type) || 
+                                   file.name.toLowerCase().endsWith('.pdf') ||
+                                   file.name.toLowerCase().endsWith('.png') ||
+                                   file.name.toLowerCase().endsWith('.jpg') ||
+                                   file.name.toLowerCase().endsWith('.jpeg') ||
+                                   file.name.toLowerCase().endsWith('.gif') ||
+                                   file.name.toLowerCase().endsWith('.webp');
+                          });
+                          setFiles(prev => [...prev, ...validFiles]);
+                          if (validFiles.length < newFiles.length) {
+                            alert('Algunos archivos fueron rechazados. Solo se permiten PDFs e imágenes (PNG, JPG, GIF, WebP).');
+                          }
+                        }
+                      }}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <Button
+                      asChild
+                      className="h-8 w-8 p-0 rounded-full cursor-pointer"
+                      size="sm"
+                      variant='ghost'
+                    >
+                      <span>
+                        <Paperclip className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </label>
+                </PromptInputAction>
+                <PromptInputAction tooltip={isListening ? 'Detener dictado' : 'Iniciar dictado'}>
+                  <Button
+                    className="h-8 w-8 p-0 rounded-full cursor-pointer"
                     size="sm"
-                    variant={isListening ? 'default' : 'ghost'}
+                    variant='ghost'
                     onClick={isListening ? stopDictation : startDictation}
-                    disabled={isStreaming}
-                    title={isListening ? 'Detener dictado' : 'Iniciar dictado'}
                   >
-                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  </InputGroupButton>
+                    {isListening ? <Loader variant="wave" size="md"  /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                </PromptInputAction>
+                <ToneSelector selectedTone={tone} onToneChange={setTone} disabled={isStreaming} />
+              </div>
+              <div className="flex items-center">
+                {isStreaming ? (
+                  <Button
+                    className="h-8 w-8 rounded-full p-0 ml-2"
+                    size="sm"
+                    variant="default"
+                    onClick={stopStreaming}
+                  >
+                    <Square className="h-4 w-4 fill-current" />
+                  </Button>
+                ) : (
                   <Button
                     className="h-8 w-8 rounded-full p-0 ml-2"
                     size="sm"
                     variant="default"
                     onClick={handleSendMessage}
-                    disabled={!inputMessage.trim() || isStreaming}
+                    disabled={(!inputMessage.trim() && files.length === 0)}
                   >
-                    {isStreaming ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ArrowUp className="h-4 w-4" />
-                    )}
+                    <ArrowUp className="h-4 w-4" />
                   </Button>
-                </div>
+                )}
               </div>
-            </InputGroupAddon>
-          </InputGroup>
+            </PromptInputActions>
+          </PromptInput>
 
           <div className="flex justify-center mt-2">
             <p className="text-xs text-muted-foreground text-center">

@@ -157,6 +157,15 @@ async def send_message(
         # Initialize and run the message processing pipeline
         pipeline = MessagePipeline(db)
         
+        # Debug: log attachments count and types (if any)
+        try:
+            files_info = []
+            if data.files:
+                files_info = [getattr(f, 'mime_type', 'unknown') for f in data.files]
+            logger.info(f"Incoming /message has files: count={len(data.files) if data.files else 0}, types={files_info}")
+        except Exception:
+            logger.info("Incoming /message files logging failed")
+
         return StreamingResponse(
             pipeline.process_message(user_id, data),
             media_type="text/event-stream",

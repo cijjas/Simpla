@@ -60,6 +60,7 @@ class ConversationMessage(Base):
     tokens_used = Column(Integer, default=0)
     cost_usd = Column(Numeric(10, 4), default=0.0)
     message_metadata = Column(JSONB, nullable=True)
+    attached_file_names = Column(JSONB, nullable=True)  # List of attached file names
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     is_deleted = Column(Boolean, default=False)

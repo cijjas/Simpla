@@ -2,10 +2,11 @@
 
 import os
 import asyncio
+import base64
 from typing import List, AsyncGenerator, Dict, Any
 import google.generativeai as genai
 from core.utils.logging_config import get_logger
-from .base import BaseAIService, Message
+from .base import BaseAIService, Message, FilePart
 
 logger = get_logger(__name__)
 
@@ -33,7 +34,7 @@ class GeminiAIService(BaseAIService):
         self,
         messages: List[Message],
         system_prompt: str
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         """Format messages for Gemini API."""
         formatted_messages = []
 
@@ -54,10 +55,28 @@ class GeminiAIService(BaseAIService):
                 # System messages are handled above
                 continue
             elif message.role == "user":
-                formatted_messages.append({
-                    "role": "user",
-                    "parts": [message.content]
-                })
+                parts = []
+                
+                # Add file parts first if any
+                if message.files:
+                    for file_part in message.files:
+                        parts.append({
+                            "inline_data": {
+                                "mime_type": file_part.mime_type,
+                                "data": base64.b64encode(file_part.data).decode('utf-8')
+                            }
+                        })
+                
+                # Add text content if present
+                if message.content:
+                    parts.append(message.content)
+                
+                # Only add message if there are parts
+                if parts:
+                    formatted_messages.append({
+                        "role": "user",
+                        "parts": parts
+                    })
             elif message.role == "assistant":
                 formatted_messages.append({
                     "role": "model",
@@ -80,14 +99,14 @@ class GeminiAIService(BaseAIService):
             # Start chat session
             chat = self.model.start_chat(history=formatted_messages[:-1] if len(formatted_messages) > 1 else [])
 
-            # Get the last user message
-            last_message = formatted_messages[-1] if formatted_messages else {"parts": [""]}
-            user_content = last_message.get("parts", [""])[0]
+            # Get the last user message - it could have multiple parts (files + text)
+            last_message = formatted_messages[-1] if formatted_messages else {"parts": []}
+            user_parts = last_message.get("parts", [])
 
-            # Stream response
+            # Stream response - send all parts together
             response = await asyncio.to_thread(
                 chat.send_message,
-                user_content,
+                user_parts if user_parts else [""],
                 stream=True
             )
 
