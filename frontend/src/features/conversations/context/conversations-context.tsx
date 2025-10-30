@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { ConversationsAPI, type Message, type Conversation, type ChatType, type FeedbackType, type ToneType } from '../index';
+import { useApi } from '@/features/auth/hooks/use-api';
 
 // State interface
 interface ConversationsState {
@@ -130,6 +131,7 @@ interface ConversationsContextType {
 
   // Actions
   loadConversations: () => Promise<void>;
+  loadMoreConversations: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
   selectEmptyConversation: () => void;
   sendMessage: (content: string, currentConversationId: string | null, onNewConversation?: (sessionId: string) => void) => Promise<void>;
@@ -148,8 +150,12 @@ const ConversationsContext = createContext<ConversationsContextType | undefined>
 // Provider component
 export function ConversationsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(conversationsReducer, initialState);
+  const api = useApi();
   const hasLoadedConversations = useRef(false);
   const isLoadingRef = useRef(false);
+  const isLoadingMoreRef = useRef(false);
+  const offsetRef = useRef(0);
+  const hasMoreRef = useRef(true);
   const streamingContentRef = useRef('');
   const normaIdsRef = useRef<number[] | undefined>(undefined);
   const currentToneRef = useRef<ToneType>(state.tone);
@@ -168,8 +174,11 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
     try {
       isLoadingRef.current = true;
       dispatch({ type: 'SET_LOADING_CONVERSATIONS', payload: true });
-      const data = await ConversationsAPI.getConversations();
+      const PAGE_SIZE = 20;
+      const data = await ConversationsAPI.getConversations({ limit: PAGE_SIZE, offset: 0 });
       dispatch({ type: 'SET_CONVERSATIONS', payload: data.items });
+      offsetRef.current = data.items.length;
+      hasMoreRef.current = data.has_more;
     } catch (error) {
       toast.error('Error loading conversations');
       console.error(error);
@@ -178,6 +187,25 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
       dispatch({ type: 'SET_LOADING_CONVERSATIONS', payload: false });
     }
   }, []);
+
+  // Load more conversations (pagination)
+  const loadMoreConversations = useCallback(async () => {
+    if (isLoadingMoreRef.current || !hasMoreRef.current) return;
+    try {
+      isLoadingMoreRef.current = true;
+      const PAGE_SIZE = 20;
+      const data = await ConversationsAPI.getConversations({ limit: PAGE_SIZE, offset: offsetRef.current });
+      if (data.items.length > 0) {
+        dispatch({ type: 'SET_CONVERSATIONS', payload: [...state.conversations, ...data.items] });
+        offsetRef.current = offsetRef.current + data.items.length;
+      }
+      hasMoreRef.current = data.has_more;
+    } catch (error) {
+      console.error('Error loading more conversations', error);
+    } finally {
+      isLoadingMoreRef.current = false;
+    }
+  }, [state.conversations]);
 
   // Load a specific conversation
   const loadConversation = useCallback(async (id: string) => {
@@ -403,27 +431,26 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
 
   // Submit feedback (optimistic update)
   const submitFeedback = useCallback(async (messageId: string, feedbackType: FeedbackType) => {
-    // Update UI immediately (optimistic)
+    // Optimistic UI update
     dispatch({ type: 'SET_MESSAGE_FEEDBACK', payload: { messageId, feedback: feedbackType } });
-    
-    // Send request in background, don't wait for response
-    ConversationsAPI.createOrUpdateFeedback(messageId, feedbackType).catch(error => {
+    // Use authenticated API client
+    api.post('/api/conversations/feedback/', {
+      message_id: messageId,
+      feedback_type: feedbackType,
+    }).catch(error => {
       console.error('Error submitting feedback:', error);
-      // Silently fail - user already sees the feedback as successful
     });
-  }, []);
+  }, [api]);
 
   // Remove feedback (optimistic update)
   const removeFeedback = useCallback(async (messageId: string) => {
-    // Update UI immediately (optimistic)
+    // Optimistic UI update
     dispatch({ type: 'SET_MESSAGE_FEEDBACK', payload: { messageId, feedback: undefined } });
-    
-    // Send request in background, don't wait for response
-    ConversationsAPI.deleteFeedback(messageId).catch(error => {
+    // Use authenticated API client
+    api.delete(`/api/conversations/feedback/${messageId}`).catch(error => {
       console.error('Error removing feedback:', error);
-      // Silently fail - user already sees the feedback as removed
     });
-  }, []);
+  }, [api]);
 
   // Load conversations on mount
   React.useEffect(() => {
@@ -442,6 +469,7 @@ export function ConversationsProvider({ children }: { children: React.ReactNode 
   const value: ConversationsContextType = {
     state: derivedState,
     loadConversations,
+    loadMoreConversations,
     loadConversation,
     selectEmptyConversation,
     sendMessage,

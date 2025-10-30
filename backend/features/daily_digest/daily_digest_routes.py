@@ -55,11 +55,10 @@ async def get_available_dependencies():
 
 @router.get("/daily-digest/preferences/")
 async def get_user_digest_preferences(
-    request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
 ) -> Optional[DigestPreferencesResponse]:
     """Get current user's digest preferences."""
-    user_id = get_current_user_id(request)
     logger.info(f"Fetching digest preferences for user {user_id}")
     
     try:
@@ -85,11 +84,10 @@ async def get_user_digest_preferences(
 @router.post("/daily-digest/preferences/", response_model=DigestPreferencesResponse)
 async def update_user_digest_preferences(
     request_data: DigestPreferencesRequest,
-    request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id)
 ):
     """Update current user's digest preferences."""
-    user_id = get_current_user_id(request)
     logger.info(f"Updating digest preferences for user {user_id}")
     
     try:

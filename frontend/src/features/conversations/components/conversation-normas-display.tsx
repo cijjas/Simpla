@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { ConversationNormaCard } from './conversation-norma-card';
-import { normasAPI, type NormaSummary } from '@/features/normas';
+import { type NormaSummary } from '@/features/normas';
+import { useNormasApi } from '@/features/normas/api/use-normas-api';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ConversationNormasDisplayProps {
@@ -13,6 +14,7 @@ export function ConversationNormasDisplay({ normaIds }: ConversationNormasDispla
   const [normas, setNormas] = useState<NormaSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const normasApi = useNormasApi();
 
   useEffect(() => {
     const fetchNormas = async () => {
@@ -25,8 +27,8 @@ export function ConversationNormasDisplay({ normaIds }: ConversationNormasDispla
         setLoading(true);
         setError(null);
 
-        // Use batch API to fetch multiple normas at once
-        const response = await normasAPI.getNormasBatch(normaIds);
+        // Use authenticated API to fetch normas in batch
+        const response = await normasApi.getNormasBatch(normaIds);
         setNormas(response.normas);
         
         // Log any IDs that were not found

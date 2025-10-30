@@ -7,6 +7,7 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupTextarea,
+  InputGroupButton,
 } from '@/components/ui/input-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -18,7 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { User, Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown, Loader } from 'lucide-react';
+import { Plus, Archive, Trash2, Loader2, MoreHorizontal, Pencil, ArrowUp, Copy, ThumbsUp, ThumbsDown, Check, Mic, MicOff } from 'lucide-react';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 import ReactMarkdown from 'react-markdown';
 import { LoadingMessage } from '@/features/conversations/components/loading-message';
@@ -46,6 +47,7 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
     setTone,
     submitFeedback,
     removeFeedback,
+    loadMoreConversations,
   } = useConversations();
 
   // Local state for UI
@@ -53,6 +55,12 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Speech recognition state
+  const [isListening, setIsListening] = useState(false);
+  const [interimText, setInterimText] = useState('');
+  const recognitionRef = useRef<MinimalSpeechRecognition | null>(null);
 
   // Local state for editing conversation title (moved from Context)
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
@@ -73,6 +81,32 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastScrollTimeRef = useRef<number>(0);
+  const convScrollRootRef = useRef<HTMLDivElement>(null);
+
+  // Infinite scroll for conversations list (sidebar)
+  useEffect(() => {
+    const rootEl = convScrollRootRef.current;
+    if (!rootEl) return;
+    const viewport = rootEl.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+    if (!viewport) return;
+
+    const triggerLoadMore = () => {
+      if (loadingMore || state.isLoadingConversations) return;
+      setLoadingMore(true);
+      loadMoreConversations().finally(() => setLoadingMore(false));
+    };
+
+    const onScroll = () => {
+      const threshold = 80; // px from bottom
+      const atBottom = viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - threshold;
+      if (atBottom && !state.isLoadingConversations) {
+        triggerLoadMore();
+      }
+    };
+
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    return () => viewport.removeEventListener('scroll', onScroll);
+  }, [state.isLoadingConversations, loadMoreConversations, loadingMore]);
 
   // Auto-scroll to bottom when messages change (throttled during streaming)
   useEffect(() => {
@@ -95,6 +129,8 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [inputMessage]);
+
+  // (moved): Stop microphone when streaming starts
 
   const handleDeleteClick = (conv: Conversation) => {
     setConversationToDelete(conv);
@@ -141,6 +177,11 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isStreaming) return;
 
+    // Stop microphone if listening
+    if (isListening) {
+      stopDictation();
+    }
+
     const messageContent = inputMessage;
     setInputMessage('');
 
@@ -154,6 +195,105 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
       }
     );
   };
+
+  // Speech Recognition Functions
+  type RecognitionResult = { 0: { transcript: string }; isFinal: boolean };
+  type RecognitionEvent = { resultIndex: number; results: ArrayLike<RecognitionResult> };
+  type MinimalSpeechRecognition = {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    onstart: (() => void) | null;
+    onresult: ((e: RecognitionEvent) => void) | null;
+    onerror: ((e: unknown) => void) | null;
+    onend: (() => void) | null;
+    start: () => void;
+    stop: () => void;
+  };
+  type SpeechRecoCtor = new () => MinimalSpeechRecognition;
+
+  const getSpeechRecognitionCtor = (): SpeechRecoCtor | null => {
+    const w = window as unknown as Record<string, unknown>;
+    const candidate = (w['SpeechRecognition'] ?? w['webkitSpeechRecognition']) as unknown;
+    return typeof candidate === 'function' ? (candidate as SpeechRecoCtor) : null;
+  };
+
+  const startDictation = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      // Browser not supported
+      return;
+    }
+
+    // Stop any existing recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+
+    const SpeechRecognitionCtor = getSpeechRecognitionCtor();
+    if (!SpeechRecognitionCtor) return;
+    const recognition = new SpeechRecognitionCtor();
+    recognitionRef.current = recognition;
+
+    recognition.lang = 'es-ES';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setInterimText('');
+    };
+
+    recognition.onresult = (event: RecognitionEvent) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (interimTranscript) {
+        setInterimText(interimTranscript);
+      }
+
+      if (finalTranscript) {
+        setInputMessage(prev => (prev + finalTranscript + ' '));
+        setInterimText('');
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setInterimText('');
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setInterimText('');
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
+  };
+
+  const stopDictation = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+    setInterimText('');
+  };
+
+  // Stop microphone when streaming starts
+  useEffect(() => {
+    if (isStreaming && isListening) {
+      stopDictation();
+    }
+  }, [isStreaming, isListening]);
 
   // Handle conversation selection - navigate to conversation URL
   const handleLoadConversation = (id: string) => {
@@ -230,15 +370,10 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
         </div>
 
         {/* Scrollable Conversations List */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden" ref={convScrollRootRef}>
           <ScrollArea className="h-full">
             <div className="p-0">
-              {isLoadingConversations ? (
-                <div className="flex flex-col items-center justify-center py-12 px-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">Cargando conversaciones...</p>
-                </div>
-              ) : (
+              {isLoadingConversations ? null : (
                 conversations
                   .filter((conv) => conv.chat_type !== 'norma_chat')
                   .map((conv) => (
@@ -336,6 +471,29 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                 </div>
                 ))
               )}
+              {loadingMore && (
+                <>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={`skeleton-${i}`}
+                      className="cursor-pointer transition-colors duration-150 border-b border-border/60 last:border-b-0"
+                    >
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+                            </div>
+                            <span className="block h-3 w-24 bg-muted/80 rounded animate-pulse" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+              {/* Sentinel spacing at the bottom for easier reach */}
+              <div className="h-4" />
             </div>
           </ScrollArea>
         </div>
@@ -347,19 +505,24 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
         {/* Messages */}
         <div className="flex-1 min-h-0 p-0">
           {isLoading ? (
-            /* Loading state when switching conversations */
-            <div className="h-full flex flex-col items-center justify-center text-center p-4">
-              <div className="max-w-md space-y-4">
-                <div className="flex justify-center">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Cargando conversación...
-                  </p>
-                </div>
+            /* Skeleton state when switching conversations */
+            <ScrollArea className="h-full">
+              <div className="max-w-4xl mx-auto space-y-4 p-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={`chat-skel-${i}`} className={`flex gap-3 ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`flex gap-3 max-w-[80%] ${i % 2 === 0 ? 'flex-row items-start' : 'flex-row-reverse'}`}>
+                      <div className={`rounded-lg p-3 ${i % 2 === 0 ? '' : 'bg-accent'}`}>
+                        <div className="space-y-2">
+                          <div className="h-3 w-56 bg-muted rounded animate-pulse" />
+                          <div className="h-3 w-40 bg-muted/80 rounded animate-pulse" />
+                          {i % 3 === 0 && <div className="h-3 w-24 bg-muted/60 rounded animate-pulse" />}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </ScrollArea>
           ) : messages.length === 0 && !isStreaming ? (
             /* Welcome message when no messages - full height centering */
             <div className="h-full flex flex-col items-center justify-center text-center p-4">
@@ -395,19 +558,10 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                     message.role === 'user' ? 'flex-row-reverse' : 'flex-row items-start'
                   }`}
                 >
-                  <div className={`flex-shrink-0 ${message.role === 'user' ? '' : 'pt-4'}`}>
-                    {message.role === 'user' ? (
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
-                        <User className="h-4 w-4" />
-                      </div>
-                    ) : (
-                      <SvgEstampa className="h-6 w-6 " fill='currentColor'/>
-                    )}
-                  </div>
                   <div
                     className={`rounded-lg p-3 group ${
                       message.role === 'user'
-                        ? 'bg-accent'
+                        ? 'bg-accent dark:bg-muted'
                         : ''
                     }`}
                   >
@@ -441,7 +595,7 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                           className="h-7 w-7 p-1"
                         >
                           {copiedMessageId === message.id ? (
-                            <div className="h-3 w-3 rounded-full bg-green-500" />
+                            <Check className="h-3 w-3 text-green-500" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -486,11 +640,6 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
             {isStreaming && streamingMessage && (
               <div className="flex gap-3 justify-start">
                 <div className="flex gap-3 max-w-[80%]">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
-                      <SvgEstampa className="h-4 w-4" fill='currentColor' />
-                    </div>
-                  </div>
                   <div className="rounded-lg p-3">
                     <div className="prose-chat text-md tracking-wide leading-relaxed">
                       <ReactMarkdown>{streamingMessage}</ReactMarkdown>
@@ -514,11 +663,11 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                 <InputGroupTextarea
                   ref={textareaRef}
                   data-slot="input-group-control"
-                  value={inputMessage}
+                  value={inputMessage + (interimText ? interimText : '')}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Escribe tu mensaje..."
-                  className="p-4 max-h-[220px]   "
+                  placeholder={isListening ? "Escuchando..." : "Cómo puedo ayudarte?"}
+                  className="p-4 max-h-[220px] placeholder:text-muted-foreground/70 text-sm leading-6  "
                   disabled={isStreaming}
                 />
               
@@ -529,19 +678,35 @@ export default function ConversacionesPage({ conversationId }: ConversacionesPag
                     onToneChange={setTone}
                     disabled={isStreaming}
                   />
-                  <Button
-                    className="h-8 w-8 rounded-full p-0 ml-2"
-                    size="sm"
-                    variant="default"
-                    onClick={handleSendMessage}
-                    disabled={!inputMessage.trim() || isStreaming}
-                  >
-                    {isStreaming ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ArrowUp className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <InputGroupButton
+                      className="h-8 w-8 p-0 rounded-full"
+                      size="sm"
+                      variant={isListening ? "default" : "ghost"}
+                      onClick={isListening ? stopDictation : startDictation}
+                      disabled={isStreaming}
+                      title={isListening ? "Detener dictado" : "Iniciar dictado"}
+                    >
+                      {isListening ? (
+                        <MicOff className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </InputGroupButton>
+                    <Button
+                      className="h-8 w-8 rounded-full p-0 ml-2"
+                      size="sm"
+                      variant="default"
+                      onClick={handleSendMessage}
+                      disabled={!inputMessage.trim() || isStreaming}
+                    >
+                      {isStreaming ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ArrowUp className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </InputGroupAddon>
             </InputGroup>

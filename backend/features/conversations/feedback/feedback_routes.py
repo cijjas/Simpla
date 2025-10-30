@@ -26,9 +26,9 @@ router = APIRouter(prefix="/conversations/feedback", tags=["feedback"])
 
 @router.post("/", response_model=FeedbackResponse, status_code=201)
 async def create_or_update_feedback(
-    request: Request,
     data: FeedbackCreate,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Create or update feedback for a message.
@@ -37,8 +37,6 @@ async def create_or_update_feedback(
     Otherwise, new feedback will be created.
     """
     try:
-        user_id = get_current_user_id(request)
-        
         service = FeedbackService(db)
         feedback = service.create_or_update_feedback(
             message_id=str(data.message_id),
@@ -57,9 +55,9 @@ async def create_or_update_feedback(
 
 @router.get("/{message_id}", response_model=FeedbackResponse)
 async def get_feedback(
-    request: Request,
     message_id: str,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Get feedback for a specific message by the current user.
@@ -67,8 +65,6 @@ async def get_feedback(
     Returns 404 if no feedback exists for this message.
     """
     try:
-        user_id = get_current_user_id(request)
-        
         service = FeedbackService(db)
         feedback = service.get_feedback(message_id, user_id)
         
@@ -86,9 +82,9 @@ async def get_feedback(
 
 @router.post("/batch", response_model=Dict[str, FeedbackType])
 async def get_feedbacks_batch(
-    request: Request,
     message_ids: list[str] = Body(..., embed=True),
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Get feedbacks for multiple messages by the current user.
@@ -97,8 +93,6 @@ async def get_feedbacks_batch(
     Only includes messages that have feedback.
     """
     try:
-        user_id = get_current_user_id(request)
-        
         service = FeedbackService(db)
         feedbacks = service.get_feedbacks_for_messages(message_ids, user_id)
         
@@ -111,9 +105,9 @@ async def get_feedbacks_batch(
 
 @router.delete("/{message_id}", response_model=FeedbackDelete)
 async def delete_feedback(
-    request: Request,
     message_id: str,
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     """
     Delete feedback for a message.
@@ -122,8 +116,6 @@ async def delete_feedback(
     Returns 404 if no feedback exists.
     """
     try:
-        user_id = get_current_user_id(request)
-        
         service = FeedbackService(db)
         success = service.delete_feedback(message_id, user_id)
         

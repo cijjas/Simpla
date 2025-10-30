@@ -55,6 +55,9 @@ export default function RootLayout({
   return (
     <html lang='es' suppressHydrationWarning>
       <head>
+      <meta name="apple-mobile-web-app-title" content="Simpla" />
+
+
         {/* Force light mode on initial load for public pages */}
         <script
           dangerouslySetInnerHTML={{
