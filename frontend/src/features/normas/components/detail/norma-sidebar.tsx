@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Expand, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Expand, ExternalLink, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Division, NormaSummary } from '@/features/normas/api/normas-api';
 import { NormaRelationGraph } from './norma-relation-graph';
@@ -45,6 +45,7 @@ interface NormaSidebarProps {
   infolegId: number;
   onDivisionClick: (divisionId: number) => void;
   onBack: () => void;
+  onClose?: () => void;
   showOutline?: boolean;
   modifica?: NormaSummary[];
   modificadaPor?: NormaSummary[];
@@ -65,6 +66,7 @@ export function NormaSidebar({
   infolegId,
   onDivisionClick,
   onBack,
+  onClose,
   showOutline = true,
   modifica: _modifica,
   modificadaPor: _modificadaPor,
@@ -167,18 +169,36 @@ export function NormaSidebar({
   }, [router]);
 
   return (
-    <aside className='w-80 flex-shrink-0 border-r border-border  flex flex-col h-[calc(100vh-3.5rem)] sticky top-14'>
+    <aside className={cn(
+      'flex-shrink-0 flex flex-col h-[calc(100vh-3.5rem)] lg:sticky lg:top-14 max-lg:h-full',
+      // Width: fixed on desktop, full on mobile (when onClose is present)
+      onClose ? 'w-full' : 'w-80',
+      // Border: only on desktop (when onClose is not present)
+      !onClose && 'border-r border-border'
+    )}>
       {/* === Header Section: Provides context and the main back action === */}
-      <div className='flex-shrink-0 p-4 border-b border-border space-y-3'>
-      <Button
-        variant='ghost'
-        onClick={onBack}
-        className='text-muted-foreground hover:text-foreground transition-colors'
-      >
-        <ArrowLeft className='size-4 mr-2' />
-        Volver
-      </Button>
-        
+      <div className='flex-shrink-0 p-4 border-b border-border'>
+        <div className='flex items-center justify-between gap-2'>
+          <Button
+            variant='ghost'
+            onClick={onBack}
+            className='text-muted-foreground hover:text-foreground transition-colors'
+          >
+            <ArrowLeft className='size-4 mr-2' />
+            Volver
+          </Button>
+          {onClose && (
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={onClose}
+              className='text-muted-foreground hover:text-foreground transition-colors'
+            >
+              <X className='size-4' />
+              <span className='sr-only'>Cerrar</span>
+            </Button>
+          )}
+        </div>
       </div>
       
       {/* === Scrollable Content Section: The table of contents === */}
@@ -238,7 +258,7 @@ export function NormaSidebar({
             <Button
               variant='ghost'
               size='icon'
-              className='absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8'
+              className='absolute top-2 right-2 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 h-8 w-8'
               onClick={() => setIsGraphDialogOpen(true)}
             >
               <Expand className='h-4 w-4' />

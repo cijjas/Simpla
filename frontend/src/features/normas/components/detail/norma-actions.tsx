@@ -270,7 +270,7 @@ export function NormaActions({ norma }: NormaActionsProps) {
 
   return (
     <TooltipProvider>
-      <div className='flex gap-2'>
+      <div className='flex gap-2 flex-nowrap'>
         {/* Copy */}
         <Tooltip>
           <TooltipTrigger asChild>

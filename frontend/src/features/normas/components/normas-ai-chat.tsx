@@ -74,12 +74,23 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [interimText, setInterimText] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Resizable chat dimensions with viewport-aware limits
+  // Resizable chat dimensions with viewport-aware limits (desktop only)
   const [chatDimensions, setChatDimensions] = useState(() => {
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    // Calculate max dimensions considering navbar (~64px) and margins, plus table of contents space
+    const mobile = viewportWidth < 768;
+    
+    if (mobile) {
+      // Mobile: full width with margins, leave room for action buttons
+      return {
+        width: viewportWidth - 32, // 16px margin on each side
+        height: viewportHeight - 160 // Leave room for navbar + action buttons + bottom spacing
+      };
+    }
+    
+    // Desktop: Calculate max dimensions considering navbar (~64px) and margins, plus table of contents space
     const maxHeight = viewportHeight - 140; // navbar + margins + padding
     const maxWidth = Math.min(viewportWidth * 0.35, 450); // max 35% of viewport or 450px (leaves room for table of contents)
     
@@ -100,8 +111,19 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   const toggleCommand = getCommandById('toggle-norma-chat');
   const toggleShortcut = toggleCommand ? getShortcutParts(toggleCommand) : [];
 
-  // Resize handlers
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Resize handlers (desktop only)
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return; // Disable resizing on mobile
     e.preventDefault();
     e.stopPropagation();
     setIsResizing(true);
@@ -182,15 +204,26 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     const handleWindowResize = () => {
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
-      const maxHeight = viewportHeight - 140;
-      const maxWidth = Math.min(viewportWidth * 0.35, 450);
-      const minHeight = Math.max(maxHeight * 0.65, 350);
-      const minWidth = Math.max(maxWidth * 0.75, 300);
+      const mobile = viewportWidth < 768;
       
-      setChatDimensions(prev => ({
-        width: Math.min(Math.max(prev.width, minWidth), maxWidth),
-        height: Math.min(Math.max(prev.height, minHeight), maxHeight)
-      }));
+      if (mobile) {
+        // Mobile: full width with margins, leave room for action buttons
+        setChatDimensions({
+          width: viewportWidth - 32,
+          height: viewportHeight - 160
+        });
+      } else {
+        // Desktop: maintain resizable behavior
+        const maxHeight = viewportHeight - 140;
+        const maxWidth = Math.min(viewportWidth * 0.35, 450);
+        const minHeight = Math.max(maxHeight * 0.65, 350);
+        const minWidth = Math.max(maxWidth * 0.75, 300);
+        
+        setChatDimensions(prev => ({
+          width: Math.min(Math.max(prev.width, minWidth), maxWidth),
+          height: Math.min(Math.max(prev.height, minHeight), maxHeight)
+        }));
+      }
     };
 
     window.addEventListener('resize', handleWindowResize);
@@ -462,22 +495,26 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className={`fixed z-50 ${isMobile ? 'bottom-4 right-4' : 'bottom-6 right-6'}`}>
         <Button
           onClick={toggleChat}
           size="lg"
-          className="group relative flex items-center gap-1 rounded-lg overflow-hidden transition-all duration-300 ease-out !px-2"
+          className={`group relative flex items-center gap-1 rounded-lg overflow-hidden transition-all duration-300 ease-out ${
+            isMobile ? '!h-14 !w-14 !p-0' : '!px-2'
+          }`}
           aria-label="Abrir chat de AI sobre esta norma"
         >
-          {/* Expanding text content - slides in on hover */}
-          <div className="max-w-0 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-xs group-hover:opacity-100 group-hover:mr-2">
-            <span className="whitespace-nowrap">  
-              Preguntale a {' '}
-              <span className="font-serif font-thin italic">Simpla</span>
-            </span>
-          </div>
-          {/* Kbd shortcuts - always visible */}
-          {toggleShortcut.length > 0 && (
+          {/* Expanding text content - slides in on hover (desktop only) */}
+          {!isMobile && (
+            <div className="max-w-0 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-xs group-hover:opacity-100 group-hover:mr-2">
+              <span className="whitespace-nowrap">  
+                Preguntale a {' '}
+                <span className="font-serif font-thin italic">Simpla</span>
+              </span>
+            </div>
+          )}
+          {/* Kbd shortcuts - desktop only */}
+          {!isMobile && toggleShortcut.length > 0 && (
             <span className="flex items-center gap-1 whitespace-nowrap">
               {toggleShortcut.map((key, idx) => (
                 <Kbd key={idx} className="bg-primary-foreground/10 text-texts ">{key}</Kbd>
@@ -485,48 +522,56 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
             </span>
           )}
           {/* Icon - always visible */}
-          <MessageCircle className="h-6 w-6 flex-shrink-0" />
+          <MessageCircle className={`flex-shrink-0 ${isMobile ? 'h-7 w-7' : 'h-6 w-6'}`} />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className={`fixed z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 ${
+      isMobile 
+        ? 'inset-x-4 bottom-4 top-32' // Mobile: full width with margins, leave room for action buttons
+        : 'bottom-6 right-6' // Desktop: bottom right corner
+    }`}>
       {/* frosted glass effect */}
       <Card 
         ref={chatRef}
-        className=" relative shadow-sm pb-0 rounded-2xl backdrop-blur-sm bg-background/80  p-2" 
-        style={{ 
+        className={`relative shadow-sm pb-0 rounded-2xl backdrop-blur-sm bg-background/80 p-2 ${
+          isMobile ? 'h-full' : ''
+        }`}
+        style={!isMobile ? { 
           width: `${chatDimensions.width}px`, 
           height: `${chatDimensions.height}px` 
-        }}
+        } : undefined}
       >
-        {/* Resize handle - top left corner */}
-        <div 
-          className={`absolute top-1 left-1 w-6 h-6 cursor-nw-resize z-20 flex items-center justify-center groupc  rounded-br-lg transition-colors`}
-          onMouseDown={handleMouseDown}
-          title="Arrastra para redimensionar"
-        >
-          <div className="relative">
-            {/* Create diagonal grip pattern with dots */}
-            <div className="flex flex-col gap-0.5">
-              <div className="flex gap-0.5">
-                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
-                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
-              </div>
-              <div className="flex gap-0.5 pl-1">
-                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
-                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+        {/* Resize handle - top left corner (desktop only) */}
+        {!isMobile && (
+          <div 
+            className="absolute top-1 left-1 w-6 h-6 cursor-nw-resize z-20 flex items-center justify-center group rounded-br-lg transition-colors"
+            onMouseDown={handleMouseDown}
+            title="Arrastra para redimensionar"
+          >
+            <div className="relative">
+              {/* Create diagonal grip pattern with dots */}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex gap-0.5">
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                </div>
+                <div className="flex gap-0.5 pl-1">
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
         
         <CardContent className="p-0 h-full flex flex-col">
           {/* Collapse button in top right */}
           <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-            <Kbd className="text-xs">Esc</Kbd>
+            {!isMobile && <Kbd className="text-xs">Esc</Kbd>}
             <Button
               onClick={handleClose}
               size="sm"
