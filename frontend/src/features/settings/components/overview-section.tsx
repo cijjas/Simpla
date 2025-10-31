@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { useSubscriptionContext } from '@/features/subscription/context/subscription-context';
 import { UsageChart } from '@/features/subscription/components/usage-chart';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function OverviewSection() {
   const { status: subscriptionStatus, usageHistory, isLoading } = useSubscriptionContext();
@@ -18,7 +19,33 @@ export function OverviewSection() {
   return (
     <div className="space-y-6">
       {/* Plan Features */}
-      {subscriptionStatus && (
+      {isLoading ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-24 mt-2" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-28" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-32" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : subscriptionStatus ? (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Plan Actual</CardTitle>
@@ -71,10 +98,33 @@ export function OverviewSection() {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Current Usage Status */}
-      {subscriptionStatus && (
+      {isLoading ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-40 mt-2" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-6 w-12 rounded-full" />
+                  </div>
+                  <Skeleton className="h-2 w-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : subscriptionStatus ? (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Uso Actual</CardTitle>
@@ -152,7 +202,7 @@ export function OverviewSection() {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Usage Analytics */}
       <UsageChart 

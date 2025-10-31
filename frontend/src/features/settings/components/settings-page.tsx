@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { 
@@ -9,7 +9,6 @@ import {
   BarChart3, 
   Clock,
 } from 'lucide-react';
-import { useAuth } from '@/features/auth/hooks/use-auth';
 import { OverviewSection } from './overview-section';
 import { SettingsSection } from './settings-section';
 import { UsageSection } from './usage-section';
@@ -24,17 +23,26 @@ interface SettingsSection {
 }
 
 export function SettingsPage() {
-  const { user } = useAuth();
   const searchParams = useSearchParams();
-  const [activeSection, setActiveSection] = useState<SectionId>('overview');
-
-  // Handle tab query parameter
-  useEffect(() => {
+  
+  // Get section from URL or default
+  const urlSection = useMemo(() => {
     const tab = searchParams.get('tab') as SectionId;
     if (tab && ['overview', 'account', 'usage', 'plans'].includes(tab)) {
-      setActiveSection(tab);
+      return tab;
     }
+    return 'overview';
   }, [searchParams]);
+
+  const [activeSection, setActiveSection] = useState<SectionId>(urlSection);
+
+  // Update activeSection when URL changes (but only if different to avoid unnecessary renders)
+  React.useEffect(() => {
+    if (urlSection !== activeSection) {
+      setActiveSection(urlSection);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSection]);
 
   const settingsSections: SettingsSection[] = [
     {
@@ -82,14 +90,14 @@ export function SettingsPage() {
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full">
       {/* Sidebar */}
-      <div className=" border-r border-border bg-background flex flex-col shrink-0">
+      <div className="border-r border-border bg-background flex flex-col shrink-0 w-64">
         {/* Header */}
         <div className="px-6 py-4 border-b border-border">
           <h1 className="text-3xl font-bold font-serif">Configuración</h1>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 px-3 py-3 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="space-y-1">
             {settingsSections.map((section) => {
               const Icon = section.icon;
@@ -100,10 +108,10 @@ export function SettingsPage() {
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                     isActive 
-                      ? "bg-primary text-primary-foreground" 
-                      : "text-muted-foreground hover:bg-primary/10 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

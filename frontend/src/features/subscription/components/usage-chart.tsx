@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/features/auth/hooks/use-api';
-import { Loader2, TrendingUp, MessageSquare, Activity } from 'lucide-react';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
-import { Area, AreaChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, Line, LineChart } from 'recharts';
+import { TrendingUp, MessageSquare, Activity } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Area, AreaChart, Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface UsageDataPoint {
   date: string;
@@ -127,20 +128,37 @@ export function UsageChart({ usageHistory: initialUsageHistory, isLoading: initi
     </div>
   );
 
-  // Calculate statistics
-  const totalTokens = chartData.reduce((sum, item) => sum + item.tokens, 0);
-  const totalMessages = chartData.reduce((sum, item) => sum + item.messages, 0);
-  const avgTokens = chartData.length > 0 ? Math.round(totalTokens / chartData.length) : 0;
-  const avgMessages = chartData.length > 0 ? Math.round(totalMessages / chartData.length) : 0;
+  const ChartSkeleton = () => (
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-[300px] w-full" />
+    </div>
+  );
+
+  const EmptyState = ({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string }>; title: string }) => (
+    <div className="flex items-center justify-center h-[300px] rounded-lg border-2 border-dashed border-muted">
+      <div className="text-center space-y-2">
+        <Icon className="w-12 h-12 text-muted-foreground/50 mx-auto" />
+        <p className="text-sm font-medium text-muted-foreground">No hay datos disponibles</p>
+        <p className="text-xs text-muted-foreground">Los datos de uso aparecerán aquí</p>
+      </div>
+    </div>
+  );
+
+  // Calculate statistics (only when we have data)
+  const totalTokens = hasData ? chartData.reduce((sum, item) => sum + item.tokens, 0) : 0;
+  const totalMessages = hasData ? chartData.reduce((sum, item) => sum + item.messages, 0) : 0;
+  const avgTokens = hasData && chartData.length > 0 ? Math.round(totalTokens / chartData.length) : 0;
+  const avgMessages = hasData && chartData.length > 0 ? Math.round(totalMessages / chartData.length) : 0;
 
   // Calculate trends (compare last vs previous period)
-  const midpoint = Math.floor(chartData.length / 2);
-  const recentTokens = chartData.slice(midpoint).reduce((sum, item) => sum + item.tokens, 0);
-  const previousTokens = chartData.slice(0, midpoint).reduce((sum, item) => sum + item.tokens, 0);
+  const midpoint = hasData && chartData.length > 1 ? Math.floor(chartData.length / 2) : 0;
+  const recentTokens = hasData && midpoint > 0 ? chartData.slice(midpoint).reduce((sum, item) => sum + item.tokens, 0) : 0;
+  const previousTokens = hasData && midpoint > 0 ? chartData.slice(0, midpoint).reduce((sum, item) => sum + item.tokens, 0) : 0;
   const tokenTrend = previousTokens > 0 ? ((recentTokens - previousTokens) / previousTokens) * 100 : 0;
 
-  const recentMessages = chartData.slice(midpoint).reduce((sum, item) => sum + item.messages, 0);
-  const previousMessages = chartData.slice(0, midpoint).reduce((sum, item) => sum + item.messages, 0);
+  const recentMessages = hasData && midpoint > 0 ? chartData.slice(midpoint).reduce((sum, item) => sum + item.messages, 0) : 0;
+  const previousMessages = hasData && midpoint > 0 ? chartData.slice(0, midpoint).reduce((sum, item) => sum + item.messages, 0) : 0;
   const messageTrend = previousMessages > 0 ? ((recentMessages - previousMessages) / previousMessages) * 100 : 0;
 
   const TrendIndicator = ({ value }: { value: number }) => {
@@ -157,60 +175,75 @@ export function UsageChart({ usageHistory: initialUsageHistory, isLoading: initi
   return (
     <div className="space-y-6">
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-2">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: 'hsl(var(--chart-1) / 0.1)' }}>
-                    <Activity className="h-5 w-5" style={{ color: 'hsl(var(--chart-1))' }} />
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: 'hsl(var(--chart-1) / 0.1)' }}>
+                      <Activity className="h-5 w-5" style={{ color: 'hsl(var(--chart-1))' }} />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">Tokens Utilizados</p>
                   </div>
-                  <p className="text-sm font-medium text-muted-foreground">Tokens Utilizados</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-3xl font-bold tracking-tight">{totalTokens.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Promedio: {avgTokens.toLocaleString()} / día
-                  </p>
-                </div>
-              </div>
-              <TrendIndicator value={tokenTrend} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: 'hsl(var(--chart-2) / 0.1)' }}>
-                    <MessageSquare className="h-5 w-5" style={{ color: 'hsl(var(--chart-2))' }} />
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold tracking-tight">{totalTokens.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Promedio: {avgTokens.toLocaleString()} / día
+                    </p>
                   </div>
-                  <p className="text-sm font-medium text-muted-foreground">Mensajes Enviados</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-3xl font-bold tracking-tight">{totalMessages.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Promedio: {avgMessages.toLocaleString()} / día
-                  </p>
-                </div>
+                <TrendIndicator value={tokenTrend} />
               </div>
-              <TrendIndicator value={messageTrend} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
 
-      {/* Enhanced Tokens Usage Chart */}
-      <Card className="border-2">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: 'hsl(var(--chart-2) / 0.1)' }}>
+                      <MessageSquare className="h-5 w-5" style={{ color: 'hsl(var(--chart-2))' }} />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">Mensajes Enviados</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold tracking-tight">{totalMessages.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Promedio: {avgMessages.toLocaleString()} / día
+                    </p>
+                  </div>
+                </div>
+                <TrendIndicator value={messageTrend} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Unified Chart Section with Single Date Range Selector */}
+      <Card>
         <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1.5">
-              <CardTitle className="text-xl">Tokens Utilizados</CardTitle>
+              <CardTitle className="text-xl">Análisis de Uso</CardTitle>
               <CardDescription>
-                Historial de uso de tokens en los últimos {selectedRange} {selectedRange === 1 ? 'día' : 'días'}
+                Historial de tokens y mensajes en los últimos {selectedRange} {selectedRange === 1 ? 'día' : 'días'}
               </CardDescription>
             </div>
             <DateRangeSelector />
@@ -218,143 +251,124 @@ export function UsageChart({ usageHistory: initialUsageHistory, isLoading: initi
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
-            <div className="flex items-center justify-center h-[350px]">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Cargando datos...</p>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartSkeleton />
+              <ChartSkeleton />
             </div>
           ) : !hasData ? (
-            <div className="flex items-center justify-center h-[350px] rounded-lg border-2 border-dashed">
-              <div className="text-center space-y-2">
-                <Activity className="w-12 h-12 text-muted-foreground/50 mx-auto" />
-                <p className="text-sm font-medium text-muted-foreground">No hay datos disponibles</p>
-                <p className="text-xs text-muted-foreground">Los datos de uso aparecerán aquí</p>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <EmptyState icon={Activity} title="Tokens" />
+              <EmptyState icon={MessageSquare} title="Mensajes" />
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="h-[350px] w-full">
-              <AreaChart 
-                data={chartData}
-                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorTokens" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-tokens)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--color-tokens)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  className="stroke-muted" 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  className="text-muted-foreground"
-                  dy={10}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  className="text-muted-foreground"
-                  tickFormatter={(value) => value.toLocaleString()}
-                />
-                <ChartTooltip 
-                  content={<ChartTooltipContent indicator="line" />}
-                  cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '5 5' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="tokens"
-                  stroke="var(--color-tokens)"
-                  fill="url(#colorTokens)"
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{ 
-                    r: 5, 
-                    fill: "var(--color-tokens)",
-                    stroke: "hsl(var(--background))",
-                    strokeWidth: 2 
-                  }}
-                />
-              </AreaChart>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Tokens Chart */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">Tokens Utilizados</h3>
+                </div>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <AreaChart 
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorTokens" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-tokens)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--color-tokens)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      className="stroke-muted" 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      className="text-muted-foreground"
+                      dy={10}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      className="text-muted-foreground"
+                      tickFormatter={(value) => {
+                        if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+                        return value.toString();
+                      }}
+                    />
+                    <ChartTooltip 
+                      content={<ChartTooltipContent indicator="line" />}
+                      cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '5 5' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="tokens"
+                      stroke="var(--color-tokens)"
+                      fill="url(#colorTokens)"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ 
+                        r: 4, 
+                        fill: "var(--color-tokens)",
+                        stroke: "hsl(var(--background))",
+                        strokeWidth: 2 
+                      }}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </div>
 
-      {/* Enhanced Messages Usage Chart */}
-      <Card className="border-2">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="space-y-1.5">
-              <CardTitle className="text-xl">Mensajes Enviados</CardTitle>
-              <CardDescription>
-                Historial de mensajes enviados en los últimos {selectedRange} {selectedRange === 1 ? 'día' : 'días'}
-              </CardDescription>
-            </div>
-            <DateRangeSelector />
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-[350px]">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Cargando datos...</p>
+              {/* Messages Chart */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium">Mensajes Enviados</h3>
+                </div>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <BarChart 
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      className="stroke-muted" 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      className="text-muted-foreground"
+                      dy={10}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      className="text-muted-foreground"
+                      tickFormatter={(value) => value.toString()}
+                    />
+                    <ChartTooltip 
+                      content={<ChartTooltipContent indicator="dashed" />}
+                      cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
+                    />
+                    <Bar
+                      dataKey="messages"
+                      fill="var(--color-messages)"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={50}
+                    />
+                  </BarChart>
+                </ChartContainer>
               </div>
             </div>
-          ) : !hasData ? (
-            <div className="flex items-center justify-center h-[350px] rounded-lg border-2 border-dashed">
-              <div className="text-center space-y-2">
-                <MessageSquare className="w-12 h-12 text-muted-foreground/50 mx-auto" />
-                <p className="text-sm font-medium text-muted-foreground">No hay datos disponibles</p>
-                <p className="text-xs text-muted-foreground">Los datos de uso aparecerán aquí</p>
-              </div>
-            </div>
-          ) : (
-            <ChartContainer config={chartConfig} className="h-[350px] w-full">
-              <BarChart 
-                data={chartData}
-                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  className="stroke-muted" 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  className="text-muted-foreground"
-                  dy={10}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  className="text-muted-foreground"
-                  tickFormatter={(value) => value.toLocaleString()}
-                />
-                <ChartTooltip 
-                  content={<ChartTooltipContent indicator="dashed" />}
-                  cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
-                />
-                <Bar
-                  dataKey="messages"
-                  fill="var(--color-messages)"
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={60}
-                />
-              </BarChart>
-            </ChartContainer>
           )}
         </CardContent>
       </Card>

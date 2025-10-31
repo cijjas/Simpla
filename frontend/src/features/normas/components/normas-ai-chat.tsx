@@ -3,10 +3,35 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 // Extend Window interface for Speech Recognition API
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: {
+    transcript: string;
+    confidence: number;
+  };
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResult[];
+}
+
+interface SpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }
 import { Button } from '@/components/ui/button';
@@ -17,13 +42,14 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, X, User, Loader2, ArrowUp, ChevronDown, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, ArrowUp, ChevronDown, Mic, MicOff } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { Kbd } from '@/components/ui/kbd';
 import { getCommandById, getShortcutParts } from '@/features/command-center';
+import { LoadingMessage } from '@/features/conversations/components/loading-message';
 
 interface Message {
   id: string;
@@ -45,7 +71,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null); // Track session ID
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [interimText, setInterimText] = useState('');
   
@@ -63,12 +89,12 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     };
   });
   const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   const api = useApi();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   
   // Command center integration
   const toggleCommand = getCommandById('toggle-norma-chat');
@@ -77,34 +103,46 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   // Resize handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: chatDimensions.width,
+      height: chatDimensions.height,
+    };
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing) return;
+    if (!isResizing || !resizeStartRef.current) return;
     
-    const deltaX = dragStart.x - e.clientX;
-    const deltaY = dragStart.y - e.clientY;
+    // Calculate delta from initial drag start position
+    const deltaX = resizeStartRef.current.x - e.clientX;
+    const deltaY = resizeStartRef.current.y - e.clientY;
     
     // Calculate viewport-based limits
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     const maxHeight = viewportHeight - 140; // considering navbar and margins
     const maxWidth = Math.min(viewportWidth * 0.35, 450); // max 35% of viewport width or 450px
-    const minHeight = Math.max(maxHeight * 0.65, 350); // minimum 65% of max height or 350px
-    const minWidth = Math.max(maxWidth * 0.75, 300); // minimum 75% of max width or 300px
+    const minHeight = 350; // minimum height
+    const minWidth = 300; // minimum width
     
-    setChatDimensions(prev => ({
-      width: Math.min(Math.max(minWidth, prev.width + deltaX), maxWidth),
-      height: Math.min(Math.max(minHeight, prev.height + deltaY), maxHeight)
-    }));
+    // Calculate new dimensions based on initial dimensions and delta
+    // Dragging right (positive deltaX) decreases width, dragging left (negative deltaX) increases width
+    // Dragging down (positive deltaY) decreases height, dragging up (negative deltaY) increases height
+    const newWidth = Math.min(Math.max(minWidth, resizeStartRef.current.width + deltaX), maxWidth);
+    const newHeight = Math.min(Math.max(minHeight, resizeStartRef.current.height + deltaY), maxHeight);
     
-    setDragStart({ x: e.clientX, y: e.clientY });
+    setChatDimensions({
+      width: newWidth,
+      height: newHeight,
+    });
   };
 
   const handleMouseUp = () => {
     setIsResizing(false);
+    resizeStartRef.current = null;
   };
 
   // Add global mouse events for resizing
@@ -131,7 +169,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       document.body.style.userSelect = '';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isResizing, dragStart]);
+  }, [isResizing]);
 
   // Reset session when norma changes
   useEffect(() => {
@@ -232,7 +270,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
 
     try {
       // Use the same endpoint as the old norma chat
-      const response = await api.post<{ answer: string; session_id?: string }>('/api/norma-chat', {
+      const response = await api.post<{ answer: string; norma_id: number; session_id: string }>('/api/norma-chat', {
         norma_id: infolegId || normaId, // Use infolegId if available, fallback to normaId
         question: currentInput,
         session_id: sessionId // Include existing session ID for conversation continuity
@@ -241,8 +279,8 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       // Stop loading and start typing effect
       setIsLoading(false);
 
-      // Update session ID if returned from backend
-      if (response.session_id && !sessionId) {
+      // Update session ID if returned from backend (always update to ensure we have the latest session)
+      if (response.session_id) {
         setSessionId(response.session_id);
       }
 
@@ -347,7 +385,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       toast.success('Escuchando...');
     };
     
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
       
@@ -378,7 +416,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       }
     };
     
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: { error: string }) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
       setInterimText('');
@@ -464,12 +502,26 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
           height: `${chatDimensions.height}px` 
         }}
       >
-        {/* Invisible resize handle - top left corner */}
+        {/* Resize handle - top left corner */}
         <div 
-          className={`absolute top-0 left-0 w-5 h-5 cursor-nw-resize z-20`}
+          className={`absolute top-1 left-1 w-6 h-6 cursor-nw-resize z-20 flex items-center justify-center groupc  rounded-br-lg transition-colors`}
           onMouseDown={handleMouseDown}
           title="Arrastra para redimensionar"
-        />
+        >
+          <div className="relative">
+            {/* Create diagonal grip pattern with dots */}
+            <div className="flex flex-col gap-0.5">
+              <div className="flex gap-0.5">
+                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+              </div>
+              <div className="flex gap-0.5 pl-1">
+                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+              </div>
+            </div>
+          </div>
+        </div>
         
         <CardContent className="p-0 h-full flex flex-col">
           {/* Collapse button in top right */}
@@ -511,12 +563,6 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                             message.role === 'user' ? 'justify-end' : 'justify-start'
                         }`}
                         >
-                        {message.role === 'assistant' && (
-                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                            <SvgEstampa className="size-6" />
-                            </div>
-                        )}
-                        
                         <div
                             className={`max-w-[80%] p-2 rounded-lg ${
                             message.role === 'user'
@@ -548,35 +594,14 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                             {formatTime(message.timestamp)}
                             </p>
                         </div>
-
-                        {message.role === 'user' && (
-                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                        )}
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
                     </div>
                 </div>
 
-                {/* Loading Indicator - Fixed position below ScrollArea */}
-                {isLoading && (
-                    <div className="px-3 py-2">
-                    <div className="flex justify-start">
-                        <div className="text-sm">
-                        <div className="flex items-center mb-1 gap-2 text-xs text-muted-foreground">
-                            <SvgEstampa className="h-6 w-6" />
-                            <span className="font-medium">Simpla</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Pensando...</span>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                )}
+                {/* Loading Indicator */}
+                {isLoading && <LoadingMessage />}
                 </div>
             )}
             </div>

@@ -7,6 +7,7 @@ from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse
 from datetime import date
 from contextlib import contextmanager
+import difflib
 
 from .norma_models import NormaStructuredModel, DivisionModel, ArticleModel, NormaReferenciaModel
 from core.config.config import settings
@@ -666,8 +667,76 @@ def reconstruct_norma_by_infoleg_id(infoleg_id: int) -> Optional[Dict[str, Any]]
     return None
 
 
+def _generate_text_diff_summary(original_text: str, updated_text: str, max_lines: int = 50) -> str:
+    """
+    Generate a human-readable summary of differences between original and updated text.
+    
+    Returns a concise summary highlighting key changes to alert users about modifications.
+    """
+    original_lines = original_text.splitlines()
+    updated_lines = updated_text.splitlines()
+    
+    # Use unified_diff to show changes
+    diff = list(difflib.unified_diff(
+        original_lines,
+        updated_lines,
+        lineterm='',
+        n=3  # Show 3 lines of context around changes
+    ))
+    
+    if not diff:
+        return "El texto actualizado no contiene cambios significativos con respecto al texto original."
+    
+    # Extract meaningful changes
+    added_lines = []
+    removed_lines = []
+    
+    for line in diff[2:]:  # Skip the header lines
+        if line.startswith('+') and not line.startswith('+++'):
+            # New content added
+            content = line[1:].strip()
+            if content:  # Skip empty lines
+                added_lines.append(content)
+        elif line.startswith('-') and not line.startswith('---'):
+            # Content removed
+            content = line[1:].strip()
+            if content:  # Skip empty lines
+                removed_lines.append(content)
+    
+    # Build summary
+    summary_parts = []
+    
+    if removed_lines:
+        summary_parts.append("CAMBIOS REALIZADOS:")
+        # Show first few removed lines (what was changed/removed)
+        for line in removed_lines[:max_lines]:
+            summary_parts.append(f"  - Se modificó/eliminó: {line[:200]}...")  # Limit line length
+    
+    if added_lines:
+        if not summary_parts:
+            summary_parts.append("CAMBIOS REALIZADOS:")
+        # Show first few added lines (what was added/changed)
+        for line in added_lines[:max_lines]:
+            summary_parts.append(f"  + Se agregó/modificó: {line[:200]}...")  # Limit line length
+    
+    # Add statistics
+    total_changes = len(added_lines) + len(removed_lines)
+    if total_changes > max_lines * 2:
+        summary_parts.append(f"\nNota: Se han detectado más de {max_lines} líneas de cambios. Esta es una muestra de los cambios principales.")
+    
+    return "\n".join(summary_parts) if summary_parts else "El texto actualizado contiene modificaciones con respecto al texto original."
+
+
 def build_norma_text_context(norma_data: Dict[str, Any]) -> str:
-    """Build comprehensive text context from norma data for AI processing."""
+    """Build comprehensive text context from norma data for AI processing.
+    
+    Implements fallback logic:
+    1. texto_norma_actualizado or texto_norma (preferred)
+    2. texto_resumido (if no texto_norma)
+    3. titulo_sumario + titulo_resumido (if no texto_resumido)
+    
+    Never returns empty context.
+    """
     context_parts = []
     
     # Add basic norma info
@@ -685,11 +754,53 @@ def build_norma_text_context(norma_data: Dict[str, Any]) -> str:
     if norma_data.get('publicacion'):
         context_parts.append(f"Publicación: {norma_data['publicacion']}")
     
-    # Add text content - prefer updated text over original
-    if norma_data.get('texto_norma_actualizado'):
-        context_parts.append(f"\nTexto actualizado de la norma:\n{norma_data['texto_norma_actualizado']}")
-    elif norma_data.get('texto_norma'):
-        context_parts.append(f"\nTexto de la norma:\n{norma_data['texto_norma']}")
+    # Add text content with fallback logic
+    # Priority 1: texto_norma_actualizado or texto_norma
+    text_content = None
+    texto_actualizado = norma_data.get('texto_norma_actualizado')
+    texto_norma = norma_data.get('texto_norma')
+    
+    # If both texts exist, show the updated text and add a diff summary
+    if texto_actualizado and texto_norma and texto_actualizado.strip() != texto_norma.strip():
+        text_content = texto_actualizado
+        context_parts.append(f"\nTexto actualizado de la norma:\n{text_content}")
+        
+        # Generate diff summary to alert users about modifications
+        diff_summary = _generate_text_diff_summary(texto_norma, texto_actualizado)
+        context_parts.append(f"\n⚠️ IMPORTANTE - La norma ha sido modificada:\n{diff_summary}")
+    elif texto_actualizado:
+        text_content = texto_actualizado
+        context_parts.append(f"\nTexto actualizado de la norma:\n{text_content}")
+    elif texto_norma:
+        text_content = texto_norma
+        context_parts.append(f"\nTexto de la norma:\n{text_content}")
+    # Priority 2: texto_resumido (if no texto_norma)
+    elif norma_data.get('texto_resumido'):
+        text_content = norma_data['texto_resumido']
+        context_parts.append(f"\nTexto resumido de la norma:\n{text_content}")
+    # Priority 3: titulo_sumario + titulo_resumido (if no texto_resumido)
+    else:
+        title_parts = []
+        if norma_data.get('titulo_sumario'):
+            title_parts.append(norma_data['titulo_sumario'])
+        if norma_data.get('titulo_resumido'):
+            title_parts.append(norma_data['titulo_resumido'])
+        
+        if title_parts:
+            text_content = " / ".join(title_parts)
+            context_parts.append(f"\nInformación disponible de la norma:\n{text_content}")
+    
+    # Ensure we never have empty context - if still empty, add at least basic info
+    if not text_content and not norma_data.get('titulo_resumido') and not norma_data.get('titulo_sumario'):
+        # Last resort: add whatever basic info we have
+        if norma_data.get('tipo_norma'):
+            context_parts.append(f"\nInformación disponible: Tipo de norma: {norma_data['tipo_norma']}")
+        elif context_parts:
+            # We have some basic info, that's fine
+            pass
+        else:
+            # Absolute fallback
+            context_parts.append("\nNorma legal (sin contenido textual disponible)")
     
     # Add structured divisions if available
     if norma_data.get('divisions'):
@@ -697,7 +808,13 @@ def build_norma_text_context(norma_data: Dict[str, Any]) -> str:
         for division in norma_data['divisions']:
             _add_division_to_context(context_parts, division, level=1)
     
-    return "\n".join(context_parts)
+    result = "\n".join(context_parts)
+    
+    # Final safety check - never return empty string
+    if not result or not result.strip():
+        return "Norma legal (información limitada disponible)"
+    
+    return result
 
 
 def _add_division_to_context(context_parts: List[str], division: Dict[str, Any], level: int):
