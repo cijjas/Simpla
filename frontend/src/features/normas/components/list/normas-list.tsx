@@ -101,7 +101,7 @@ export function NormasList() {
   // Empty state (only when not loading and no data)
   if (!loading && (!data || data.normas.length === 0)) {
     return (
-      <section className='relative flex flex-col items-center justify-center h-full overflow-hidden px-4 md:px-6 py-4'>
+      <section className='relative flex flex-col items-center justify-start md:justify-center h-full overflow-hidden px-4 md:px-6 py-4 md:py-4 pt-8'>
         {/* Background grid cards - realistic layout */}
         <div className='absolute inset-0 px-4 md:px-6 py-4 pointer-events-none'>
           <div 
@@ -132,16 +132,16 @@ export function NormasList() {
 
         {/* Main Content */}
         <div className='relative z-10 w-full max-w-xl mx-auto'>
-          <div className='flex flex-col items-center text-center space-y-6 bg-background rounded-2xl p-8 border shadow-sm'>
+          <div className='flex flex-col items-center text-center space-y-6 bg-background rounded-2xl p-6 md:p-8 border shadow-sm'>
             {/* Icon */}
 
             <SvgSearch  
-              className='size-60'
+              className='size-48 md:size-60'
               fill='currentColor'
               />
             {/* Text Content */}
             <div className='space-y-3 max-w-md'>
-              <h2 className='text-2xl sm:text-3xl font-serif font-bold tracking-tight'>
+              <h2 className='text-xl md:text-2xl lg:text-3xl font-serif font-bold tracking-tight'>
                 No se encontraron normas
               </h2>
               
@@ -268,12 +268,13 @@ export function NormasList() {
               onValueChange={value => {
                 if (value) handleViewChange(value as 'list' | 'grid');
               }}
-              className='gap-1'
+              className='gap-0'
             >
               <ToggleGroupItem
                 value='grid'
                 aria-label='Vista en cuadrícula'
                 size='sm'
+                className='rounded-r-none border-r-0'
               >
                 <LayoutGrid className='h-4 w-4' />
               </ToggleGroupItem>
@@ -281,6 +282,7 @@ export function NormasList() {
                 value='list'
                 aria-label='Vista en lista'
                 size='sm'
+                className='rounded-l-none'
               >
                 <List className='h-4 w-4' />
               </ToggleGroupItem>
@@ -423,11 +425,12 @@ export function NormasList() {
               onValueChange={value => {
                 if (value) handleViewChange(value as 'list' | 'grid');
               }}
+              className='gap-0'
             >
-              <ToggleGroupItem value='grid' aria-label='Vista en cuadrícula'>
+              <ToggleGroupItem value='grid' aria-label='Vista en cuadrícula' className='rounded-r-none border-r-0'>
                 <LayoutGrid className='size-4' />
               </ToggleGroupItem>
-              <ToggleGroupItem value='list' aria-label='Vista en lista'>
+              <ToggleGroupItem value='list' aria-label='Vista en lista' className='rounded-l-none'>
                 <List className='size-4' />
               </ToggleGroupItem>
             </ToggleGroup>

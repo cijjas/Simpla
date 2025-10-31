@@ -29,9 +29,10 @@ import { NormaFilters } from '../../api/normas-api';
 interface NormasFilterProps {
   loading?: boolean;
   onFilterApplied?: () => void;
+  mobileMode?: boolean; // When true, only shows search input
 }
 
-export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
+export function NormasFilter({ loading, onFilterApplied, mobileMode = false }: NormasFilterProps) {
   const {
     filterOptions,
     currentFilters,
@@ -151,8 +152,16 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
 
   // Handle Enter key press to apply filters
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && hasChanges && !loading) {
-      handleApplyFilters();
+    if (e.key === 'Enter' && !loading) {
+      if (mobileMode) {
+        // On mobile, apply search immediately when Enter is pressed
+        // Only search term changes trigger immediate search
+        if (pendingFilters.search_term !== currentFilters.search_term) {
+          handleApplyFilters();
+        }
+      } else if (hasChanges) {
+        handleApplyFilters();
+      }
     }
   };
 
@@ -174,9 +183,50 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
     onFilterApplied?.();
   };
 
+  // Mobile mode: only show search input (standard simple search)
+  if (mobileMode) {
+    return (
+      <div className='w-full'>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!loading) {
+              handleApplyFilters();
+            }
+          }}
+          className='flex gap-2'
+        >
+          <div className='relative flex-1'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none z-10' />
+            <Input
+              id='mobile-search'
+              type='search'
+              className='pl-9 h-10 text-base bg-background w-full'
+              placeholder='Buscar en normas...'
+              value={pendingFilters.search_term || ''}
+              onChange={e => handleSearchTermChange(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={loading}
+              autoComplete='off'
+              enterKeyHint='search'
+            />
+          </div>
+          <Button
+            type='submit'
+            size='sm'
+            className='h-10 px-4 flex-shrink-0'
+            disabled={loading || (!pendingFilters.search_term?.trim() && !currentFilters.search_term)}
+          >
+            Buscar
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className='w-full'>
-      <div className='space-y-3 p-1'>
+      <div className='space-y-4 md:space-y-3 p-2 md:p-1'>
         {/* Search Term */}
         <div className='w-full'>
           <Label htmlFor='search' className='text-xs'>
@@ -187,7 +237,7 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
             <Input
               id='search'
               className='pl-9 h-9 text-sm bg-background'
-              placeholder='Buscar...'
+              placeholder='Buscar en normas...'
               value={pendingFilters.search_term || ''}
               onChange={e => handleSearchTermChange(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -409,7 +459,7 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
             onClick={handleClearAll}
             disabled={!hasActiveFilters || loading}
             size='sm'
-            className='w-1/3'
+            className='flex-1 min-w-0'
           >
             Limpiar
           </Button>
@@ -417,9 +467,9 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
             onClick={handleApplyFilters}
             disabled={!hasChanges || loading}
             size='sm'
-            className='w-2/3'
+            className='flex-[2] min-w-0'
           >
-            Aplicar Filtros
+            <span className='truncate'>Aplicar Filtros</span>
           </Button>
         </div>
       </div>
