@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,39 +42,26 @@ export function NormasFilter({ loading, onFilterApplied, mobileMode = false }: N
   } = useNormasFilters();
 
   // Local pending state for filters (not applied until button click)
-  const [pendingFilters, setPendingFilters] = useState<Partial<NormaFilters>>({});
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Initialize with current filters from URL
+  const [pendingFilters, setPendingFilters] = useState<Partial<NormaFilters>>(() => ({
+    search_term: currentFilters.search_term,
+    numero: currentFilters.numero,
+    dependencia: currentFilters.dependencia,
+    titulo_sumario: currentFilters.titulo_sumario,
+    tipo_norma: currentFilters.tipo_norma,
+    año_sancion: currentFilters.año_sancion,
+    nro_boletin: currentFilters.nro_boletin,
+    pag_boletin: currentFilters.pag_boletin,
+    publicacion_desde: currentFilters.publicacion_desde,
+    publicacion_hasta: currentFilters.publicacion_hasta,
+  }));
   const [dependenciaOpen, setDependenciaOpen] = useState(false);
-
-  // Initialize pending filters from URL on mount
-  useEffect(() => {
-    if (!isInitialized) {
-      setPendingFilters({
-        search_term: currentFilters.search_term,
-        numero: currentFilters.numero,
-        dependencia: currentFilters.dependencia,
-        titulo_sumario: currentFilters.titulo_sumario,
-        tipo_norma: currentFilters.tipo_norma,
-        año_sancion: currentFilters.año_sancion,
-        nro_boletin: currentFilters.nro_boletin,
-        pag_boletin: currentFilters.pag_boletin,
-        publicacion_desde: currentFilters.publicacion_desde,
-        publicacion_hasta: currentFilters.publicacion_hasta,
-      });
-      setIsInitialized(true);
-    }
-  }, [currentFilters, isInitialized]);
 
   // Parse date range from pending filters
   const dateRange = useMemo(() => {
-    const range: { from?: Date; to?: Date } = {};
-    if (pendingFilters.publicacion_desde) {
-      range.from = new Date(pendingFilters.publicacion_desde);
-    }
-    if (pendingFilters.publicacion_hasta) {
-      range.to = new Date(pendingFilters.publicacion_hasta);
-    }
-    return range;
+    const from = pendingFilters.publicacion_desde ? new Date(pendingFilters.publicacion_desde) : undefined;
+    const to = pendingFilters.publicacion_hasta ? new Date(pendingFilters.publicacion_hasta) : undefined;
+    return { from, to };
   }, [pendingFilters.publicacion_desde, pendingFilters.publicacion_hasta]);
 
   // Check if pending filters differ from current filters
@@ -443,11 +430,14 @@ export function NormasFilter({ loading, onFilterApplied, mobileMode = false }: N
           <Label className='text-xs'>Fecha de Publicación</Label>
           <div className='mt-1'>
             <DateRangePicker
-              placeholder='Desde - Hasta'
-              initialDateFrom={dateRange.from}
-              initialDateTo={dateRange.to}
-              onUpdate={({ range }) => handleDateRangeChange(range)}
-              className='h-9 text-sm bg-background'
+              className="w-full"
+              value={dateRange.from || dateRange.to ? dateRange : undefined}
+              onSelect={(range) => {
+                handleDateRangeChange({
+                  from: range?.from,
+                  to: range?.to,
+                })
+              }}
             />
           </div>
         </div>

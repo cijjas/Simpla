@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDatePretty } from '@/lib/utils';
 import { useBookmarkToggle } from '@/features/bookmark';
+import { getNombreNorma } from '@/features/normas/utils/norma-utils';
 import type { NormaSummary } from '@/features/normas/api/normas-api';
 
 interface NormaCardProps {
@@ -23,19 +24,6 @@ export function NormaCard({ norma, isBookmarked: initialBookmarked }: NormaCardP
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.preventDefault();
     toggleBookmark();
-  };
-
-  // Generate display name from tipo_norma and referencia.numero
-  const getNombreNorma = () => {
-    if (norma.tipo_norma && norma.referencia?.numero) {
-      // get the year from the norma.sancion in format 'YYYY-MM-DD'
-      const year = norma.sancion?.split('-')[0];
-      return `${norma.tipo_norma} ${norma.referencia.numero}/${year}`;
-    }
-    if (norma.tipo_norma) {
-      return norma.tipo_norma;
-    }
-    return 'NORMA';
   };
 
   return (
@@ -83,7 +71,7 @@ export function NormaCard({ norma, isBookmarked: initialBookmarked }: NormaCardP
             {/* Top line with tipo + número */}
             <div className="flex flex-wrap items-center justify-between w-full">
               <div className="font-serif font-bold text-base leading-tight text-foreground">
-                {getNombreNorma()}
+                {getNombreNorma(norma)}
               </div>
               {norma.jurisdiccion && (
                 <Badge className="font-semibold rounded-full" variant="default">

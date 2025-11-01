@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 // Extend Window interface for Speech Recognition API
 interface SpeechRecognitionResult {
@@ -42,7 +42,7 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, ArrowUp, ChevronDown, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, ArrowUp, ChevronDown, Mic, MicOff, X, Quote } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -64,7 +64,11 @@ interface NormasAIChatProps {
   infolegId?: number;
 }
 
-export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
+export interface NormasAIChatRef {
+  openWithContext: (text: string) => void;
+}
+
+export const NormasAIChat = forwardRef<NormasAIChatRef, NormasAIChatProps>(function NormasAIChat({ normaId, infolegId }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -75,6 +79,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [interimText, setInterimText] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const [contextQuote, setContextQuote] = useState<string | null>(null);
   
   // Resizable chat dimensions with viewport-aware limits (desktop only)
   const [chatDimensions, setChatDimensions] = useState(() => {
@@ -110,6 +115,20 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
   // Command center integration
   const toggleCommand = getCommandById('toggle-norma-chat');
   const toggleShortcut = toggleCommand ? getShortcutParts(toggleCommand) : [];
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    openWithContext: (text: string) => {
+      setIsOpen(true);
+      setContextQuote(text);
+      // Focus input after a brief delay to ensure it's rendered
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+    },
+  }), []);
 
   // Detect mobile on mount and resize
   useEffect(() => {
@@ -289,23 +308,29 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       stopDictation();
     }
 
+    // Build the question with context if available
+    const baseQuestion = inputValue.trim();
+    const questionWithContext = contextQuote 
+      ? `Estoy leyendo la siguiente parte de esta norma:\n\n"${contextQuote}"\n\nMi pregunta específica sobre este fragmento es: ${baseQuestion}`
+      : baseQuestion;
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: inputValue.trim(),
+      content: baseQuestion,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = inputValue.trim();
     setInputValue('');
+    setContextQuote(null); // Clear context after sending
     setIsLoading(true);
 
     try {
       // Use the same endpoint as the old norma chat
       const response = await api.post<{ answer: string; norma_id: number; session_id: string }>('/api/norma-chat', {
         norma_id: infolegId || normaId, // Use infolegId if available, fallback to normaId
-        question: currentInput,
+        question: questionWithContext,
         session_id: sessionId // Include existing session ID for conversation continuity
       });
 
@@ -509,7 +534,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
             <div className="max-w-0 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-xs group-hover:opacity-100 group-hover:mr-2">
               <span className="whitespace-nowrap">  
                 Preguntale a {' '}
-                <span className="font-serif font-thin italic">Simpla</span>
+                <span className="font-serif font-thin italic">Themis</span>
               </span>
             </div>
           )}
@@ -651,6 +676,32 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
             )}
             </div>
 
+          {/* Context Quote */}
+          {contextQuote && (
+            <div className="px-3 pb-2 flex-shrink-0 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="relative bg-muted/50 border border-border rounded-lg p-3 pr-8">
+                <div className="flex items-start gap-2">
+                  <Quote className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Contexto</p>
+                    <p className="text-sm text-foreground/90 line-clamp-3 break-words">
+                      {contextQuote}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-background"
+                  onClick={() => setContextQuote(null)}
+                  title="Remover contexto"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Input Area */}
           <div className="px-3 pb-4 flex-shrink-0">
             <InputGroup className="rounded-xl pr-0 bg-card border border-border ">
@@ -705,4 +756,4 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       </Card>
     </div>
   );
-}
+});

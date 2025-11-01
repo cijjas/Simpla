@@ -1,542 +1,377 @@
-/* eslint-disable max-lines */
-'use client';
+"use client"
 
-import React, { useState, useEffect, type JSX, forwardRef } from 'react';
-import { Button } from './button';
-import { Calendar } from './calendar';
-import { DateInput } from './date-input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './select';
-import { CheckIcon } from '@radix-ui/react-icons';
-import { cn, formatDatePretty } from '@/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from './dialog';
-import { Separator } from './separator';
-import { CalendarFold, CalendarIcon } from 'lucide-react';
-import { es } from 'date-fns/locale';
+import * as React from "react"
+import { CalendarIcon, X } from "lucide-react"
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns"
+import type { DateRange } from "react-day-picker"
+import { useTimescape } from "timescape/react"
 
-export interface DateRangePickerProps {
-  /** Click handler for applying the updates from DateRangePicker. */
-  onUpdate?: (values: { range: DateRange }) => void;
-  /** Initial value for start date */
-  initialDateFrom?: Date | string;
-  /** Initial value for end date */
-  initialDateTo?: Date | string;
-  /** Placeholder text for the date range picker */
-  placeholder?: string;
-  error?: string;
-  /** Optional className for the trigger button */
-  className?: string;
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
+
+const timePickerInputBase =
+  "shadow-none font-serif font-bold text-card-foreground p-1 inline tabular-nums h-fit border-none outline-none select-none content-box caret-transparent rounded-sm min-w-8 text-center focus:bg-muted focus-visible:ring-1 focus-visible:outline-none"
+
+type DateFormat = "days" | "months" | "years"
+type InputPlaceholders = Record<DateFormat, string>
+const INPUT_PLACEHOLDERS: InputPlaceholders = {
+  months: "MM",
+  days: "DD",
+  years: "YYYY",
 }
 
-const getDateAdjustedForTimezone = (
-  dateInput: Date | string | undefined,
-): Date | undefined => {
-  if (dateInput == null) return undefined;
-  if (typeof dateInput === 'string') {
-    const [year, month, day] = dateInput.split('-').map(Number);
-    return new Date(Date.UTC(year, month - 1, day));
-  }
-  return dateInput;
-};
-
-interface DateRange {
-  from?: Date;
-  to?: Date;
+interface DateInputProps {
+  value?: Date
+  onChange?: (date: Date | undefined) => void
+  maxDate?: Date
+  className?: string
 }
 
-interface Preset {
-  name: string;
-  label: string;
-}
+function DateInput({ value, onChange, maxDate, className }: DateInputProps) {
+  const isUpdatingFromProp = React.useRef(false)
+  const prevValue = React.useRef<Date | undefined>(value)
 
-// Define presets
-const PRESETS: Preset[] = [
-  { name: 'today', label: 'Hoy' },
-  { name: 'yesterday', label: 'Ayer' },
-  { name: 'thisWeek', label: 'Esta semana' },
-  { name: 'lastWeek', label: 'Semana pasada' },
-  { name: 'thisMonth', label: 'Este mes' },
-  { name: 'last7', label: 'Últimos 7 días' },
-  { name: 'last30', label: 'Últimos 30 días' },
-  { name: 'lastYear', label: 'Último año' },
-  { name: 'last4Years', label: 'Últimos 4 años' },
-];
+  const handleDateChange = React.useCallback(
+    (nextDate: Date | undefined) => {
+      if (isUpdatingFromProp.current) return
+      if (nextDate && maxDate && nextDate > maxDate) return
+      onChange?.(nextDate)
+    },
+    [onChange, maxDate],
+  )
 
-/* -----------------------------------------------------------------------
- * Helpers
- * --------------------------------------------------------------------*/
-//  1️⃣   “Today” at 00:00 in Buenos Aires (never moves during the session)
-const getTodayBA = (): Date => {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
+  const timescape = useTimescape({
+    date: value || new Date(),
+    onChangeDate: handleDateChange,
   })
-    .format(new Date()) // yyyy‑mm‑dd
-    .split('-')
-    .map(Number);
-  const [y, m, d] = parts;
-  return new Date(y, m - 1, d, 0, 0, 0, 0);
-};
-const TODAY_BA = getTodayBA();
 
-//   2️⃣   Reject any date later than TODAY_BA
-const isFuture = (date: Date): boolean => date > TODAY_BA;
+  React.useEffect(() => {
+    if (value && timescape.update && value.getTime() !== prevValue.current?.getTime()) {
+      isUpdatingFromProp.current = true
+      timescape.update({ date: value })
+      prevValue.current = value
+      setTimeout(() => {
+        isUpdatingFromProp.current = false
+      }, 0)
+    }
+  }, [value])
 
-/**
- * DateRangePicker – separates the *committed* range (saved) from the *draft* range (being edited).
- *
- * Behaviour
- *  - If `initialDateFrom/To` are provided → they become the *committed* range and are shown on the button immediately.
- *  - If not provided → the committed range starts **undefined** so the button shows the placeholder «Fechas de publicación».
- *    When the dialog opens we still pre‑populate the calendar with *today → today* so the user has something handy to begin with.
- *  - Clicking «Guardar» copies the draftRange into committedRange **and** fires `onUpdate` (if the range really changed).
- *  - Clicking «Cancelar» or closing the dialog discards the draft.
- */
-export const DateRangePicker = forwardRef<
-  HTMLButtonElement,
-  DateRangePickerProps
->(
-  (
-    { initialDateFrom, initialDateTo, placeholder, error, onUpdate, className, ...props },
-    ref,
-  ) => {
-    /* ---------------------------------------------------------------------
-     * Internal helpers & constants
-     * -------------------------------------------------------------------*/
-    const buildTodayRange = (): DateRange => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return { from: today, to: today };
-    };
+  const rootProps = timescape.getRootProps()
+  const { ref, ...restRootProps } = rootProps as { ref?: React.Ref<HTMLDivElement> }
 
-    const initialCommitted: DateRange | undefined =
-      initialDateFrom != null
-        ? {
-            from: getDateAdjustedForTimezone(initialDateFrom),
-            to:
-              getDateAdjustedForTimezone(initialDateTo) ??
-              getDateAdjustedForTimezone(initialDateFrom),
-          }
-        : undefined;
+  return (
+    <div
+      ref={ref}
+      className={cn("flex items-center gap-1 rounded-md", className)}
+      {...restRootProps}
+    >
+      <Input
+        className={cn(timePickerInputBase, "min-w-8")}
+        {...timescape.getInputProps("days")}
+        placeholder={INPUT_PLACEHOLDERS.days}
+      />
+      <span className="text-xs text-muted-foreground">/</span>
+      <Input
+        className={cn(timePickerInputBase, "min-w-8")}
+        {...timescape.getInputProps("months")}
+        placeholder={INPUT_PLACEHOLDERS.months}
+      />
+      <span className="text-xs text-muted-foreground">/</span>
+      <Input
+        className={cn(timePickerInputBase, "min-w-12")}
+        {...timescape.getInputProps("years")}
+        placeholder={INPUT_PLACEHOLDERS.years}
+      />
+    </div>
+  )
+}
 
-    /**
-     * committedRange – what the outside world currently ‘has’.
-     * draftRange – what the user is tweaking inside the modal.
-     */
-    const [committedRange, setCommittedRange] = useState<DateRange | undefined>(
-      initialCommitted,
-    );
-    const [draftRange, setDraftRange] = useState<DateRange>(
-      initialCommitted ?? buildTodayRange(),
-    );
-    const [isOpen, setIsOpen] = useState(false);
-    const [selectedPreset, setSelectedPreset] = useState<string | undefined>();
-    const [isSmallScreen, setIsSmallScreen] = useState(
-      typeof window !== 'undefined' ? window.innerWidth < 960 : false,
-    );
+interface DateRangePickerProps {
+  className?: string
+  value?: DateRange
+  onSelect?: (range: DateRange | undefined) => void
+}
 
-    /* ---------------------------------------------------------------------
-     * Synchronise external prop changes → committed state
-     * -------------------------------------------------------------------*/
-    useEffect(() => {
-      const updatedCommitted: DateRange | undefined =
-        initialDateFrom != null
-          ? {
-              from: getDateAdjustedForTimezone(initialDateFrom),
-              to:
-                getDateAdjustedForTimezone(initialDateTo) ??
-                getDateAdjustedForTimezone(initialDateFrom),
-            }
-          : undefined;
-      setCommittedRange(updatedCommitted);
-    }, [initialDateFrom, initialDateTo]);
+export function DateRangePicker({ className, value, onSelect }: DateRangePickerProps) {
+  const [open, setOpen] = React.useState(false)
+  const [isAnimating, setIsAnimating] = React.useState(false)
+  const [date, setDate] = React.useState<DateRange | undefined>(value)
+  const [tempDate, setTempDate] = React.useState<DateRange | undefined>()
+  const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date())
+  const [isMobile, setIsMobile] = React.useState(false)
 
-    /* ---------------------------------------------------------------------
-     * Responsive helper
-     * -------------------------------------------------------------------*/
-    useEffect(() => {
-      const handleResize = (): void =>
-        setIsSmallScreen(window.innerWidth < 960);
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }, []);
+  // Sync internal state with value prop
+  React.useEffect(() => {
+    if (value !== undefined) {
+      setDate(value)
+    }
+  }, [value])
 
-    /* ---------------------------------------------------------------------
-     * Preset highlight (for the ghost tick ✓)
-     * -------------------------------------------------------------------*/
-    useEffect(() => {
-      const match = PRESETS.find(p => {
-        const pr = getPresetRange(p.name);
-        return (
-          draftRange.from?.setHours(0, 0, 0, 0) ===
-            pr.from?.setHours(0, 0, 0, 0) &&
-          draftRange.to?.setHours(0, 0, 0, 0) === pr.to?.setHours(0, 0, 0, 0)
-        );
-      });
-      setSelectedPreset(match?.name);
-    }, [draftRange]);
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
 
-    /* ---------------------------------------------------------------------
-     * Modal open/close side‑effects
-     * -------------------------------------------------------------------*/
-    useEffect(() => {
-      if (isOpen) {
-        // Every time we open the dialog start the draft from the *committed* range (or today‑today)
-        setDraftRange(committedRange ?? buildTodayRange());
-      }
-    }, [isOpen]);
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
-    /* ---------------------------------------------------------------------
-     * Preset handling
-     * -------------------------------------------------------------------*/
-    const getPresetRange = (presetName: string): DateRange => {
-      const preset = PRESETS.find(({ name }) => name === presetName);
-      if (!preset) throw new Error(`Unknown date range preset: ${presetName}`);
-      const from = new Date();
-      const to = new Date();
-      const first = from.getDate() - from.getDay();
+  const presets = [
+    {
+      label: "Today",
+      getValue: () => ({
+        from: new Date(),
+        to: new Date(),
+      }),
+    },
+    {
+      label: "Yesterday",
+      getValue: () => ({
+        from: subDays(new Date(), 1),
+        to: subDays(new Date(), 1),
+      }),
+    },
+    {
+      label: "Last 7 days",
+      getValue: () => ({
+        from: subDays(new Date(), 6),
+        to: new Date(),
+      }),
+    },
+    {
+      label: "Last week",
+      getValue: () => ({
+        from: startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }),
+        to: endOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 }),
+      }),
+    },
+    {
+      label: "Last 30 days",
+      getValue: () => ({
+        from: subDays(new Date(), 29),
+        to: new Date(),
+      }),
+    },
+    {
+      label: "Last month",
+      getValue: () => ({
+        from: startOfMonth(subMonths(new Date(), 1)),
+        to: endOfMonth(subMonths(new Date(), 1)),
+      }),
+    },
+  ]
 
-      switch (preset.name) {
-        case 'today':
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'yesterday':
-          from.setDate(from.getDate() - 1);
-          to.setDate(to.getDate() - 1);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'last7':
-          from.setDate(from.getDate() - 6);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        
-        case 'last30':
-          from.setDate(from.getDate() - 29);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'thisWeek':
-          from.setDate(first);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'lastWeek':
-          from.setDate(from.getDate() - 7 - from.getDay());
-          to.setDate(to.getDate() - to.getDay() - 1);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'thisMonth':
-          from.setDate(1);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'lastMonth':
-          from.setMonth(from.getMonth() - 1);
-          from.setDate(1);
-          to.setMonth(to.getMonth() - 1);
-          to.setDate(0);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'lastYear':
-          from.setFullYear(from.getFullYear() - 1);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-        case 'last4Years':
-          from.setFullYear(from.getFullYear() - 4);
-          from.setHours(0, 0, 0, 0);
-          to.setHours(23, 59, 59, 999);
-          break;
-      }
+  const handlePresetClick = (preset: (typeof presets)[0]) => {
+    const range = preset.getValue()
+    setTempDate(range)
+  }
 
-      return { from, to };
-    };
+  const handleSubmit = () => {
+    setDate(tempDate)
+    onSelect?.(tempDate)
+    setIsAnimating(false)
+    setTimeout(() => {
+      setOpen(false)
+    }, 200)
+  }
 
-    const setPreset = (presetName: string): void => {
-      setDraftRange(getPresetRange(presetName));
-    };
+  const handleClear = () => {
+    setTempDate(undefined)
+  }
 
-    /* ---------------------------------------------------------------------
-     * Equality helper – used to decide if we should call onUpdate
-     * -------------------------------------------------------------------*/
-    const areRangesEqual = (a?: DateRange, b?: DateRange): boolean => {
-      if (a == null || b == null) return a === b;
-      return (
-        a.from?.getTime() === b.from?.getTime() &&
-        a.to?.getTime() === b.to?.getTime()
-      );
-    };
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setOpen(true)
+      setTempDate(date)
+      // Trigger animation on next frame to allow DOM to render first
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsAnimating(true)
+        })
+      })
+    } else {
+      setIsAnimating(false)
+      setTimeout(() => {
+        setOpen(false)
+      }, 200)
+    }
+  }
 
-    /* ---------------------------------------------------------------------
-     * Render helpers
-     * -------------------------------------------------------------------*/
-    const PresetButton = ({
-      preset,
-      label,
-      isSelected,
-    }: {
-      preset: string;
-      label: string;
-      isSelected: boolean;
-    }): JSX.Element => (
-      isSelected ? (
-        <Button
-          variant='default'
-          className={cn(
-            'justify-start w-full transition-all duration-200',
-            'bg-primary text-primary-foreground pointer-events-none',
-            'shadow-sm'
-          )}
-        >
-          <CheckIcon width={16} height={16} className="mr-2" />
-          {label}
-        </Button>
-      ) : (
-        <Button
-          variant='ghost'
-          className={cn(
-            'justify-start w-full transition-all duration-200',
-            'hover:bg-accent hover:text-accent-foreground',
-          )}
-          onClick={() => setPreset(preset)}
-        >
-          <span className="w-4 mr-2" />
-          {label}
-        </Button>
-      )
-    );
+  const formatDateRange = (range: DateRange | undefined) => {
+    if (!range?.from) {
+      return "Elegir rango de fechas"
+    }
 
-    /* ---------------------------------------------------------------------
-     * JSX
-     * -------------------------------------------------------------------*/
-    return (
-      <Dialog open={isOpen} onOpenChange={open => setIsOpen(open)}>
-        {/* -----------------------------------------------------------------
-         * Trigger Button
-         * ---------------------------------------------------------------*/}
-        <DialogTrigger asChild>
-          <Button
-            ref={ref}
-            variant='outline'
+    if (!range.to || format(range.from, "PP") === format(range.to, "PP")) {
+      return format(range.from, "PP")
+    }
+
+    return `${format(range.from, "PP")} - ${format(range.to, "PP")}`
+  }
+
+  const handleFromDateChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      const today = new Date()
+      today.setHours(23, 59, 59, 999)
+
+      if (newDate > today) return
+
+      setTempDate((prev) => {
+        const newRange = {
+          from: newDate,
+          to: prev?.to,
+        }
+
+        if (newRange.to && newRange.to < newDate) {
+          newRange.to = undefined
+        }
+
+        return newRange
+      })
+    }
+  }
+
+  const handleToDateChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      const today = new Date()
+      today.setHours(23, 59, 59, 999)
+
+      if (newDate > today) return
+
+      setTempDate((prev) => {
+        if (prev?.from && newDate < prev.from) {
+          return prev
+        }
+
+        return {
+          from: prev?.from,
+          to: newDate,
+        }
+      })
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        onClick={() => handleOpenChange(true)}
+        className={cn("justify-start text-left font-normal", !date && "text-muted-foreground", className)}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        {formatDateRange(date)}
+      </Button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
             className={cn(
-              'bg-card hover:bg-card cursor-pointer w-full max-w-full justify-between overflow-hidden text-ellipsis',
-              className,
+              "absolute inset-0 bg-black/50 transition-opacity duration-200",
+              isAnimating ? "opacity-100" : "opacity-0"
             )}
+            onClick={() => handleOpenChange(false)}
+          />
+
+          <div
+            className={cn(
+              "relative bg-background rounded-lg shadow-lg border transition-all duration-200 w-full max-w-full",
+              isMobile ? "max-w-[calc(100%-2rem)]" : "max-w-3xl",
+              isAnimating
+                ? "opacity-100 scale-100"
+                : "opacity-0 scale-95"
+            )}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className='flex flex-col text-left w-full overflow-hidden p-0 m-0'>
-              <div
-                className={cn(
-                  'truncate',
-                  !committedRange?.from && 'text-muted-foreground font-normal',
-                )}
+            <div className="flex items-center justify-between border-b px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="text-lg font-bold sm:text-xl font-serif">Seleccionar rango de fechas</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full hover:bg-accent"
+                onClick={() => handleOpenChange(false)}
               >
-                {committedRange?.from
-                  ? `${formatDatePretty(
-                      committedRange.from,
-                    )} → ${formatDatePretty(committedRange.to as Date)}`
-                  : placeholder}
-              </div>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            {isOpen ? (
-              <CalendarFold className='size-4 opacity-60' />
-            ) : (
-              <CalendarIcon className='size-4 opacity-60' />
-            )}
-          </Button>
-        </DialogTrigger>
 
-        {/* -----------------------------------------------------------------
-         * Dialog Content
-         * ---------------------------------------------------------------*/}
-        <DialogContent
-          className='bg-card w-full max-w-[95vw] sm:min-w-[768px] p-0 gap-0'
-          onOpenAutoFocus={e => e.preventDefault()}
-        >
-          <DialogHeader className='p-6 border-b bg-muted/30'>
-            <DialogTitle>Seleccionar fecha o rango de fechas</DialogTitle>
-          </DialogHeader>
-
-          {/* Main Content */}
-          <div className=''>
-            {/* Desktop Layout */}
-            {!isSmallScreen && (
-              <div className='flex gap-6'>
-                {/* Left Section: Date Inputs + Calendar */}
-                <div className='flex-1 p-4'>
-                  {/* Date Range Inputs */}
-                  <div className='flex items-center justify-center gap-2 pb-2'>
-                    <DateInput
-                      value={draftRange.from}
-                      onChange={date => {
-                        if (isFuture(date)) return;
-                        const toDate =
-                          !draftRange.to || date > draftRange.to ? date : draftRange.to;
-                        setDraftRange({
-                          ...draftRange,
-                          from: date,
-                          to: toDate,
-                        });
-                      }}
-                    />
-                    <div className='text-muted-foreground font-medium'>→</div>
-                    <DateInput
-                      value={draftRange.to}
-                      onChange={date => {
-                        if (isFuture(date)) return;
-                        const fromDate =
-                          date < (draftRange.from as Date) ? date : draftRange.from;
-                        setDraftRange({
-                          ...draftRange,
-                          from: fromDate,
-                          to: date,
-                        });
-                      }}
-                    />
-                  </div>
-
-                  {/* Calendar */}
-                  <div className='flex justify-center'>
-                    <Calendar
-                      mode='range'
-                      selected={
-                        draftRange.from && draftRange.to
-                          ? { from: draftRange.from, to: draftRange.to }
-                          : undefined
-                      }
-                      onSelect={v => {
-                        if (v?.from && !isFuture(v.from)) {
-                          const safeTo = v.to && !isFuture(v.to) ? v.to : v.from;
-                          setDraftRange({ from: v.from, to: safeTo });
-                        }
-                      }}
-                      numberOfMonths={2}
-                      defaultMonth={
-                        new Date(TODAY_BA.getFullYear(), TODAY_BA.getMonth() - 1)
-                      }
-                      disabled={isFuture}
-                      showOutsideDays={false}
-                      styles={{
-                        cell: { minWidth: '32px' },
-                      }}
-                      locale={es}
-                    />
-                  </div>
+            {isMobile ? (
+              <div className="p-4 space-y-4">
+                <div className="flex items-center justify-center gap-3">
+                  <DateInput value={tempDate?.from} onChange={handleFromDateChange} maxDate={new Date()} />
+                  <span className="text-muted-foreground font-medium">—</span>
+                  <DateInput value={tempDate?.to} onChange={handleToDateChange} maxDate={new Date()} />
                 </div>
 
-                {/* Separator */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground mb-2 text-center font-serif">Predefinidas</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {presets.map((preset) => (
+                      <Button
+                        key={preset.label}
+                        variant="ghost"
+                        className="font-normal hover:bg-accent text-sm"
+                        onClick={() => handlePresetClick(preset)}
+                      >
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex">
+                <div className="p-6 space-y-6">
+                  <div className="flex justify-center items-center gap-3">
+                    <DateInput value={tempDate?.from} onChange={handleFromDateChange} maxDate={new Date()} />
+                    <span className="text-muted-foreground font-medium">—</span>
+                    <DateInput value={tempDate?.to} onChange={handleToDateChange} maxDate={new Date()} />
+                  </div>
 
-                {/* Right Section: Preset Buttons */}
-                <div className='min-w-[180px] flex flex-col gap-1 p-4' >
-                  {PRESETS.map(p => (
-                    <PresetButton
-                      key={p.name}
-                      preset={p.name}
-                      label={p.label}
-                      isSelected={selectedPreset === p.name}
-                    />
-                  ))}
+                  <Calendar
+                    mode="range"
+                    selected={tempDate}
+                    onSelect={setTempDate}
+                    numberOfMonths={2}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    disabled={(date) => date > new Date()}
+                    showOutsideDays={false}
+                    className="rounded-md"
+                  />
+                </div>
+
+                <div className="border-l bg-muted/30 p-6 w-64">
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground mb-4 font-serif">Predefinidas</p>
+                    {presets.map((preset) => (
+                      <Button
+                        key={preset.label}
+                        variant="ghost"
+                        className="w-full justify-start font-normal hover:bg-accent"
+                        onClick={() => handlePresetClick(preset)}
+                      >
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Mobile Layout */}
-            {isSmallScreen && (
-              <>
-                {/* Date Range Inputs */}
-                <div className='flex items-center justify-center gap-3 mb-6'>
-                  <DateInput
-                    value={draftRange.from}
-                    onChange={date => {
-                      if (isFuture(date)) return;
-                      const toDate =
-                        !draftRange.to || date > draftRange.to ? date : draftRange.to;
-                      setDraftRange({
-                        ...draftRange,
-                        from: date,
-                        to: toDate,
-                      });
-                    }}
-                  />
-                  <div className='text-muted-foreground font-medium'>→</div>
-                  <DateInput
-                    value={draftRange.to}
-                    onChange={date => {
-                      if (isFuture(date)) return;
-                      const fromDate =
-                        date < (draftRange.from as Date) ? date : draftRange.from;
-                      setDraftRange({
-                        ...draftRange,
-                        from: fromDate,
-                        to: date,
-                      });
-                    }}
-                  />
-                </div>
-
-                {/* Mobile Preset Select */}
-                <div className='mb-6'>
-                  <Select
-                    defaultValue={selectedPreset}
-                    onValueChange={value => setPreset(value)}
-                  >
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Seleccionar período...' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRESETS.map(p => (
-                        <SelectItem key={p.name} value={p.name}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
+            <div className="border-t bg-muted/20 px-4 py-3 sm:px-6 sm:py-4 flex justify-end gap-3">
+              <Button variant="outline" onClick={handleClear} className="min-w-20 bg-transparent">
+                Limpiar
+              </Button>
+              <Button onClick={handleSubmit} className="min-w-20">
+                Aplicar
+              </Button>
+            </div>
           </div>
-
-          {/* Footer buttons */}
-          <DialogFooter className='flex justify-end gap-2 p-4 border-t bg-muted/30'>
-            <Button
-              variant='outline'
-              onClick={() => {
-                setIsOpen(false); // auto‑discard draft
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                setIsOpen(false);
-                if (!areRangesEqual(draftRange, committedRange)) {
-                  setCommittedRange(draftRange);
-                  onUpdate?.({ range: draftRange });
-                }
-              }}
-            >
-              Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  },
-);
-
-DateRangePicker.displayName = 'DateRangePicker';
+        </div>
+      )}
+    </>
+  )
+}

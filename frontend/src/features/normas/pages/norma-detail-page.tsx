@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +17,8 @@ import { useRelatedNormas } from '../hooks/use-related-normas';
 import { useNormaExpansion } from '../hooks/use-norma-expansion';
 import { useNormaSidebar } from '../hooks/use-norma-sidebar';
 import { useNormaRelaciones } from '../hooks/use-norma-relaciones';
-import { NormaHeader, NormaSidebar, NormaBody, NormaControls, NormaActions, NormasAIChat } from '../components';
+import { getNombreNorma } from '../utils/norma-utils';
+import { NormaHeader, NormaSidebar, NormaBody, NormaControls, NormaActions, NormasAIChat, type NormasAIChatRef } from '../components';
 
 interface NormaDetailPageProps {
   infolegId: number;
@@ -31,6 +32,16 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
   const [open, setOpen] = useState<string[]>([]);
   const [showOriginal, setShowOriginal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  
+  // Ref to control the AI chat
+  const chatRef = useRef<NormasAIChatRef>(null);
+  
+  // Handler to open chat with selected text
+  const handleAskThemis = (selectedText: string) => {
+    if (chatRef.current) {
+      chatRef.current.openWithContext(selectedText);
+    }
+  };
 
   const modificaIds = useMemo(
     () =>
@@ -73,18 +84,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
 
   // Prepare sidebar props (used after early returns, so we use safe defaults)
   const normaTitle = norma?.titulo_resumido || norma?.titulo_sumario || 'Normativa';
-  const getNombreNorma = () => {
-    if (!norma) return 'NORMA';
-    if (norma.tipo_norma && norma.referencia?.numero) {
-      const year = norma.sancion?.split('-')[0];
-      return `${norma.tipo_norma} ${norma.referencia.numero}/${year}`;
-    }
-    if (norma.tipo_norma) {
-      return norma.tipo_norma;
-    }
-    return 'NORMA';
-  };
-  const nombreNorma = getNombreNorma();
+  const nombreNorma = norma ? getNombreNorma(norma) : 'NORMA';
 
   if (loading) {
     return (
@@ -275,6 +275,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
                   observaciones: norma.observaciones ?? null,
                   texto_norma: norma.texto_norma ?? null,
                   texto_resumido: norma.texto_resumido ?? null,
+                  referencia: norma.referencia,
                 }}
                 open={open}
                 onOpenChange={setOpen}
@@ -346,6 +347,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
               onToggleDivision={toggleDivision}
               onToggleArticle={toggleArticle}
               divisionRefs={divisionRefs.current}
+              onAskThemis={handleAskThemis}
             />
           </section>
         </div>
@@ -353,6 +355,7 @@ export function NormaDetailPage({ infolegId }: NormaDetailPageProps) {
 
       {/* AI Chat Component */}
       <NormasAIChat 
+        ref={chatRef}
         normaId={norma.id} 
         infolegId={norma.infoleg_id} 
       />

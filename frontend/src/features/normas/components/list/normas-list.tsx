@@ -10,17 +10,52 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Eye,
-  ExternalLink,
   LayoutGrid,
   List,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useNormasSearch } from '../../hooks/use-normas-search';
 import { NormaCard } from './norma-card';
+import { NormaListItem } from './norma-list-item';
 import SvgSearch from '@/../public/svgs/search.svg';
 import { useBatchBookmarks } from '@/features/bookmark';
+import type { NormaSummary } from '@/features/normas/api/normas-api';
+
+// List view container component
+interface NormasListViewProps {
+  normas: NormaSummary[];
+  isBookmarked: (infolegId: number) => boolean;
+}
+
+function NormasListView({ normas, isBookmarked }: NormasListViewProps) {
+  return (
+    <div className='flex-1 overflow-hidden'>
+      <div className='h-full overflow-y-auto'>
+        {/* Table Header */}
+        <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
+          <div className='grid grid-cols-12 gap-3 px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
+            <div className='col-span-3'>Norma</div>
+            <div className='col-span-4'>Descripción</div>
+            <div className='col-span-2'>Detalles</div>
+            <div className='col-span-2'>Publicación</div>
+            <div className='col-span-1 text-right'>Acciones</div>
+          </div>
+        </div>
+
+        {/* Table Rows */}
+        <div className='divide-y divide-border'>
+          {normas.map((norma, index) => (
+            <NormaListItem
+              key={norma.id}
+              norma={norma}
+              isBookmarked={isBookmarked(norma.infoleg_id)}
+              index={index}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function NormasList() {
   const {
@@ -49,27 +84,19 @@ export function NormasList() {
 
   // View state management with localStorage persistence
   const STORAGE_KEY = 'normasViewPreference';
-  const [view, setView] = useState<'list' | 'grid'>('grid');
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'list' || saved === 'grid') {
-      setView(saved);
+  const [view, setView] = useState<'list' | 'grid'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === 'list' || saved === 'grid') {
+        return saved;
+      }
     }
-  }, []);
+    return 'grid';
+  });
 
   const handleViewChange = (v: 'list' | 'grid') => {
     setView(v);
     localStorage.setItem(STORAGE_KEY, v);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No especificada';
-    try {
-      return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
-    } catch {
-      return 'Fecha inválida';
-    }
   };
 
   const _getStatusColor = (estado?: string) => {
@@ -202,11 +229,11 @@ export function NormasList() {
         <div className='h-full overflow-y-auto'>
           {/* Table Header */}
           <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
-            <div className='grid grid-cols-12 gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
-              <div className='col-span-5'>Título</div>
-              <div className='col-span-2'>Fecha Publicación</div>
-              <div className='col-span-2'>Tipo</div>
-              <div className='col-span-2'>Boletín Oficial</div>
+            <div className='grid grid-cols-12 gap-3 px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
+              <div className='col-span-3'>Norma</div>
+              <div className='col-span-4'>Descripción</div>
+              <div className='col-span-2'>Detalles</div>
+              <div className='col-span-2'>Publicación</div>
               <div className='col-span-1 text-right'>Acciones</div>
             </div>
           </div>
@@ -214,16 +241,24 @@ export function NormasList() {
           {/* Row skeletons */}
           <div className='divide-y divide-border'>
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className='grid grid-cols-12 gap-4 px-4 py-3'>
-                <div className='col-span-5 space-y-2'>
+              <div key={i} className='grid grid-cols-12 gap-3 px-6 py-4'>
+                <div className='col-span-3 space-y-2'>
+                  <Skeleton className='h-5 w-3/4' />
+                  <Skeleton className='h-3 w-1/2' />
+                </div>
+                <div className='col-span-4 space-y-2'>
                   <Skeleton className='h-4 w-full' />
-                  <Skeleton className='h-3 w-2/3' />
+                  <Skeleton className='h-3 w-5/6' />
+                  <Skeleton className='h-3 w-4/6' />
                 </div>
-                <div className='col-span-2 flex items-center gap-2'>
-                  <Skeleton className='h-6 w-16' />
+                <div className='col-span-2 space-y-2'>
+                  <Skeleton className='h-6 w-20' />
+                  <Skeleton className='h-3 w-24' />
                 </div>
-                <Skeleton className='h-4 w-24 col-span-2' />
-                <Skeleton className='h-4 w-20 col-span-2' />
+                <div className='col-span-2 space-y-1'>
+                  <Skeleton className='h-4 w-24' />
+                  <Skeleton className='h-3 w-20' />
+                </div>
                 <div className='col-span-1 flex justify-end gap-1'>
                   <Skeleton className='h-8 w-8' />
                 </div>
@@ -454,106 +489,7 @@ export function NormasList() {
           </div>
         </div>
       ) : (
-        <div className='flex-1 overflow-hidden'>
-          {/* Normas List View - Table Rows */}
-          <div className='h-full overflow-y-auto'>
-            {/* Table Header */}
-            <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
-              <div className='grid grid-cols-12 gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
-                <div className='col-span-5'>Título</div>
-                <div className='col-span-2'>Fecha Publicación</div>
-                <div className='col-span-2'>Tipo</div>
-                <div className='col-span-2'>Boletín Oficial</div>
-                <div className='col-span-1 text-right'>Acciones</div>
-              </div>
-            </div>
-
-            {/* Table Rows */}
-            <div className='divide-y divide-border'>
-              {data?.normas.map((norma, index) => (
-                <div
-                  key={norma.id}
-                  className={`grid grid-cols-12 gap-4 px-4 py-3 transition-colors cursor-pointer group ${
-                    index % 2 === 0 ? 'bg-background' : 'bg-muted/80'
-                  } hover:bg-muted/50`}
-                  onClick={() =>
-                    (window.location.href = `/normas/${norma.infoleg_id}`)
-                  }
-                >
-                  {/* Title Column */}
-                  <div className='col-span-5 flex flex-col gap-1 min-w-0'>
-                    <h3 className='text-sm font-serif font-bold text-foreground truncate group-hover:text-primary'>
-                      {norma.titulo_resumido ||
-                        norma.titulo_sumario ||
-                        'Sin título'}
-                    </h3>
-                  </div>
-
-                  {/* Date Column */}
-                  <div className='col-span-2 flex items-center text-sm text-muted-foreground'>
-                    {norma.publicacion ? (
-                      <span>{formatDate(norma.publicacion)}</span>
-                    ) : (
-                      <span className='text-xs'>-</span>
-                    )}
-                  </div>
-
-                  {/* Type Column */}
-                  <div className='col-span-2 flex items-center text-sm text-muted-foreground'>
-                    {norma.tipo_norma ? (
-                      <span>{norma.tipo_norma}</span>
-                    ) : (
-                      <span className='text-xs'>-</span>
-                    )}
-                  </div>
-
-                  {/* Boletín Column */}
-                  <div className='col-span-2 flex items-center text-sm text-muted-foreground'>
-                    {norma.nro_boletin ? (
-                      <span className='truncate'>
-                        B.O. {norma.nro_boletin}
-                        {norma.pag_boletin
-                          ? ` • pág. ${norma.pag_boletin}`
-                          : ''}
-                      </span>
-                    ) : (
-                      <span className='text-xs'>-</span>
-                    )}
-                  </div>
-
-                  {/* Actions Column */}
-                  <div className='col-span-1 flex items-center justify-end gap-1'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity'
-                      onClick={e => {
-                        e.stopPropagation();
-                        window.location.href = `/normas/${norma.infoleg_id}`;
-                      }}
-                    >
-                      <Eye className='h-4 w-4' />
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity'
-                      onClick={e => {
-                        e.stopPropagation();
-                        window.open(
-                          `https://www.argentina.gob.ar/normativa/nacional/${norma.infoleg_id}`,
-                          '_blank',
-                        );
-                      }}
-                    >
-                      <ExternalLink className='h-4 w-4' />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <NormasListView normas={data?.normas || []} isBookmarked={isBookmarked} />
       )}
 
       {/* Pagination - Fixed at bottom */}

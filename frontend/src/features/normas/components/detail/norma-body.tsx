@@ -1,7 +1,9 @@
+'use client';
 import { sanitizeHtml } from '@/lib/sanitize-html';
-import { FileQuestion } from 'lucide-react';
 import { Division } from '@/features/normas/api/normas-api';
 import { NormaDivisionComponent } from './norma-division';
+import { TextSelectionTooltip } from './text-selection-tooltip';
+import { useRef } from 'react';
 
 interface NormaBodyProps {
   divisions: Division[];
@@ -13,6 +15,7 @@ interface NormaBodyProps {
   onToggleDivision: (divisionId: number) => void;
   onToggleArticle: (articleId: number) => void;
   divisionRefs: Map<number, HTMLDivElement>;
+  onAskThemis?: (selectedText: string) => void;
 }
 
 export function NormaBody({
@@ -25,7 +28,9 @@ export function NormaBody({
   onToggleDivision,
   onToggleArticle,
   divisionRefs,
+  onAskThemis,
 }: NormaBodyProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const hasNoContent =
     !divisions.length && !textoNorma && !textoNormaActualizado;
   const hasOriginalText = !!(textoNorma || textoNormaActualizado);
@@ -49,30 +54,38 @@ export function NormaBody({
 
   return (
     <>
-      {showOriginal && hasOriginalText ? (
-        <div
-          className='prose max-w-none text-muted-foreground norma-html font-serif text-justify'
-          dangerouslySetInnerHTML={{
-            __html: sanitizeHtml(
-              textoNorma || textoNormaActualizado || '',
-            ),
-          }}
+      <div ref={containerRef} className='w-full'>
+        {showOriginal && hasOriginalText ? (
+          <div
+            className='prose prose-sm max-w-none text-muted-foreground norma-html font-serif text-justify w-full'
+            dangerouslySetInnerHTML={{
+              __html: sanitizeHtml(
+                textoNorma || textoNormaActualizado || '',
+              ),
+            }}
+          />
+        ) : (
+          <div className='space-y-8 w-full'>
+            {divisions.map(division => (
+              <NormaDivisionComponent
+                key={division.id}
+                division={division}
+                level={0}
+                isExpanded={expandedDivisions.has(division.id)}
+                onToggleDivision={onToggleDivision}
+                expandedArticles={expandedArticles}
+                onToggleArticle={onToggleArticle}
+                divisionRef={el => el && divisionRefs.set(division.id, el)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      {onAskThemis && (
+        <TextSelectionTooltip 
+          containerRef={containerRef}
+          onAskThemis={onAskThemis}
         />
-      ) : (
-        <div className='space-y-8'>
-          {divisions.map(division => (
-            <NormaDivisionComponent
-              key={division.id}
-              division={division}
-              level={0}
-              isExpanded={expandedDivisions.has(division.id)}
-              onToggleDivision={onToggleDivision}
-              expandedArticles={expandedArticles}
-              onToggleArticle={onToggleArticle}
-              divisionRef={el => el && divisionRefs.set(division.id, el)}
-            />
-          ))}
-        </div>
       )}
     </>
   );

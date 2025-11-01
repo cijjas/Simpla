@@ -373,11 +373,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [authState.accessToken, clearAuth]);
 
-  // Initialize auth state on mount
+  // Initialize auth state on mount - only run once
   useEffect(() => {
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth with backend URL:', BACKEND_URL);
+
+        // Don't initialize if we're logging out
+        if (isLoggingOutRef.current) {
+          console.log('Skipping auth initialization - logout in progress');
+          if (mounted) {
+            setAuthState(prev => ({ ...prev, isLoading: false }));
+          }
+          return;
+        }
 
         // First, try to restore from localStorage and check if refresh is needed
         const {
@@ -389,32 +400,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (accessToken && user && !needsTokenRefresh) {
           // Token is valid and doesn't need refresh - restore immediately
           console.log('Found valid stored auth state, restoring immediately');
-          setAuthState({
-            user,
-            accessToken,
-            isLoading: false, // No need to load, token is valid
-            isAuthenticated: true,
-            isLoggingOut: false,
-          });
+          if (mounted) {
+            setAuthState({
+              user,
+              accessToken,
+              isLoading: false, // No need to load, token is valid
+              isAuthenticated: true,
+              isLoggingOut: false,
+            });
+          }
           return; // Exit early - no backend call needed
         }
 
         if (accessToken && user && needsTokenRefresh) {
           // Token exists but needs refresh - show loading state
           console.log('Found stored auth state but token needs refresh');
-          setAuthState({
-            user,
-            accessToken,
-            isLoading: true, // Still loading while we refresh
-            isAuthenticated: true,
-            isLoggingOut: false,
-          });
+          if (mounted) {
+            setAuthState({
+              user,
+              accessToken,
+              isLoading: true, // Still loading while we refresh
+              isAuthenticated: true,
+              isLoggingOut: false,
+            });
+          }
         }
 
         // Only attempt refresh if we're not already logging out and we need to
         // We always attempt refresh if no valid access token is present
         // The backend will tell us if the refresh token is missing or invalid
-        if (!isLoggingOutRef.current && (needsTokenRefresh || !accessToken)) {
+        if (needsTokenRefresh || !accessToken) {
           console.log('Attempting to restore session...');
 
           // Add timeout to prevent hanging
@@ -433,61 +448,75 @@ export function AuthProvider({ children }: AuthProviderProps) {
             if (!success) {
               // No valid refresh token - user needs to login
               console.log('Auth initialization complete - user needs to login');
-              setAuthState(prev => ({ ...prev, isLoading: false }));
+              if (mounted) {
+                setAuthState(prev => ({ ...prev, isLoading: false }));
+              }
             } else {
               console.log('Session restored successfully');
             }
           } catch (timeoutError) {
             console.error('Auth initialization timeout:', timeoutError);
-            setAuthState(prev => ({ ...prev, isLoading: false }));
+            if (mounted) {
+              setAuthState(prev => ({ ...prev, isLoading: false }));
+            }
           }
-        } else if (!needsTokenRefresh && !accessToken) {
+        } else if (!accessToken) {
           // No stored auth state and no refresh needed
           console.log('No stored auth state, user needs to login');
-          setAuthState(prev => ({ ...prev, isLoading: false }));
-        } else {
-          console.log(
-            'Skipping auth initialization - logout in progress or no refresh token cookie',
-          );
-          setAuthState(prev => ({ ...prev, isLoading: false }));
+          if (mounted) {
+            setAuthState(prev => ({ ...prev, isLoading: false }));
+          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        if (mounted) {
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+        }
       }
     };
 
     initializeAuth();
-  }, [refreshToken, restoreAuthState]);
+
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Auto-refresh token when it's about to expire
   useEffect(() => {
     if (!authState.accessToken || !authState.isAuthenticated) return;
 
-    const refreshInterval = setInterval(
-      async () => {
-        // Only refresh if we're still authenticated and not logging out
-        if (
-          authState.isAuthenticated &&
-          !isLoggingOutRef.current &&
-          authState.accessToken
-        ) {
-          // Check if token actually needs refresh before making the call
-          if (needsRefresh(authState.accessToken)) {
-            console.log('Token needs refresh, attempting refresh...');
-            const success = await refreshToken();
-            if (!success) {
-              clearInterval(refreshInterval);
-            }
-          } else {
-            console.log('Token is still valid, skipping refresh');
+    // Calculate interval based on token expiration time
+    const checkAndRefresh = async () => {
+      // Only refresh if we're still authenticated and not logging out
+      if (
+        authState.isAuthenticated &&
+        !isLoggingOutRef.current &&
+        authState.accessToken
+      ) {
+        // Check if token actually needs refresh before making the call
+        if (needsRefresh(authState.accessToken)) {
+          console.log('Token needs refresh, attempting refresh...');
+          const success = await refreshToken();
+          if (!success) {
+            return false; // Stop checking if refresh failed
           }
-        } else {
-          clearInterval(refreshInterval);
         }
-      },
-      10 * 60 * 1000,
-    ); // Check every 10 minutes instead of 5 to reduce frequency
+      }
+      return true;
+    };
+
+    // Initial check
+    checkAndRefresh();
+
+    // Set up interval to check every 5 minutes
+    const refreshInterval = setInterval(async () => {
+      const shouldContinue = await checkAndRefresh();
+      if (!shouldContinue) {
+        clearInterval(refreshInterval);
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
 
     return () => clearInterval(refreshInterval);
   }, [authState.accessToken, authState.isAuthenticated, refreshToken]);
