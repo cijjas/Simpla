@@ -494,7 +494,7 @@ export function NormasList() {
 
       {/* Pagination - Fixed at bottom */}
       {totalPages > 1 && (
-        <div className='flex-shrink-0 flex items-center justify-center gap-2 px-6 py-3 border-t bg-background'>
+        <div className='flex-shrink-0 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 border-t bg-background'>
           <Button
             variant='outline'
             size='sm'
@@ -502,9 +502,10 @@ export function NormasList() {
               onPageChange(Math.max(0, (data?.offset || 0) - (data?.limit || 12)))
             }
             disabled={loading || !hasPrevPage}
+            className='gap-1 px-2.5 sm:pl-2.5'
           >
-            <ChevronLeft className='h-4 w-4 mr-1' />
-            Anterior
+            <ChevronLeft className='h-4 w-4' />
+            <span className='hidden sm:inline'>Anterior</span>
           </Button>
 
           <div className='flex items-center gap-1'>
@@ -537,9 +538,10 @@ export function NormasList() {
               onPageChange((data?.offset || 0) + (data?.limit || 12))
             }
             disabled={loading || !hasNextPage}
+            className='gap-1 px-2.5 sm:pr-2.5'
           >
-            Siguiente
-            <ChevronRight className='h-4 w-4 ml-1' />
+            <span className='hidden sm:inline'>Siguiente</span>
+            <ChevronRight className='h-4 w-4' />
           </Button>
         </div>
       )}
