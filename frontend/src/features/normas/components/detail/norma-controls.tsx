@@ -23,16 +23,16 @@ export function NormaControls({
     <ButtonGroup>
       {hasStructure && (
         <ButtonGroup>
-          <Button variant="outline" onClick={onToggleExpansion}>
+          <Button variant="outline" onClick={onToggleExpansion} className="gap-2">
             {isExpanded ? (
               <>
                 <Minimize2 className="h-4 w-4" />
-                Contraer
+                <span className="hidden sm:inline">Contraer</span>
               </>
             ) : (
               <>
                 <Maximize2 className="h-4 w-4" />
-                Expandir
+                <span className="hidden sm:inline">Expandir</span>
               </>
             )}
           </Button>
@@ -40,16 +40,16 @@ export function NormaControls({
       )}
       {hasOriginalText && (
         <ButtonGroup>
-          <Button variant="outline" onClick={onToggleOriginal}>
+          <Button variant="outline" onClick={onToggleOriginal} className="gap-2">
             {showOriginal ? (
               <>
                 <LayoutList className="h-4 w-4" />
-                Ver estructura
+                <span className="hidden sm:inline">Ver estructura</span>
               </>
             ) : (
               <>
                 <FileText className="h-4 w-4" />
-                Ver original
+                <span className="hidden sm:inline">Ver original</span>
               </>
             )}
           </Button>
