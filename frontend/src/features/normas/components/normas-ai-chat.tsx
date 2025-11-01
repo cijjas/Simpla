@@ -42,7 +42,7 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, ArrowUp, ChevronDown, Mic, MicOff, X, Quote } from 'lucide-react';
+import { MessageCircle, ArrowUp, ChevronDown, Mic, X, Quote } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -50,6 +50,7 @@ import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { Kbd } from '@/components/ui/kbd';
 import { getCommandById, getShortcutParts } from '@/features/command-center';
 import { LoadingMessage } from '@/features/conversations/components/loading-message';
+import { Loader } from '@/components/prompt-kit/loader';
 
 interface Message {
   id: string;
@@ -711,7 +712,7 @@ export const NormasAIChat = forwardRef<NormasAIChatRef, NormasAIChatProps>(funct
                 value={inputValue + (interimText ? interimText : '')}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={isListening ? "Escuchando..." : "Conversa..."}
+                placeholder={isListening ? "Escuchando..." : "Que pregunta tenés?"}
                 className="  max-h-[120px] min-h-[40px] "
                 disabled={isLoading}
                 maxLength={500}
@@ -723,20 +724,12 @@ export const NormasAIChat = forwardRef<NormasAIChatRef, NormasAIChatProps>(funct
                   <InputGroupButton
                     className="h-8 w-8 p-0 rounded-lg relative"
                     size="sm"
-                    variant={isListening ? "default" : "ghost"}
+                    variant="ghost"
                     onClick={isListening ? stopDictation : startDictation}
                     disabled={isLoading}
                     title={isListening ? "Detener dictado" : "Iniciar dictado"}
                   >
-                    {isListening ? (
-                      <div className="relative">
-                        <MicOff className="h-4 w-4" />
-                        {/* Pulsing dot indicator */}
-                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
-                      </div>
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )}
+                    {isListening ? <Loader variant="wave" size="md" /> : <Mic className="h-4 w-4" />}
                   </InputGroupButton>
                   
                   {/* Send Button */}
