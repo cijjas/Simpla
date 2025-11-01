@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { LayoutGrid, List, Eye, ExternalLink } from 'lucide-react';
+import { LayoutGrid, List } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { NormaCard } from '@/features/normas/components/list/norma-card';
+import { NormaListItem } from '@/features/normas/components/list/norma-list-item';
 import { useBookmarks } from '../hooks/use-bookmarks';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import SvgSearch from '@/../public/svgs/search.svg';
 import Link from 'next/link';
 import { Kbd } from '@/components/ui/kbd';
@@ -17,23 +15,24 @@ import { Kbd } from '@/components/ui/kbd';
 export function BookmarkPage() {
   const { bookmarks, loading, loadingMore, hasMore, totalCount, loadMore } =
     useBookmarks({ pageSize: 12, skipStatusCheck: true });
-  const [view, setView] = useState<'list' | 'grid'>('grid');
+  
+  // View state management with sessionStorage persistence
+  const STORAGE_KEY = 'bookmarkViewPreference';
+  const [view, setView] = useState<'list' | 'grid'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved === 'list' || saved === 'grid') {
+        return saved;
+      }
+    }
+    return 'grid';
+  });
+  
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Load view preference from memory
-  useEffect(() => {
-    const saved = sessionStorage.getItem('bookmarkViewPreference');
-    if (saved === 'list' || saved === 'grid') {
-      setView(saved);
-    }
-  }, []);
-
-  // Save view preference to memory
-  const handleViewChange = (newView: 'list' | 'grid') => {
-    if (newView) {
-      setView(newView);
-      sessionStorage.setItem('bookmarkViewPreference', newView);
-    }
+  const handleViewChange = (v: 'list' | 'grid') => {
+    setView(v);
+    sessionStorage.setItem(STORAGE_KEY, v);
   };
 
   // Infinite scroll implementation
@@ -59,15 +58,6 @@ export function BookmarkPage() {
       }
     };
   }, [hasMore, loadingMore, loading, loadMore]);
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No especificada';
-    try {
-      return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
-    } catch {
-      return 'Fecha inválida';
-    }
-  };
 
   return (
     <div className='flex flex-col h-[calc(100vh-3.5rem)] overflow-hidden'>
@@ -113,12 +103,13 @@ export function BookmarkPage() {
                 onValueChange={value => {
                   if (value) handleViewChange(value as 'list' | 'grid');
                 }}
-                className='gap-1'
+                className='gap-0'
               >
                 <ToggleGroupItem
                   value='grid'
                   aria-label='Vista en cuadrícula'
                   size='sm'
+                  className='rounded-r-none border-r-0'
                 >
                   <LayoutGrid className='size-4' />
                 </ToggleGroupItem>
@@ -126,6 +117,7 @@ export function BookmarkPage() {
                   value='list'
                   aria-label='Vista en lista'
                   size='sm'
+                  className='rounded-l-none'
                 >
                   <List className='size-4' />
                 </ToggleGroupItem>
@@ -154,11 +146,12 @@ export function BookmarkPage() {
               onValueChange={value => {
                 if (value) handleViewChange(value as 'list' | 'grid');
               }}
+              className='gap-0'
             >
-              <ToggleGroupItem value='grid' aria-label='Vista en cuadrícula'>
+              <ToggleGroupItem value='grid' aria-label='Vista en cuadrícula' className='rounded-r-none border-r-0'>
                 <LayoutGrid className='size-4' />
               </ToggleGroupItem>
-              <ToggleGroupItem value='list' aria-label='Vista en lista'>
+              <ToggleGroupItem value='list' aria-label='Vista en lista' className='rounded-l-none'>
                 <List className='size-4' />
               </ToggleGroupItem>
             </ToggleGroup>
@@ -169,7 +162,7 @@ export function BookmarkPage() {
         {loading && bookmarks.length === 0 ? (
           view === 'grid' ? (
             <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
-              <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <Card
                     key={i}
@@ -187,32 +180,45 @@ export function BookmarkPage() {
             </div>
           ) : (
             <div className='flex-1 overflow-hidden'>
-              <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
-                <div className='grid grid-cols-12 gap-4 px-4 py-3'>
-                  <Skeleton className='h-4 w-20 col-span-5' />
-                  <Skeleton className='h-4 w-16 col-span-2' />
-                  <Skeleton className='h-4 w-16 col-span-2' />
-                  <Skeleton className='h-4 w-16 col-span-2' />
-                  <Skeleton className='h-4 w-16 col-span-1' />
-                </div>
-              </div>
-              <div className='divide-y divide-border'>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className='grid grid-cols-12 gap-4 px-4 py-3'>
-                    <div className='col-span-5 space-y-2'>
-                      <Skeleton className='h-4 w-full' />
-                      <Skeleton className='h-3 w-2/3' />
-                    </div>
-                    <div className='col-span-2 flex items-center gap-2'>
-                      <Skeleton className='h-6 w-16' />
-                    </div>
-                    <Skeleton className='h-4 w-24 col-span-2' />
-                    <Skeleton className='h-4 w-20 col-span-2' />
-                    <div className='col-span-1 flex justify-end gap-1'>
-                      <Skeleton className='h-8 w-8' />
-                    </div>
+              <div className='h-full overflow-y-auto'>
+                {/* Table Header */}
+                <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
+                  <div className='grid grid-cols-12 gap-3 px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
+                    <div className='col-span-3'>Norma</div>
+                    <div className='col-span-4'>Descripción</div>
+                    <div className='col-span-2'>Detalles</div>
+                    <div className='col-span-2'>Publicación</div>
+                    <div className='col-span-1 text-right'>Acciones</div>
                   </div>
-                ))}
+                </div>
+
+                {/* Row skeletons */}
+                <div className='divide-y divide-border'>
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className='grid grid-cols-12 gap-3 px-6 py-4'>
+                      <div className='col-span-3 space-y-2'>
+                        <Skeleton className='h-5 w-3/4' />
+                        <Skeleton className='h-3 w-1/2' />
+                      </div>
+                      <div className='col-span-4 space-y-2'>
+                        <Skeleton className='h-4 w-full' />
+                        <Skeleton className='h-3 w-5/6' />
+                        <Skeleton className='h-3 w-4/6' />
+                      </div>
+                      <div className='col-span-2 space-y-2'>
+                        <Skeleton className='h-6 w-20' />
+                        <Skeleton className='h-3 w-24' />
+                      </div>
+                      <div className='col-span-2 space-y-1'>
+                        <Skeleton className='h-4 w-24' />
+                        <Skeleton className='h-3 w-20' />
+                      </div>
+                      <div className='col-span-1 flex justify-end gap-1'>
+                        <Skeleton className='h-8 w-8' />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )
@@ -222,7 +228,7 @@ export function BookmarkPage() {
             {/* Background grid cards - realistic layout */}
             <div className='absolute inset-0 px-4 md:px-6 py-4 pointer-events-none'>
               <div
-                className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 h-full'
+                className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full'
                 style={{
                   WebkitMaskImage:
                     'radial-gradient(ellipse at center, transparent 20%, black 50%, transparent 80%)',
@@ -283,7 +289,7 @@ export function BookmarkPage() {
           </section>
         ) : view === 'grid' ? (
           <div className='flex-1 overflow-y-auto px-4  py-4 bg-muted/30'>
-            <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
               {bookmarks.map(norma => (
                 <NormaCard
                   key={norma.infoleg_id}
@@ -294,10 +300,10 @@ export function BookmarkPage() {
             </div>
 
             {/* Infinite scroll trigger */}
-            <div ref={observerTarget} className='h-10 w-full'>
+            <div ref={observerTarget} className='h-1 w-full'>
               {loadingMore && (
-                <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-4'>
-                  {Array.from({ length: 3 }).map((_, i) => (
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4 pb-4'>
+                  {Array.from({ length: 8 }).map((_, i) => (
                     <Card
                       key={i}
                       className='flex h-full flex-col bg-card rounded-xl animate-pulse'
@@ -315,115 +321,54 @@ export function BookmarkPage() {
             </div>
           </div>
         ) : (
-          <div className='flex-1 overflow-y-auto'>
-            {/* Table Header */}
-            <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
-              <div className='grid grid-cols-12 gap-4 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
-                <div className='col-span-5'>Título</div>
-                <div className='col-span-2'>Fecha Publicación</div>
-                <div className='col-span-2'>Tipo</div>
-                <div className='col-span-2'>Boletín Oficial</div>
-                <div className='col-span-1 text-right'>Acciones</div>
-              </div>
-            </div>
-
-            {/* Table Rows */}
-            <div className='divide-y divide-border'>
-              {bookmarks.map((norma, index) => (
-                <div
-                  key={norma.infoleg_id}
-                  className={`grid grid-cols-12 gap-4 px-4 py-3 transition-colors cursor-pointer group ${
-                    index % 2 === 0 ? 'bg-background' : 'bg-muted/80'
-                  } hover:bg-muted/50`}
-                  onClick={() =>
-                    (window.location.href = `/normas/${norma.infoleg_id}`)
-                  }
-                >
-                  {/* Title Column */}
-                  <div className='col-span-5 flex flex-col gap-1 min-w-0'>
-                    <h3 className='text-sm font-serif font-bold text-foreground truncate group-hover:text-primary'>
-                      {norma.titulo_resumido ||
-                        norma.titulo_sumario ||
-                        'Sin título'}
-                    </h3>
-                  </div>
-
-                  {/* Date Column */}
-                  <div className='col-span-2 flex items-center text-sm text-muted-foreground'>
-                    {norma.publicacion ? (
-                      <span>{formatDate(norma.publicacion)}</span>
-                    ) : (
-                      <span className='text-xs'>-</span>
-                    )}
-                  </div>
-
-                  {/* Type Column */}
-                  <div className='col-span-2 flex items-center text-sm text-muted-foreground'>
-                    {norma.tipo_norma ? (
-                      <span>{norma.tipo_norma}</span>
-                    ) : (
-                      <span className='text-xs'>-</span>
-                    )}
-                  </div>
-
-                  {/* Boletín Column */}
-                  <div className='col-span-2 flex items-center text-sm text-muted-foreground'>
-                    {norma.nro_boletin ? (
-                      <span className='truncate'>
-                        B.O. {norma.nro_boletin}
-                        {norma.pag_boletin ? ` • pág. ${norma.pag_boletin}` : ''}
-                      </span>
-                    ) : (
-                      <span className='text-xs'>-</span>
-                    )}
-                  </div>
-
-                  {/* Actions Column */}
-                  <div className='col-span-1 flex items-center justify-end gap-1'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity'
-                      onClick={e => {
-                        e.stopPropagation();
-                        window.location.href = `/normas/${norma.infoleg_id}`;
-                      }}
-                    >
-                      <Eye className='h-4 w-4' />
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity'
-                      onClick={e => {
-                        e.stopPropagation();
-                        window.open(
-                          `https://www.argentina.gob.ar/normativa/nacional/${norma.infoleg_id}`,
-                          '_blank',
-                        );
-                      }}
-                    >
-                      <ExternalLink className='h-4 w-4' />
-                    </Button>
-                  </div>
+          <div className='flex-1 overflow-hidden'>
+            <div className='h-full overflow-y-auto'>
+              {/* Table Header */}
+              <div className='sticky top-0 z-10 bg-muted/50 backdrop-blur-sm border-b'>
+                <div className='grid grid-cols-12 gap-3 px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide'>
+                  <div className='col-span-3'>Norma</div>
+                  <div className='col-span-4'>Descripción</div>
+                  <div className='col-span-2'>Detalles</div>
+                  <div className='col-span-2'>Publicación</div>
+                  <div className='col-span-1 text-right'>Acciones</div>
                 </div>
-              ))}
+              </div>
+
+              {/* Table Rows */}
+              <div className='divide-y divide-border'>
+                {bookmarks.map((norma, index) => (
+                  <NormaListItem
+                    key={norma.infoleg_id}
+                    norma={norma}
+                    isBookmarked={true}
+                    index={index}
+                  />
+                ))}
+              </div>
 
               {/* Infinite scroll trigger for list view */}
-              <div ref={observerTarget} className='h-10 w-full py-4'>
+              <div ref={observerTarget} className='h-1 w-full'>
                 {loadingMore && (
-                  <div className='divide-y divide-border'>
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className='grid grid-cols-12 gap-4 px-4 py-3'>
-                        <div className='col-span-5 space-y-2'>
+                  <div className='divide-y divide-border mt-4 pb-4'>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className='grid grid-cols-12 gap-3 px-6 py-4'>
+                        <div className='col-span-3 space-y-2'>
+                          <Skeleton className='h-5 w-3/4' />
+                          <Skeleton className='h-3 w-1/2' />
+                        </div>
+                        <div className='col-span-4 space-y-2'>
                           <Skeleton className='h-4 w-full' />
-                          <Skeleton className='h-3 w-2/3' />
+                          <Skeleton className='h-3 w-5/6' />
+                          <Skeleton className='h-3 w-4/6' />
                         </div>
-                        <div className='col-span-2 flex items-center gap-2'>
-                          <Skeleton className='h-6 w-16' />
+                        <div className='col-span-2 space-y-2'>
+                          <Skeleton className='h-6 w-20' />
+                          <Skeleton className='h-3 w-24' />
                         </div>
-                        <Skeleton className='h-4 w-24 col-span-2' />
-                        <Skeleton className='h-4 w-20 col-span-2' />
+                        <div className='col-span-2 space-y-1'>
+                          <Skeleton className='h-4 w-24' />
+                          <Skeleton className='h-3 w-20' />
+                        </div>
                         <div className='col-span-1 flex justify-end gap-1'>
                           <Skeleton className='h-8 w-8' />
                         </div>

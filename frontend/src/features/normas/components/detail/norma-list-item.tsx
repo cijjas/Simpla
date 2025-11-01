@@ -1,29 +1,22 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatDateSlash } from '@/lib/utils';
+import { getNombreNorma } from '@/features/normas/utils/norma-utils';
 import { NormaSummary } from '@/features/normas/api/normas-api';
 
-interface NormaListItemProps {
+interface NormaRelatedItemProps {
   data: NormaSummary;
   secondary?: boolean;
 }
 
-export function NormaListItem({ data, secondary = false }: NormaListItemProps) {
+export function NormaRelatedItem({ data, secondary = false }: NormaRelatedItemProps) {
   const displayDate = data.publicacion || data.sancion;
-
-  // Get norma name with numero if available
-  const getNormaName = () => {
-    if (data.tipo_norma && data.referencia?.numero) {
-      return `${data.tipo_norma} ${data.referencia.numero}`;
-    }
-    return data.tipo_norma;
-  };
 
   return (
     <li className='flex flex-wrap items-baseline gap-2'>
       {data.tipo_norma && (
         <Badge variant={secondary ? 'secondary' : 'default'}>
-          {getNormaName()}
+          {getNombreNorma(data)}
         </Badge>
       )}
       <Link

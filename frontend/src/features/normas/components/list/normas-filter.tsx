@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,9 +29,10 @@ import { NormaFilters } from '../../api/normas-api';
 interface NormasFilterProps {
   loading?: boolean;
   onFilterApplied?: () => void;
+  mobileMode?: boolean; // When true, only shows search input
 }
 
-export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
+export function NormasFilter({ loading, onFilterApplied, mobileMode = false }: NormasFilterProps) {
   const {
     filterOptions,
     currentFilters,
@@ -41,39 +42,26 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
   } = useNormasFilters();
 
   // Local pending state for filters (not applied until button click)
-  const [pendingFilters, setPendingFilters] = useState<Partial<NormaFilters>>({});
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Initialize with current filters from URL
+  const [pendingFilters, setPendingFilters] = useState<Partial<NormaFilters>>(() => ({
+    search_term: currentFilters.search_term,
+    numero: currentFilters.numero,
+    dependencia: currentFilters.dependencia,
+    titulo_sumario: currentFilters.titulo_sumario,
+    tipo_norma: currentFilters.tipo_norma,
+    año_sancion: currentFilters.año_sancion,
+    nro_boletin: currentFilters.nro_boletin,
+    pag_boletin: currentFilters.pag_boletin,
+    publicacion_desde: currentFilters.publicacion_desde,
+    publicacion_hasta: currentFilters.publicacion_hasta,
+  }));
   const [dependenciaOpen, setDependenciaOpen] = useState(false);
-
-  // Initialize pending filters from URL on mount
-  useEffect(() => {
-    if (!isInitialized) {
-      setPendingFilters({
-        search_term: currentFilters.search_term,
-        numero: currentFilters.numero,
-        dependencia: currentFilters.dependencia,
-        titulo_sumario: currentFilters.titulo_sumario,
-        tipo_norma: currentFilters.tipo_norma,
-        año_sancion: currentFilters.año_sancion,
-        nro_boletin: currentFilters.nro_boletin,
-        pag_boletin: currentFilters.pag_boletin,
-        publicacion_desde: currentFilters.publicacion_desde,
-        publicacion_hasta: currentFilters.publicacion_hasta,
-      });
-      setIsInitialized(true);
-    }
-  }, [currentFilters, isInitialized]);
 
   // Parse date range from pending filters
   const dateRange = useMemo(() => {
-    const range: { from?: Date; to?: Date } = {};
-    if (pendingFilters.publicacion_desde) {
-      range.from = new Date(pendingFilters.publicacion_desde);
-    }
-    if (pendingFilters.publicacion_hasta) {
-      range.to = new Date(pendingFilters.publicacion_hasta);
-    }
-    return range;
+    const from = pendingFilters.publicacion_desde ? new Date(pendingFilters.publicacion_desde) : undefined;
+    const to = pendingFilters.publicacion_hasta ? new Date(pendingFilters.publicacion_hasta) : undefined;
+    return { from, to };
   }, [pendingFilters.publicacion_desde, pendingFilters.publicacion_hasta]);
 
   // Check if pending filters differ from current filters
@@ -151,8 +139,16 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
 
   // Handle Enter key press to apply filters
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && hasChanges && !loading) {
-      handleApplyFilters();
+    if (e.key === 'Enter' && !loading) {
+      if (mobileMode) {
+        // On mobile, apply search immediately when Enter is pressed
+        // Only search term changes trigger immediate search
+        if (pendingFilters.search_term !== currentFilters.search_term) {
+          handleApplyFilters();
+        }
+      } else if (hasChanges) {
+        handleApplyFilters();
+      }
     }
   };
 
@@ -174,9 +170,50 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
     onFilterApplied?.();
   };
 
+  // Mobile mode: only show search input (standard simple search)
+  if (mobileMode) {
+    return (
+      <div className='w-full'>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!loading) {
+              handleApplyFilters();
+            }
+          }}
+          className='flex gap-2'
+        >
+          <div className='relative flex-1'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none z-10' />
+            <Input
+              id='mobile-search'
+              type='search'
+              className='pl-9 h-10 text-base bg-background w-full'
+              placeholder='Buscar en normas...'
+              value={pendingFilters.search_term || ''}
+              onChange={e => handleSearchTermChange(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={loading}
+              autoComplete='off'
+              enterKeyHint='search'
+            />
+          </div>
+          <Button
+            type='submit'
+            size='sm'
+            className='h-10 px-4 flex-shrink-0'
+            disabled={loading || (!pendingFilters.search_term?.trim() && !currentFilters.search_term)}
+          >
+            Buscar
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className='w-full'>
-      <div className='space-y-3 p-1'>
+      <div className='space-y-4 md:space-y-3 p-2 md:p-1'>
         {/* Search Term */}
         <div className='w-full'>
           <Label htmlFor='search' className='text-xs'>
@@ -187,7 +224,7 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
             <Input
               id='search'
               className='pl-9 h-9 text-sm bg-background'
-              placeholder='Buscar...'
+              placeholder='Buscar en normas...'
               value={pendingFilters.search_term || ''}
               onChange={e => handleSearchTermChange(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -393,11 +430,14 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
           <Label className='text-xs'>Fecha de Publicación</Label>
           <div className='mt-1'>
             <DateRangePicker
-              placeholder='Desde - Hasta'
-              initialDateFrom={dateRange.from}
-              initialDateTo={dateRange.to}
-              onUpdate={({ range }) => handleDateRangeChange(range)}
-              className='h-9 text-sm bg-background'
+              className="w-full"
+              value={dateRange.from || dateRange.to ? dateRange : undefined}
+              onSelect={(range) => {
+                handleDateRangeChange({
+                  from: range?.from,
+                  to: range?.to,
+                })
+              }}
             />
           </div>
         </div>
@@ -409,7 +449,7 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
             onClick={handleClearAll}
             disabled={!hasActiveFilters || loading}
             size='sm'
-            className='w-1/3'
+            className='flex-1 min-w-0'
           >
             Limpiar
           </Button>
@@ -417,9 +457,9 @@ export function NormasFilter({ loading, onFilterApplied }: NormasFilterProps) {
             onClick={handleApplyFilters}
             disabled={!hasChanges || loading}
             size='sm'
-            className='w-2/3'
+            className='flex-[2] min-w-0'
           >
-            Aplicar Filtros
+            <span className='truncate'>Aplicar Filtros</span>
           </Button>
         </div>
       </div>

@@ -1,12 +1,37 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 
 // Extend Window interface for Speech Recognition API
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: {
+    transcript: string;
+    confidence: number;
+  };
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResult[];
+}
+
+interface SpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }
 import { Button } from '@/components/ui/button';
@@ -17,13 +42,14 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageCircle, X, User, Loader2, ArrowUp, ChevronDown, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, ArrowUp, ChevronDown, Mic, MicOff, X, Quote } from 'lucide-react';
 import { useApi } from '@/features/auth/hooks/use-api';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import SvgEstampa from '@/../public/svgs/estampa.svg';
 import { Kbd } from '@/components/ui/kbd';
 import { getCommandById, getShortcutParts } from '@/features/command-center';
+import { LoadingMessage } from '@/features/conversations/components/loading-message';
 
 interface Message {
   id: string;
@@ -38,22 +64,38 @@ interface NormasAIChatProps {
   infolegId?: number;
 }
 
-export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
+export interface NormasAIChatRef {
+  openWithContext: (text: string) => void;
+}
+
+export const NormasAIChat = forwardRef<NormasAIChatRef, NormasAIChatProps>(function NormasAIChat({ normaId, infolegId }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null); // Track session ID
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [interimText, setInterimText] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [contextQuote, setContextQuote] = useState<string | null>(null);
   
-  // Resizable chat dimensions with viewport-aware limits
+  // Resizable chat dimensions with viewport-aware limits (desktop only)
   const [chatDimensions, setChatDimensions] = useState(() => {
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
-    // Calculate max dimensions considering navbar (~64px) and margins, plus table of contents space
+    const mobile = viewportWidth < 768;
+    
+    if (mobile) {
+      // Mobile: full width with margins, leave room for action buttons
+      return {
+        width: viewportWidth - 32, // 16px margin on each side
+        height: viewportHeight - 160 // Leave room for navbar + action buttons + bottom spacing
+      };
+    }
+    
+    // Desktop: Calculate max dimensions considering navbar (~64px) and margins, plus table of contents space
     const maxHeight = viewportHeight - 140; // navbar + margins + padding
     const maxWidth = Math.min(viewportWidth * 0.35, 450); // max 35% of viewport or 450px (leaves room for table of contents)
     
@@ -63,48 +105,85 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     };
   });
   const [isResizing, setIsResizing] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   const api = useApi();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   
   // Command center integration
   const toggleCommand = getCommandById('toggle-norma-chat');
   const toggleShortcut = toggleCommand ? getShortcutParts(toggleCommand) : [];
 
-  // Resize handlers
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    openWithContext: (text: string) => {
+      setIsOpen(true);
+      setContextQuote(text);
+      // Focus input after a brief delay to ensure it's rendered
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+    },
+  }), []);
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Resize handlers (desktop only)
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return; // Disable resizing on mobile
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: chatDimensions.width,
+      height: chatDimensions.height,
+    };
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing) return;
+    if (!isResizing || !resizeStartRef.current) return;
     
-    const deltaX = dragStart.x - e.clientX;
-    const deltaY = dragStart.y - e.clientY;
+    // Calculate delta from initial drag start position
+    const deltaX = resizeStartRef.current.x - e.clientX;
+    const deltaY = resizeStartRef.current.y - e.clientY;
     
     // Calculate viewport-based limits
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     const maxHeight = viewportHeight - 140; // considering navbar and margins
     const maxWidth = Math.min(viewportWidth * 0.35, 450); // max 35% of viewport width or 450px
-    const minHeight = Math.max(maxHeight * 0.65, 350); // minimum 65% of max height or 350px
-    const minWidth = Math.max(maxWidth * 0.75, 300); // minimum 75% of max width or 300px
+    const minHeight = 350; // minimum height
+    const minWidth = 300; // minimum width
     
-    setChatDimensions(prev => ({
-      width: Math.min(Math.max(minWidth, prev.width + deltaX), maxWidth),
-      height: Math.min(Math.max(minHeight, prev.height + deltaY), maxHeight)
-    }));
+    // Calculate new dimensions based on initial dimensions and delta
+    // Dragging right (positive deltaX) decreases width, dragging left (negative deltaX) increases width
+    // Dragging down (positive deltaY) decreases height, dragging up (negative deltaY) increases height
+    const newWidth = Math.min(Math.max(minWidth, resizeStartRef.current.width + deltaX), maxWidth);
+    const newHeight = Math.min(Math.max(minHeight, resizeStartRef.current.height + deltaY), maxHeight);
     
-    setDragStart({ x: e.clientX, y: e.clientY });
+    setChatDimensions({
+      width: newWidth,
+      height: newHeight,
+    });
   };
 
   const handleMouseUp = () => {
     setIsResizing(false);
+    resizeStartRef.current = null;
   };
 
   // Add global mouse events for resizing
@@ -131,7 +210,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       document.body.style.userSelect = '';
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isResizing, dragStart]);
+  }, [isResizing]);
 
   // Reset session when norma changes
   useEffect(() => {
@@ -144,15 +223,26 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
     const handleWindowResize = () => {
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
-      const maxHeight = viewportHeight - 140;
-      const maxWidth = Math.min(viewportWidth * 0.35, 450);
-      const minHeight = Math.max(maxHeight * 0.65, 350);
-      const minWidth = Math.max(maxWidth * 0.75, 300);
+      const mobile = viewportWidth < 768;
       
-      setChatDimensions(prev => ({
-        width: Math.min(Math.max(prev.width, minWidth), maxWidth),
-        height: Math.min(Math.max(prev.height, minHeight), maxHeight)
-      }));
+      if (mobile) {
+        // Mobile: full width with margins, leave room for action buttons
+        setChatDimensions({
+          width: viewportWidth - 32,
+          height: viewportHeight - 160
+        });
+      } else {
+        // Desktop: maintain resizable behavior
+        const maxHeight = viewportHeight - 140;
+        const maxWidth = Math.min(viewportWidth * 0.35, 450);
+        const minHeight = Math.max(maxHeight * 0.65, 350);
+        const minWidth = Math.max(maxWidth * 0.75, 300);
+        
+        setChatDimensions(prev => ({
+          width: Math.min(Math.max(prev.width, minWidth), maxWidth),
+          height: Math.min(Math.max(prev.height, minHeight), maxHeight)
+        }));
+      }
     };
 
     window.addEventListener('resize', handleWindowResize);
@@ -218,31 +308,37 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       stopDictation();
     }
 
+    // Build the question with context if available
+    const baseQuestion = inputValue.trim();
+    const questionWithContext = contextQuote 
+      ? `Estoy leyendo la siguiente parte de esta norma:\n\n"${contextQuote}"\n\nMi pregunta específica sobre este fragmento es: ${baseQuestion}`
+      : baseQuestion;
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: inputValue.trim(),
+      content: baseQuestion,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = inputValue.trim();
     setInputValue('');
+    setContextQuote(null); // Clear context after sending
     setIsLoading(true);
 
     try {
       // Use the same endpoint as the old norma chat
-      const response = await api.post<{ answer: string; session_id?: string }>('/api/norma-chat', {
+      const response = await api.post<{ answer: string; norma_id: number; session_id: string }>('/api/norma-chat', {
         norma_id: infolegId || normaId, // Use infolegId if available, fallback to normaId
-        question: currentInput,
+        question: questionWithContext,
         session_id: sessionId // Include existing session ID for conversation continuity
       });
 
       // Stop loading and start typing effect
       setIsLoading(false);
 
-      // Update session ID if returned from backend
-      if (response.session_id && !sessionId) {
+      // Update session ID if returned from backend (always update to ensure we have the latest session)
+      if (response.session_id) {
         setSessionId(response.session_id);
       }
 
@@ -347,7 +443,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       toast.success('Escuchando...');
     };
     
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = '';
       let interimTranscript = '';
       
@@ -378,7 +474,7 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       }
     };
     
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: { error: string }) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
       setInterimText('');
@@ -424,22 +520,26 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className={`fixed z-50 ${isMobile ? 'bottom-4 right-4' : 'bottom-6 right-6'}`}>
         <Button
           onClick={toggleChat}
           size="lg"
-          className="group relative flex items-center gap-1 rounded-lg overflow-hidden transition-all duration-300 ease-out !px-2"
+          className={`group relative flex items-center gap-1 rounded-lg overflow-hidden transition-all duration-300 ease-out ${
+            isMobile ? '!h-14 !w-14 !p-0' : '!px-2'
+          }`}
           aria-label="Abrir chat de AI sobre esta norma"
         >
-          {/* Expanding text content - slides in on hover */}
-          <div className="max-w-0 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-xs group-hover:opacity-100 group-hover:mr-2">
-            <span className="whitespace-nowrap">  
-              Preguntale a {' '}
-              <span className="font-serif font-thin italic">Simpla</span>
-            </span>
-          </div>
-          {/* Kbd shortcuts - always visible */}
-          {toggleShortcut.length > 0 && (
+          {/* Expanding text content - slides in on hover (desktop only) */}
+          {!isMobile && (
+            <div className="max-w-0 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-xs group-hover:opacity-100 group-hover:mr-2">
+              <span className="whitespace-nowrap">  
+                Preguntale a {' '}
+                <span className="font-serif font-thin italic">Themis</span>
+              </span>
+            </div>
+          )}
+          {/* Kbd shortcuts - desktop only */}
+          {!isMobile && toggleShortcut.length > 0 && (
             <span className="flex items-center gap-1 whitespace-nowrap">
               {toggleShortcut.map((key, idx) => (
                 <Kbd key={idx} className="bg-primary-foreground/10 text-texts ">{key}</Kbd>
@@ -447,34 +547,56 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
             </span>
           )}
           {/* Icon - always visible */}
-          <MessageCircle className="h-6 w-6 flex-shrink-0" />
+          <MessageCircle className={`flex-shrink-0 ${isMobile ? 'h-7 w-7' : 'h-6 w-6'}`} />
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className={`fixed z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 ${
+      isMobile 
+        ? 'inset-x-4 bottom-4 top-32' // Mobile: full width with margins, leave room for action buttons
+        : 'bottom-6 right-6' // Desktop: bottom right corner
+    }`}>
       {/* frosted glass effect */}
       <Card 
         ref={chatRef}
-        className=" relative shadow-sm pb-0 rounded-2xl backdrop-blur-sm bg-background/80  p-2" 
-        style={{ 
+        className={`relative shadow-sm pb-0 rounded-2xl backdrop-blur-sm bg-background/80 p-2 ${
+          isMobile ? 'h-full' : ''
+        }`}
+        style={!isMobile ? { 
           width: `${chatDimensions.width}px`, 
           height: `${chatDimensions.height}px` 
-        }}
+        } : undefined}
       >
-        {/* Invisible resize handle - top left corner */}
-        <div 
-          className={`absolute top-0 left-0 w-5 h-5 cursor-nw-resize z-20`}
-          onMouseDown={handleMouseDown}
-          title="Arrastra para redimensionar"
-        />
+        {/* Resize handle - top left corner (desktop only) */}
+        {!isMobile && (
+          <div 
+            className="absolute top-1 left-1 w-6 h-6 cursor-nw-resize z-20 flex items-center justify-center group rounded-br-lg transition-colors"
+            onMouseDown={handleMouseDown}
+            title="Arrastra para redimensionar"
+          >
+            <div className="relative">
+              {/* Create diagonal grip pattern with dots */}
+              <div className="flex flex-col gap-0.5">
+                <div className="flex gap-0.5">
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                </div>
+                <div className="flex gap-0.5 pl-1">
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                  <div className="w-0.5 h-0.5 rounded-full bg-muted-foreground/60 group-hover:bg-muted-foreground transition-colors" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         <CardContent className="p-0 h-full flex flex-col">
           {/* Collapse button in top right */}
           <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-            <Kbd className="text-xs">Esc</Kbd>
+            {!isMobile && <Kbd className="text-xs">Esc</Kbd>}
             <Button
               onClick={handleClose}
               size="sm"
@@ -511,12 +633,6 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                             message.role === 'user' ? 'justify-end' : 'justify-start'
                         }`}
                         >
-                        {message.role === 'assistant' && (
-                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                            <SvgEstampa className="size-6" />
-                            </div>
-                        )}
-                        
                         <div
                             className={`max-w-[80%] p-2 rounded-lg ${
                             message.role === 'user'
@@ -548,38 +664,43 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
                             {formatTime(message.timestamp)}
                             </p>
                         </div>
-
-                        {message.role === 'user' && (
-                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-1">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            </div>
-                        )}
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
                     </div>
                 </div>
 
-                {/* Loading Indicator - Fixed position below ScrollArea */}
-                {isLoading && (
-                    <div className="px-3 py-2">
-                    <div className="flex justify-start">
-                        <div className="text-sm">
-                        <div className="flex items-center mb-1 gap-2 text-xs text-muted-foreground">
-                            <SvgEstampa className="h-6 w-6" />
-                            <span className="font-medium">Simpla</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Pensando...</span>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                )}
+                {/* Loading Indicator */}
+                {isLoading && <LoadingMessage />}
                 </div>
             )}
             </div>
+
+          {/* Context Quote */}
+          {contextQuote && (
+            <div className="px-3 pb-2 flex-shrink-0 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="relative bg-muted/50 border border-border rounded-lg p-3 pr-8">
+                <div className="flex items-start gap-2">
+                  <Quote className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Contexto</p>
+                    <p className="text-sm text-foreground/90 line-clamp-3 break-words">
+                      {contextQuote}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-background"
+                  onClick={() => setContextQuote(null)}
+                  title="Remover contexto"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Input Area */}
           <div className="px-3 pb-4 flex-shrink-0">
@@ -635,4 +756,4 @@ export function NormasAIChat({ normaId, infolegId }: NormasAIChatProps) {
       </Card>
     </div>
   );
-}
+});

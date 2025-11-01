@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import {
   Accordion,
@@ -10,7 +11,8 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { formatDateSlash } from '@/lib/utils';
 import { NormaSummary } from '@/features/normas/api/normas-api';
-import { NormaListItem } from './norma-list-item';
+import { getNombreNorma } from '@/features/normas/utils/norma-utils';
+import { NormaRelatedItem } from './norma-list-item';
 
 interface NormaHeaderProps {
   norma: {
@@ -59,35 +61,74 @@ export function NormaHeader({
   modificaCount,
   modificadaCount,
 }: NormaHeaderProps) {
+  const hasBothTitles = norma.titulo_resumido && norma.titulo_sumario;
+
+  // Helper to create filter URL for publication date
+  const createPublicacionFilterUrl = (date: string) => {
+    const params = new URLSearchParams();
+    params.set('publicacion_desde', date);
+    params.set('publicacion_hasta', date);
+    return `/normas?${params.toString()}`;
+  };
+
   return (
     <header className='space-y-6'>
-      <div className='flex items-center justify-between gap-4 flex-wrap'>
+      {/* Norma Identifier - Prominent display */}
+      <div className='flex items-center gap-3 flex-wrap '>
+        <div className='text-lg font-bold font-serif text-muted-foreground'>
+          {getNombreNorma(norma)}
+        </div>
+        {norma.estado?.trim() && (
+          <Badge variant='outline' className='font-medium'>
+            {norma.estado}
+          </Badge>
+        )}
+        
+        {/* Dependencia on same row with spacing */}
+        {norma.referencia?.dependencia && (
+          <>
+            <div className='h-4 border-l border-border/30 mx-1' />
+            <div className='text-xs text-muted-foreground italic truncate flex-1 min-w-0'>
+              {norma.referencia.dependencia}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Main Title(s) */}
+      <div className='space-y-3'>
         <h1 className='text-3xl font-bold font-serif leading-tight break-words'>
           {norma.titulo_resumido || norma.titulo_sumario || 'Sin título'}
         </h1>
+        
+        {/* Show titulo_sumario as subtitle when titulo_resumido exists */}
+        {hasBothTitles && (
+          <h2 className='text-xl font-medium text-muted-foreground leading-snug break-words'>
+            {norma.titulo_sumario}
+          </h2>
+        )}
       </div>
 
+      {/* Metadata badges and info */}
       <div className='flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
-        {norma.tipo_norma?.trim() && (
-          <Badge>
-            {norma.referencia?.numero 
-              ? `${norma.tipo_norma} ${norma.referencia.numero}`
-              : norma.tipo_norma
-            }
-          </Badge>
-        )}
         {norma.clase_norma?.trim() && (
           <Badge variant='secondary'>{norma.clase_norma}</Badge>
         )}
-        {norma.estado?.trim() && (
-          <Badge variant='outline'>{norma.estado}</Badge>
+        {norma.jurisdiccion && (
+          <Badge variant='default'>{norma.jurisdiccion}</Badge>
         )}
 
         <div className='h-4 border-l border-border/30 mx-1' />
 
         {norma.publicacion && (
           <span>
-            Publicada el {formatDateSlash(norma.publicacion)}
+            Publicada el{' '}
+            <Link
+              href={createPublicacionFilterUrl(norma.publicacion)}
+              className='font-medium hover:underline hover:text-foreground transition-colors'
+            >
+              {formatDateSlash(norma.publicacion)}
+            </Link>
             {norma.nro_boletin && (
               <>
                 {' '}en el Boletín Oficial N°&nbsp;{norma.nro_boletin}
@@ -105,12 +146,12 @@ export function NormaHeader({
           </span>
         )}
 
-        <div className='h-4 border-l border-border/30 mx-1' />
-
         {norma.sancion && (
-          <span>Sancionada el {formatDateSlash(norma.sancion)}</span>
+          <>
+            <div className='h-4 border-l border-border/30 mx-1' />
+            <span>Sancionada el {formatDateSlash(norma.sancion)}</span>
+          </>
         )}
-        {norma.jurisdiccion && <span>Jurisdicción: {norma.jurisdiccion}</span>}
       </div>
 
       {!!(modificaCount || modificadaCount) && (
@@ -129,7 +170,7 @@ export function NormaHeader({
                 ) : (
                   <ul className='flex flex-col gap-2'>
                     {modifica.map(n => (
-                      <NormaListItem key={n.id} data={n} />
+                      <NormaRelatedItem key={n.id} data={n} />
                     ))}
                   </ul>
                 )}
@@ -148,7 +189,7 @@ export function NormaHeader({
                 ) : (
                   <ul className='flex flex-col gap-2'>
                     {modificadaPor.map(n => (
-                      <NormaListItem key={n.id} data={n} secondary />
+                      <NormaRelatedItem key={n.id} data={n} secondary />
                     ))}
                   </ul>
                 )}

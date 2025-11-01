@@ -4,7 +4,7 @@ export { NormaBody } from './norma-body';
 export { NormaDivisionComponent } from './norma-division';
 export { NormaArticleComponent } from './norma-article';
 export { NormaControls } from './norma-controls';
-export { NormaListItem } from './norma-list-item';
+export { NormaRelatedItem } from './norma-list-item';
 export { NormaActions } from './norma-actions';
 export { NormaRelationGraph } from './norma-relation-graph';
 export { NormaRelationGraphDialog } from './norma-relation-graph-dialog';

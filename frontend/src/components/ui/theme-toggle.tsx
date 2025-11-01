@@ -11,6 +11,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
+// Helper function to temporarily disable transitions during theme change
+function withoutTransition(action: () => void) {
+  const style = document.createElement('style');
+  style.innerHTML = `* {
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    -ms-transition: none !important;
+    transition: none !important;
+  }`;
+  document.head.appendChild(style);
+
+  action();
+
+  // Remove the style element after the browser has painted
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.head.removeChild(style);
+    });
+  });
+}
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -27,7 +49,7 @@ export function ThemeToggle() {
       <Laptop className='h-4 w-4' />
     );
 
-  /* while we’re on the server just render a blank square */
+  /* while we're on the server just render a blank square */
   if (!mounted) {
     return <div className='h-10 w-10 rounded-md bg-muted opacity-40' />;
   }
@@ -41,13 +63,13 @@ export function ThemeToggle() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align='end'>
-        <DropdownMenuItem onClick={() => setTheme('light')}>
+        <DropdownMenuItem onClick={() => withoutTransition(() => setTheme('light'))}>
           <Sun className='mr-2 h-4 w-4' /> Claro
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>
+        <DropdownMenuItem onClick={() => withoutTransition(() => setTheme('dark'))}>
           <Moon className='mr-2 h-4 w-4' /> Oscuro
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>
+        <DropdownMenuItem onClick={() => withoutTransition(() => setTheme('system'))}>
           <Laptop className='mr-2 h-4 w-4' /> Sistema
         </DropdownMenuItem>
       </DropdownMenuContent>

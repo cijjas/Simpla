@@ -20,7 +20,6 @@ import {
   Trash2,
   MoreHorizontal,
   Loader2,
-  Sparkles,
 } from 'lucide-react';
 import { useFoldersContext } from '../context/folders-context';
 import { FolderTreeItem } from '../types';
@@ -196,11 +195,11 @@ export function FolderTree({
         return {
           id: folder.id,
           name: (
-            <div className='flex items-center gap-2'>
-              <span>{folder.name}</span>
+            <div className='flex items-center justify-between flex-1 min-w-0'>
+              <span className='truncate'>{folder.name}</span>
               {folder.color && (
                 <div
-                  className='w-2 h-2 rounded-full'
+                  className='size-3 rounded-full flex-shrink-0 ml-2 mr-2'
                   style={{ backgroundColor: folder.color }}
                 />
               )}
@@ -265,6 +264,7 @@ export function FolderTree({
     handleEditFolder,
     handleCreateSubfolder,
     handleDeleteFolder,
+    router,
   ]);
 
   const handleDragAndDrop = useCallback(
@@ -292,21 +292,51 @@ export function FolderTree({
   if (loading) {
     return (
       <div className='h-full flex flex-col gap-0 bg-background'>
-        <div className='p-4 border-b border-border/50'>
+        <div className='p-4 border-b border-border'>
           <div className='flex items-center gap-2'>
             <div className='relative flex-1'>
-              <Skeleton className='h-8 w-full' />
+              <Skeleton className='h-8 w-full rounded-md' />
             </div>
             <Skeleton className='h-8 w-8 rounded-md' />
           </div>
         </div>
-        <div className='p-4 flex-1 space-y-3'>
-          {/* Skeleton folder items */}
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-            <div key={i} className='flex items-center gap-3 px-2 py-2.5'>
-              <Skeleton className='size-4 rounded-sm' />
-              <Skeleton className='h-4 flex-1 max-w-[180px]' />
-              <Skeleton className='size-4 rounded-full ml-auto' />
+        <div className='p-4 flex-1 space-y-1'>
+          {/* Skeleton folder items with hierarchy */}
+          {/* Root level folders */}
+          {[1, 2, 3].map(i => (
+            <div key={`root-${i}`} className='space-y-1'>
+              <div className='flex items-center gap-2 px-2 py-1.5 rounded-md'>
+                <Skeleton className='h-4 flex-1 max-w-[140px]' />
+                <Skeleton className='size-4 rounded-sm ml-auto' />
+              </div>
+              {/* Subfolder level 1 */}
+              {i === 1 && (
+                <>
+                  <div className='flex items-center gap-2 px-2 py-1.5 rounded-md pl-8'>
+                    <Skeleton className='size-4 rounded-sm' />
+                    <Skeleton className='h-4 flex-1 max-w-[120px]' />
+                    <Skeleton className='size-4 rounded-sm ml-auto' />
+                  </div>
+                  <div className='flex items-center gap-2 px-2 py-1.5 rounded-md pl-8'>
+                    <Skeleton className='size-4 rounded-sm' />
+                    <Skeleton className='h-4 flex-1 max-w-[110px]' />
+                    <Skeleton className='size-4 rounded-sm ml-auto' />
+                  </div>
+                  {/* Subfolder level 2 */}
+                  <div className='flex items-center gap-2 px-2 py-1.5 rounded-md pl-14'>
+                    <Skeleton className='size-4 rounded-sm' />
+                    <Skeleton className='h-4 flex-1 max-w-[100px]' />
+                    <Skeleton className='size-4 rounded-sm ml-auto' />
+                  </div>
+                </>
+              )}
+              {i === 2 && (
+                <div className='flex items-center gap-2 px-2 py-1.5 rounded-md pl-8'>
+                  <Skeleton className='size-4 rounded-sm' />
+                  <Skeleton className='h-4 flex-1 max-w-[115px]' />
+                  <Skeleton className='size-4 rounded-sm ml-auto' />
+                </div>
+              )}
             </div>
           ))}
         </div>

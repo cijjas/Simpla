@@ -5,4 +5,4 @@ export * from './detail';
 export * from './list';
 
 // AI Chat component
-export { NormasAIChat } from './normas-ai-chat';
+export { NormasAIChat, type NormasAIChatRef } from './normas-ai-chat';
