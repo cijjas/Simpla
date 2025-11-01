@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatDateSlash } from '@/lib/utils';
 import { NormaSummary } from '@/features/normas/api/normas-api';
 import { getNombreNorma } from '@/features/normas/utils/norma-utils';
-import { NormaListItem } from './norma-list-item';
+import { NormaRelatedItem } from './norma-list-item';
 
 interface NormaHeaderProps {
   norma: {
@@ -170,7 +170,7 @@ export function NormaHeader({
                 ) : (
                   <ul className='flex flex-col gap-2'>
                     {modifica.map(n => (
-                      <NormaListItem key={n.id} data={n} />
+                      <NormaRelatedItem key={n.id} data={n} />
                     ))}
                   </ul>
                 )}
@@ -189,7 +189,7 @@ export function NormaHeader({
                 ) : (
                   <ul className='flex flex-col gap-2'>
                     {modificadaPor.map(n => (
-                      <NormaListItem key={n.id} data={n} secondary />
+                      <NormaRelatedItem key={n.id} data={n} secondary />
                     ))}
                   </ul>
                 )}

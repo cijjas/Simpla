@@ -4,12 +4,12 @@ import { formatDateSlash } from '@/lib/utils';
 import { getNombreNorma } from '@/features/normas/utils/norma-utils';
 import { NormaSummary } from '@/features/normas/api/normas-api';
 
-interface NormaListItemProps {
+interface NormaRelatedItemProps {
   data: NormaSummary;
   secondary?: boolean;
 }
 
-export function NormaListItem({ data, secondary = false }: NormaListItemProps) {
+export function NormaRelatedItem({ data, secondary = false }: NormaRelatedItemProps) {
   const displayDate = data.publicacion || data.sancion;
 
   return (
